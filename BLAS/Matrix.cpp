@@ -2,7 +2,7 @@
 // Created by LevZ on 6/14/2020.
 //
 
-#include "../include/Matrix.h"
+#include "Matrix.h"
 #include <algorithm>
 #include <string>
 
@@ -29,7 +29,7 @@ ostream &operator<<(ostream &os, const Matrix& matrix) {
     for(int i=0; i<matrix.n; ++i){
         os << '[';
         for(int j=0; j<matrix.m; ++j){
-            os << const_cast<Matrix &>(matrix).at(i, j);
+            os << matrix.at(i, j);
             if(j < matrix.m - 1)
                 os << ", ";
         }
@@ -172,7 +172,7 @@ Matrix Matrix::matmul(const Matrix &other) {
     for (int i=0; i<res.n; ++i)
         for (int j=0; j<res.m; ++j)
             for (int k=0; k < m; ++k)
-                res.at(i, j) += this->at(i, k) * const_cast<Matrix&>(other).at(k, j);
+                res.at(i, j) += this->at(i, k) * other.at(k, j);
 
     return res;
 }
@@ -293,7 +293,7 @@ void Matrix::set_row(int i, const Vector &row) {
     if (row.n != m)
         throw runtime_error("Shape mismatch: "+ to_string(m)+ ", " + to_string(row.n));
     for (int j = 0; j < m; ++j)
-        this->at(i, j) = const_cast<Vector&>(row).at(j);
+        this->at(i, j) = row.at(j);
 
 }
 

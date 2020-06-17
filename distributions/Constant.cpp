@@ -2,7 +2,7 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#include "../../include/distributions/Constant.h"
+#include "Constant.h"
 
 float Constant::logp(float val) {
     return 0;

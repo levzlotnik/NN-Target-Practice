@@ -2,7 +2,7 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#include "../../include/distributions/Uniform.h"
+#include "Uniform.h"
 #include <cmath>
 
 float Uniform::logp(float val) {

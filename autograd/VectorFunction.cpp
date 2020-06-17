@@ -2,7 +2,7 @@
 // Created by LevZ on 6/16/2020.
 //
 
-#include "../include/VectorFunction.h"
+#include "VectorFunction.h"
 
 Vector ElementwiseFunction::operator()(const vector<Vector>& args) const {
     check_args(args);
@@ -29,7 +29,7 @@ Matrix Concat::jac(int i, const vector<Vector>& inputs, const Vector& output) co
     return VectorFunction::jac(i, inputs, output);
 }
 
-void VectorFunction::check_args(const vector<Vector>& args) {
+void VectorFunction::check_args(const vector<Vector>& args) const {
     if (args.size() != input_shapes.size())
         throw runtime_error("Arguments count mismatch: " + to_string(args.size()) +
             ", " + to_string(input_shapes.size()));

@@ -41,12 +41,20 @@ public:
 
     ~Vector();
 
+    inline float operator[](int i) const {
+        i = normalize_index(i, n);
+        return data[i];
+    }
+
     inline float& operator [](int i) {
         i = normalize_index(i, n);
         return data[i];
     }
 
     inline float& at(int i){
+        return (*this)[i];
+    }
+    inline float at(int i) const {
         return (*this)[i];
     }
 

@@ -36,7 +36,17 @@ public:
         return data[i*m + j];
     }
 
+    inline float at(int i, int j) const {
+        i = normalize_index(i, n);
+        j = normalize_index(j, m);
+        return data[i*m + j];
+    }
+
     inline float& operator () (int i, int j){
+        return at(i, j);
+    }
+
+    inline float operator () (int i, int j) const{
         return at(i, j);
     }
 

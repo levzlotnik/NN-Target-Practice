@@ -2,7 +2,7 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#include "../../include/distributions/Normal.h"
+#include "Normal.h"
 #include <cmath>
 
 float Normal::logp(float val) {

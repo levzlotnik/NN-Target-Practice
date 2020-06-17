@@ -2,11 +2,13 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#include "../../include/distributions/RandomVariable.h"
+#include "RandomVariable.h"
 
 #include <utility>
 
-RandomVariable::RandomVariable(string name, const Distribution& dist) : name(std::move(name)),
+RandomVariable::RandomVariable(string name, const Distribution& dist) :
+
+    name(std::move(name)),
     dist(dist.clone()) {
 
 }

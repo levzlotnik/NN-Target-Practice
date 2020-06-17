@@ -2,7 +2,7 @@
 // Created by LevZ on 6/14/2020.
 //
 
-#include "../include/Vector.h"
+#include "Vector.h"
 #include <algorithm>
 
 Vector::Vector() : n(0), data(nullptr){

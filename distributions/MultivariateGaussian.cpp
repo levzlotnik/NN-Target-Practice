@@ -2,7 +2,7 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#include "../../include/distributions/MultivariateGaussian.h"
+#include "MultivariateGaussian.h"
 
 #include <utility>
 #include <sstream>

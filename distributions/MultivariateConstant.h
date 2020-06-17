@@ -6,7 +6,7 @@
 #define BLAS_MULTIVARIATECONSTANT_H
 
 #include "DistributionBase.h"
-#include "../Vector.h"
+#include "../BLAS/Vector.h"
 
 class MultivariateConstant : public MultivariateDistribution {
 protected:

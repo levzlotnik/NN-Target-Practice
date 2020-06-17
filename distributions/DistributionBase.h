@@ -4,9 +4,9 @@
 
 #ifndef BLAS_DISTRIBUTIONBASE_H
 #define BLAS_DISTRIBUTIONBASE_H
-#include "../../common.h"
+#include "../common.h"
 #include <type_traits>
-#include "../BLAS.h"
+#include "../BLAS/BLAS.h"
 #include <memory>
 
 #define INDENT_INC "    "
@@ -18,7 +18,7 @@ class DistributionBase {
 public:
     using T = ResultType;
 
-//    virtual ~DistributionBase() {};
+    virtual ~DistributionBase() {};
 
     virtual float logp(T val) = 0;
 

@@ -6,12 +6,12 @@
 #define BLAS_RANDOMVARIABLE_H
 
 #include <string>
-#include "DistributionBase.h"
-#include "../BLAS.h"
+#include "../distributions/DistributionBase.h"
+#include "../BLAS/BLAS.h"
 
 using namespace std;
 
-class RandomVariable : public Variable {
+class RandomVariable /* TODO - inherit from variable */ {
 private:
     shared_ptr<Distribution> dist;
 

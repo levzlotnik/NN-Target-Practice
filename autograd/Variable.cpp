@@ -3,6 +3,7 @@
 //
 
 #include "Variable.h"
+#include "VectorFunction.h"
 
 void Variable::add_dependency(Variable *depend) {
     if(!depend) {
@@ -55,4 +56,12 @@ Vector &Variable::get_data() {
 
 bool Variable::is_leaf() {
     return dependencies.empty();
+}
+
+void Variable::set_functor(const VectorFunction &vectorFunction) {
+    functor = vectorFunction.clone();
+}
+
+Variable::~Variable() {
+    delete functor;
 }

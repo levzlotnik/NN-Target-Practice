@@ -3,8 +3,8 @@
 //
 
 #include <ostream>
-#include "include/BLAS.h"
-#include "include/distributions/distributions.h"
+#include "BLAS/BLAS.h"
+#include "distributions/distributions.h"
 
 float mul2(float& x){return x*2;}
 float add(float& x, float& y) {return x+y;};

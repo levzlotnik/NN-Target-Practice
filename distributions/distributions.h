@@ -12,7 +12,7 @@
 #include "MultivariateConstant.h"
 #include "MultivariateGaussian.h"
 #include "Normal.h"
-#include "RandomVariable.h"
+#include "../autograd/RandomVariable.h"
 #include "Uniform.h"
 
 #endif //BLAS_DISTRIBUTIONS_ALL_HEADERS

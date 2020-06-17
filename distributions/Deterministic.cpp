@@ -2,7 +2,7 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#include "../../include/distributions/Deterministic.h"
+#include "Deterministic.h"
 
 float Deterministic::logp(Vector val) {
     return 0;

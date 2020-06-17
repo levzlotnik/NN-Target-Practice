@@ -7,8 +7,8 @@
 
 
 #include "DistributionBase.h"
-#include "RandomVariable.h"
-#include "../VectorFunction.h"
+#include "../autograd/RandomVariable.h"
+#include "../autograd/VectorFunction.h"
 #include <vector>
 
 class Deterministic : public Distribution {

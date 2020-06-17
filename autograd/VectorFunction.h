@@ -5,7 +5,8 @@
 #ifndef BLAS_VECTORFUNCTION_H
 #define BLAS_VECTORFUNCTION_H
 
-#include "BLAS.h"
+#include "../BLAS/BLAS.h"
+#include "Variable.h"
 
 class VectorFunction {
 public:
@@ -15,9 +16,11 @@ public:
     VectorFunction(const vector<int>& input_shapes, int output_shape) :
         input_shapes(input_shapes), output_shape(output_shape) {}
 
+    virtual ~VectorFunction() = default;
+
     virtual Vector operator()(const vector<Vector>& args) const = 0;
 
-    void check_args(const vector<Vector>& args); // throws runtime_error if mismatch
+    void check_args(const vector<Vector>& args) const; // throws runtime_error if mismatch
 
     virtual Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const = 0;
 
