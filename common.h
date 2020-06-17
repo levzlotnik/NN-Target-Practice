@@ -13,7 +13,7 @@
 class warning : public std::exception {
 public:
     static std::unordered_set<std::string> history;
-    warning(const std::string& msg) : msg(msg) { warning::history.emplace(msg);}
+    explicit warning(const std::string& msg) : msg(msg) { warning::history.emplace(msg);}
     const char* what() { return msg.c_str(); }
 
     static void warn(const std::string& msg) {

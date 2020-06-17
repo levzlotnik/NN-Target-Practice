@@ -3,6 +3,7 @@
 //
 
 #include "VectorFunction.h"
+#include "AutogradVariable.h"
 
 Vector ElementwiseFunction::operator()(const vector<Vector>& args) const {
     check_args(args);
@@ -39,6 +40,11 @@ void VectorFunction::check_args(const vector<Vector>& args) const {
                 + to_string(args[i].n) + ", " + to_string(input_shapes[i]));
 }
 
-Variable VectorFunction::operator()(const vector<Variable>& args, bool requires_grad) {
-
+Variable* VectorFunction::operator()(vector<Variable*>& args, bool requires_grad) {
+    auto res = new AutogradVariable(*this, requires_grad);
+    for (auto arg: args)
+        res->add_dependency(arg);
+    res->forward();
+    res->backward(false);
+    return res;
 }

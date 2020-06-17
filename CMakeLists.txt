@@ -13,13 +13,6 @@ file(
         BLAS/*.h BLAS/*.cpp
 )
 
-file(
-        GLOB
-        SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
-        autograd/VectorFunction.cpp autograd/VectorFunction.h
-        autograd/Variable.cpp autograd/Variable.h
-)
-
 add_library(blas SHARED ${SOURCE_FILES_BLAS})
 
 file(
@@ -28,8 +21,14 @@ file(
         distributions/*.h distributions/*.cpp
 )
 add_library(distributions SHARED ${SOURCE_FILES_DISTRIBUTIONS})
-#add_library(autograd SHARED ${SOURCE_FILES_VARIABLE})
+
+file(
+        GLOB
+        SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
+        autograd/*.h autograd/*.cpp
+)
+add_library(autograd SHARED ${SOURCE_FILES_AUTOGRAD})
 
 # Add executable target with source files listed in SOURCE_FILES variable
 add_executable(test_utility test.cpp)
-target_link_libraries(test_utility distributions blas)
+target_link_libraries(test_utility distributions blas autograd)

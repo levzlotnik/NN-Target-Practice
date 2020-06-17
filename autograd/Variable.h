@@ -7,37 +7,38 @@
 
 #include "../common.h"
 #include <memory>
-#include "../BLAS/Vector.h"
-#include "../BLAS/Matrix.h"
+#include "../BLAS/BLAS.h"
 
 using namespace std;
 
-class VectorFunction;
 
 class Variable {
 protected:
-    unique_ptr<Matrix> ptrJac;
+    Matrix jac;
     vector<Variable*> dependencies;
-    VectorFunction* functor;
     Vector data;
+    bool requires_jac_init;
+
+    void check_graph_integrity(unordered_set<Variable*>& visited);
 
 public:
-    explicit Variable(Vector data) : data(std::move(data)), ptrJac(nullptr), functor(nullptr) {}
-    Variable(Vector data, Matrix jac) :
-        data(std::move(data)), ptrJac(make_unique<Matrix>(std::move(jac))), functor(nullptr) {}
+    explicit Variable(const Vector& data) : data(data), jac(1, data.n), requires_jac_init(true){}
+    Variable(const Vector& data, const Matrix& jac) :
+        data(data), jac(jac) {}
 
-    ~Variable();
+    virtual ~Variable() {}
 
     Vector& get_data();
 
-    void set_functor(const VectorFunction& vectorFunction);
     void add_dependency(Variable* dep);
-    void accumulate_jac(const Matrix& jac);
-    void forward();
-    void backward(bool recursive=true);
-    void zero_grad();
+    virtual void accumulate_jac(const Matrix& jac) = 0;
+    virtual void forward() = 0;
+    virtual void backward(bool recursive=true) = 0;
+    virtual void zero_jac(bool recursive=true) = 0;
 
     bool is_leaf();
+
+    void check_graph_integrity();
 };
 
 

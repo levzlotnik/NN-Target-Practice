@@ -26,7 +26,7 @@ public:
 
     virtual VectorFunction* clone() const = 0;
 
-    Variable operator()(const vector<Variable>& args, bool requires_grad=true);
+    Variable* operator()(vector<Variable*>& args, bool requires_grad=true);
 };
 
 class ElementwiseFunction : public VectorFunction {
