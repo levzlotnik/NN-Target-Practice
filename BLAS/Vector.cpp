@@ -39,32 +39,15 @@ void swap(Vector &v1, Vector &v2) noexcept {
     using std::swap;
     swap(v1.data, v2.data);
     swap(v1.n, v2.n);
+    swap(v1.delete_data, v2.delete_data);
 }
 
 Vector::Vector(Vector &&other) noexcept : Vector() {
     swap(*this, other);
 }
 
-Vector &Vector::operator=(const Vector &other) {
-    // Copy data from the other reference.
-    if (this == &other)
-        return (*this);
 
-    if (n > 0)
-        check_shapes(other);
-
-    if (delete_data) {
-        delete[] data;
-        data = new float[other.n];
-        n = other.n;
-    }
-    for (int i = 0; i < n; ++i)
-        data[i] = other.data[i];
-
-    return (*this);
-}
-
-Vector &Vector::operator=(Vector&& other) noexcept {
+Vector &Vector::operator=(Vector other) {
     swap(*this, other);
     return (*this);
 }

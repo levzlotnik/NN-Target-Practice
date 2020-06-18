@@ -36,8 +36,7 @@ public:
     Vector(const Vector& other);
     Vector(Vector&& other) noexcept;
 
-    Vector& operator=(const Vector& other);
-    Vector& operator=(Vector&& other) noexcept ;
+    Vector& operator=(Vector other);
 
     ~Vector();
 
