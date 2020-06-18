@@ -2,8 +2,8 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#ifndef BLAS_NORMAL_H
-#define BLAS_NORMAL_H
+#ifndef TARGETPRACTICENORMAL_H
+#define TARGETPRACTICENORMAL_H
 
 #include "Uniform.h"
 
@@ -25,4 +25,4 @@ public:
 };
 
 
-#endif //BLAS_NORMAL_H
+#endif //TARGETPRACTICENORMAL_H

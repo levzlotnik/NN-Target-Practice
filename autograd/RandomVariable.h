@@ -2,8 +2,8 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#ifndef BLAS_RANDOMVARIABLE_H
-#define BLAS_RANDOMVARIABLE_H
+#ifndef TARGETPRACTICE_RANDOMVARIABLE_H
+#define TARGETPRACTICE_RANDOMVARIABLE_H
 
 #include <string>
 #include "../distributions/DistributionBase.h"
@@ -11,7 +11,7 @@
 
 using namespace std;
 
-class RandomVariable /* TODO - inherit from variable */ {
+class RandomVariable : public Variable {
 private:
     shared_ptr<Distribution> dist;
 
@@ -19,7 +19,16 @@ public:
     string name;
 
     RandomVariable(string name, const Distribution& dist);
+
     RandomVariable(string name, const UnivariateDistribution& dist);
+
+    void accumulate_jac(const Matrix &jac) override;
+
+    void forward() override;
+
+    void backward(bool recursive) override;
+
+    void zero_jac(bool recursive) override;
 
     friend ostream& operator <<(ostream& os, const RandomVariable& rv);
 
@@ -30,4 +39,4 @@ public:
 };
 
 
-#endif //BLAS_RANDOMVARIABLE_H
+#endif //TARGETPRACTICE_RANDOMVARIABLE_H

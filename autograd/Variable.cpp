@@ -3,7 +3,7 @@
 //
 
 #include "Variable.h"
-#include "VectorFunction.h"
+#include "Functor.h"
 
 void Variable::add_dependency(Variable *depend) {
     if(!depend) {

@@ -2,8 +2,8 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#ifndef BLAS_COMMON_H
-#define BLAS_COMMON_H
+#ifndef TARGETPRACTICE_COMMON_H
+#define TARGETPRACTICE_COMMON_H
 
 #include <iostream>
 #include <string>
@@ -29,4 +29,4 @@ private:
     std::string msg;
 };
 
-#endif //BLAS_COMMON_H
+#endif //TARGETPRACTICE_COMMON_H

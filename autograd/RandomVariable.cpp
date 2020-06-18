@@ -33,3 +33,19 @@ ostream &operator<<(ostream &os, const RandomVariable& rv) {
 float RandomVariable::logp(Vector v) {
     return dist->logp(std::move(v));
 }
+
+void RandomVariable::accumulate_jac(const Matrix &jac) {
+
+}
+
+void RandomVariable::forward() {
+
+}
+
+void RandomVariable::backward(bool recursive) {
+
+}
+
+void RandomVariable::zero_jac(bool recursive) {
+
+}

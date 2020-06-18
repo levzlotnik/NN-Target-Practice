@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(BLAS)
+project(TargetPractice)
 set(CMAKE_CXX_STANDARD 17)
 
 set(
@@ -13,7 +13,7 @@ file(
         BLAS/*.h BLAS/*.cpp
 )
 
-add_library(blas SHARED ${SOURCE_FILES_BLAS})
+add_library(BLAS SHARED ${SOURCE_FILES_BLAS})
 
 file(
         GLOB
@@ -22,13 +22,21 @@ file(
 )
 add_library(distributions SHARED ${SOURCE_FILES_DISTRIBUTIONS})
 
-file(
-        GLOB
+set(
         SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
-        autograd/*.h autograd/*.cpp
+        autograd/AutogradVariable.cpp autograd/AutogradVariable.h
+        autograd/Variable.h autograd/Variable.cpp
+        autograd/Functor.cpp autograd/Functor.h
+        autograd/RandomVariable.cpp autograd/RandomVariable.h
 )
 add_library(autograd SHARED ${SOURCE_FILES_AUTOGRAD})
 
-# Add executable target with source files listed in SOURCE_FILES variable
-add_executable(test_utility test.cpp)
-target_link_libraries(test_utility distributions blas autograd)
+# Tests
+add_executable(test_BLAS tests/test_BLAS.cpp)
+target_link_libraries(test_BLAS BLAS)
+
+add_executable(test_distributions tests/test_distributions.cpp)
+target_link_libraries(test_distributions BLAS distributions)
+
+add_executable(test_autograd tests/test_autograd.cpp)
+target_link_libraries(test_autograd distributions BLAS autograd)

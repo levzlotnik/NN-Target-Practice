@@ -2,8 +2,8 @@
 // Created by LevZ on 6/14/2020.
 //
 
-#ifndef BLAS_COMMON_BLAS_H
-#define BLAS_COMMON_BLAS_H
+#ifndef TARGETPRACTICE_COMMON_BLAS_H
+#define TARGETPRACTICE_COMMON_BLAS_H
 #include <string>
 #include <functional>
 #include <cmath>
@@ -54,4 +54,4 @@ static int normalize_index(int i, int n){
 using UnaryOperation = std::function<float(float&)>;
 using BinaryOperation = std::function<float(float&, float&)>;
 
-#endif //BLAS_COMMON_BLAS_H
+#endif //TARGETPRACTICE_COMMON_BLAS_H

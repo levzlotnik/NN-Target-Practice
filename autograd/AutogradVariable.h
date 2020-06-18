@@ -2,24 +2,24 @@
 // Created by LevZ on 6/17/2020.
 //
 
-#ifndef BLAS_AUTOGRADVARIABLE_H
-#define BLAS_AUTOGRADVARIABLE_H
+#ifndef TARGETPRACTICE_AUTOGRADVARIABLE_H
+#define TARGETPRACTICE_AUTOGRADVARIABLE_H
 
 
 #include "Variable.h"
-#include "VectorFunction.h"
+#include "Functor.h"
 
 class AutogradVariable : public Variable {
 protected:
     // The functor that creates the data for the current variable.
-    shared_ptr<VectorFunction> source_functor_ptr;
+    shared_ptr<Functor> source_functor_ptr;
     bool requires_grad;
     vector<Vector> get_args();
 
 public:
     using Variable::Variable;
 
-    explicit AutogradVariable(const VectorFunction& source_functor, bool requires_grad=true) :
+    explicit AutogradVariable(const Functor& source_functor, bool requires_grad=true) :
             Variable(Vector(source_functor.output_shape)),
             source_functor_ptr(source_functor.clone()),
             requires_grad(requires_grad){}
@@ -35,4 +35,4 @@ public:
 };
 
 
-#endif //BLAS_AUTOGRADVARIABLE_H
+#endif //TARGETPRACTICE_AUTOGRADVARIABLE_H

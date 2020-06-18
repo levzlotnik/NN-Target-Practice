@@ -2,8 +2,8 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#ifndef BLAS_MULTIVARIATECONSTANT_H
-#define BLAS_MULTIVARIATECONSTANT_H
+#ifndef TARGETPRACTICE_MULTIVARIATECONSTANT_H
+#define TARGETPRACTICE_MULTIVARIATECONSTANT_H
 
 #include "DistributionBase.h"
 #include "../BLAS/Vector.h"
@@ -30,4 +30,4 @@ public:
     ostream &print(ostream &os, string indent, bool deep) const override;
 };
 
-#endif //BLAS_MULTIVARIATECONSTANT_H
+#endif //TARGETPRACTICE_MULTIVARIATECONSTANT_H

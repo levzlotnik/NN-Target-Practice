@@ -109,14 +109,14 @@ Vector &Vector::apply_(float scalar, BinaryOperation op) {
     return (*this);
 }
 
-Vector Vector::apply(UnaryOperation op) {
+Vector Vector::apply(UnaryOperation op) const {
     Vector res(n);
     for (int i = 0; i < n; ++i)
         res.data[i] = op(data[i]);
     return res;
 }
 
-Vector Vector::apply(const Vector &other, BinaryOperation op) {
+Vector Vector::apply(const Vector &other, BinaryOperation op) const{
     check_shapes(other);
     Vector res(n);
     for (int i = 0; i < n; ++i)
@@ -124,7 +124,7 @@ Vector Vector::apply(const Vector &other, BinaryOperation op) {
     return res;
 }
 
-Vector Vector::apply(float scalar, BinaryOperation op) {
+Vector Vector::apply(float scalar, BinaryOperation op) const {
     Vector res(n);
     for (int i = 0; i < n; ++i)
         res.data[i] = op(data[i], scalar);
@@ -210,46 +210,6 @@ Vector Vector::ones_like(const Vector &other) {
     return ones(other.n);
 }
 
-template<class Distribution, typename ... Argc>
-Vector Vector::random_sample_seeded(int n, uint32_t seed, Argc ... argc) {
-    Vector res(n);
-    static default_random_engine generator(seed);
-    static Distribution dist(argc...);
-    for (int i = 0; i < n; ++i)
-        res.data[i] = float(dist(generator));
-    return res;
-}
-
-template<class Distribution, typename ... Argc>
-Vector Vector::random_sample(int n, Argc ... argc) {
-    Vector res(n);
-    static random_device generator;
-    static Distribution dist(argc...);
-    for (int i = 0; i < n; ++i)
-        res.data[i] = float(dist(generator));
-    return res;
-}
-
-Vector Vector::randn(float mu, float sigma, int n, bool seeded, uint32_t seed) {
-    using Dist = normal_distribution<float>;
-    if (seeded)
-        return random_sample_seeded<Dist>(n, seed, mu, sigma);
-    return random_sample<Dist>(n, mu, sigma);
-}
-
-Vector Vector::uniform(float lower, float upper, int n, bool seeded, uint32_t seed) {
-    using Dist = uniform_real_distribution<float>;
-    if (seeded)
-        return random_sample_seeded<Dist>(n, seed, lower, upper);
-    return random_sample<Dist>(n, lower, upper);
-}
-
-Vector Vector::randint(int lower, int upper, int n, bool seeded, uint32_t seed) {
-    using Dist = uniform_int_distribution<int>;
-    if (seeded)
-        return random_sample_seeded<Dist>(n, seed, lower, upper);
-    return random_sample<Dist>(n, lower, upper);
-}
 
 float Vector::mean() {
     return sum() / n;
@@ -315,6 +275,38 @@ Vector Vector::concat(std::vector<Vector> vectors) {
         beg += vec.n;
     }
     return res;
+}
+
+Vector Vector::slice(int beg, int end, int step) const {
+    if (step == 0)
+        throw runtime_error("Cannot use step = 0.");
+    beg = normalize_index(beg, n);
+    end = normalize_index(end, n);
+    int size = (end - beg) / step;
+    if (size == 0)
+        throw runtime_error("The slice size cannot be 0.");
+    if (size < 0)
+        throw runtime_error("The slice and step directions contradict each other: slice direction =" +
+            to_string(end-beg) + ", step = " + to_string(step));
+    Vector res(size);
+    for (int i=0; i < size; ++i)
+        res.data[i] = this->data[beg + i*step];
+    return res;
+}
+
+void Vector::sliced_set(Vector v, int beg, int end, int step) {
+    if (step == 0)
+        throw runtime_error("Cannot use step = 0.");
+    beg = normalize_index(beg, n);
+    end = normalize_index(end, n);
+    int size = (end - beg) / step;
+    if (size == 0)
+        throw runtime_error("The slice size cannot be 0.");
+    if (size < 0)
+        throw runtime_error("The slice and step directions contradict each other: slice direction =" +
+                            to_string(end-beg) + ", step = " + to_string(step));
+    for (int i = 0; i < v.n; ++i)
+        data[beg + i*step] = v.data[i];
 }
 
 

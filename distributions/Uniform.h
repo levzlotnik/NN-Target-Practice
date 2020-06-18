@@ -2,8 +2,8 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#ifndef BLAS_UNIFORM_H
-#define BLAS_UNIFORM_H
+#ifndef TARGETPRACTICE_UNIFORM_H
+#define TARGETPRACTICE_UNIFORM_H
 
 #include "DistributionBase.h"
 #include <random>
@@ -30,4 +30,4 @@ public:
 };
 
 
-#endif //BLAS_UNIFORM_H
+#endif //TARGETPRACTICE_UNIFORM_H

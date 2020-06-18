@@ -2,10 +2,10 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#ifndef BLAS_DISTRIBUTIONS_H
-#define BLAS_DISTRIBUTIONS_H
+#ifndef TARGETPRACTICE_DISTRIBUTIONS_H
+#define TARGETPRACTICE_DISTRIBUTIONS_H
 
-#ifndef BLAS_DISTRIBUTIONS_ALL_HEADERS
+#ifndef TARGETPRACTICE_DISTRIBUTIONS_ALL_HEADERS
 
 #include "DistributionBase.h"
 #include "Constant.h"
@@ -15,6 +15,6 @@
 #include "../autograd/RandomVariable.h"
 #include "Uniform.h"
 
-#endif //BLAS_DISTRIBUTIONS_ALL_HEADERS
+#endif //TARGETPRACTICE_DISTRIBUTIONS_ALL_HEADERS
 
-#endif //BLAS_DISTRIBUTIONS_H
+#endif //TARGETPRACTICE_DISTRIBUTIONS_H

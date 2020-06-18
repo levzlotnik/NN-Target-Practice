@@ -2,8 +2,8 @@
 // Created by LevZ on 6/14/2020.
 //
 
-#ifndef BLAS_MATRIX_H
-#define BLAS_MATRIX_H
+#ifndef TARGETPRACTICE_MATRIX_H
+#define TARGETPRACTICE_MATRIX_H
 
 #include <iostream>
 #include <string>
@@ -15,9 +15,9 @@ using namespace std;
 class Matrix {
 private:
     float* data;
-    Matrix();
 public:
     int n, m;
+    Matrix();
 
     Matrix(int n, int m);
     Matrix(int n, int m, float init);
@@ -88,6 +88,8 @@ public:
     Vector mean(int axis);
     Vector var(int axis);
     Vector std(int axis);
+    Vector get_diag() const;
+    Matrix& set_diag(Vector diag);
 
     Vector get_row(int i);
     void set_row(int i, const Vector& row);
@@ -104,17 +106,6 @@ public:
     static Matrix zeros_like(const Matrix& matrix);
     static Matrix ones_like(const Matrix& matrix);
     static Matrix eye(int n);
-private:
-    template <class Distribution, typename ... Argc >
-    static Matrix random_sample_seeded(int n, int m, uint32_t seed, Argc ... argc);
-
-    template <class Distribution, typename ... Argc >
-    static Matrix random_sample(int n, int m, Argc ... argc);
-
-public:
-    static Matrix randn(float mu, float sigma, int n, int m, bool seeded=false, uint32_t seed=0);
-    static Matrix uniform(float lower, float upper, int n, int m, bool seeded=false, uint32_t seed=0);
-    static Matrix randint(int lower, int upper, int n, int m, bool seeded=false, uint32_t seed=0);
 
 private:
     void check_shapes(const Matrix& other);
@@ -124,4 +115,4 @@ private:
 };
 
 
-#endif //BLAS_MATRIX_H
+#endif //TARGETPRACTICE_MATRIX_H

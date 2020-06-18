@@ -2,8 +2,8 @@
 // Created by LevZ on 6/16/2020.
 //
 
-#ifndef BLAS_VARIABLE_H
-#define BLAS_VARIABLE_H
+#ifndef TARGETPRACTICE_VARIABLE_H
+#define TARGETPRACTICE_VARIABLE_H
 
 #include "../common.h"
 #include <memory>
@@ -42,4 +42,4 @@ public:
 };
 
 
-#endif //BLAS_VARIABLE_H
+#endif //TARGETPRACTICE_VARIABLE_H

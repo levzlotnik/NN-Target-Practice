@@ -2,8 +2,8 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#ifndef BLAS_DISTRIBUTIONBASE_H
-#define BLAS_DISTRIBUTIONBASE_H
+#ifndef TARGETPRACTICE_DISTRIBUTIONBASE_H
+#define TARGETPRACTICE_DISTRIBUTIONBASE_H
 #include "../common.h"
 #include <type_traits>
 #include "../BLAS/BLAS.h"
@@ -145,4 +145,4 @@ public:
 using Distribution = MultivariateDistribution;
 
 
-#endif //BLAS_DISTRIBUTIONBASE_H
+#endif //TARGETPRACTICE_DISTRIBUTIONBASE_H

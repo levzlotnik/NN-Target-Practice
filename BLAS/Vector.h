@@ -2,8 +2,8 @@
 // Created by LevZ on 6/14/2020.
 //
 
-#ifndef BLAS_VECTOR_H
-#define BLAS_VECTOR_H
+#ifndef TARGETPRACTICE_VECTOR_H
+#define TARGETPRACTICE_VECTOR_H
 
 
 #include <iostream>
@@ -58,6 +58,9 @@ public:
         return (*this)[i];
     }
 
+    Vector slice(int beg, int end, int step=1) const;
+    void sliced_set(Vector v, int beg, int end, int step=1);
+
     friend ostream& operator<<(ostream& os, const Vector& vector);
 
     /* Inplace operations */
@@ -65,9 +68,9 @@ public:
     Vector& apply_(const Vector& other, BinaryOperation op);
     Vector& apply_(float scalar, BinaryOperation op);
     /* Out of place operations */
-    Vector apply(UnaryOperation op);
-    Vector apply(const Vector& other, BinaryOperation op);
-    Vector apply(float scalar, BinaryOperation op);
+    Vector apply(UnaryOperation op) const;
+    Vector apply(const Vector& other, BinaryOperation op) const;
+    Vector apply(float scalar, BinaryOperation op) const;
 
 
 #define DECL_VECTOR_OPERATOR(op) \
@@ -98,18 +101,6 @@ public:
     static Vector linspace(float a, float b, int num=50);
 
     static Vector concat(std::vector<Vector> vectors);
-
-private:
-    template <class Distribution, typename ... Argc >
-    static Vector random_sample_seeded(int n, uint32_t seed, Argc ... argc);
-
-    template <class Distribution, typename ... Argc >
-    static Vector random_sample(int n, Argc ... argc);
-
-public:
-    static Vector randn(float mu, float sigma, int n, bool seeded=false, uint32_t seed=0);
-    static Vector uniform(float lower, float upper, int n, bool seeded=false, uint32_t seed=0);
-    static Vector randint(int lower, int upper, int n, bool seeded=false, uint32_t seed=0);
     
 private:
     void check_shapes(const Vector& other) const;
@@ -117,4 +108,4 @@ private:
 };
 
 
-#endif //BLAS_VECTOR_H
+#endif //TARGETPRACTICE_VECTOR_H

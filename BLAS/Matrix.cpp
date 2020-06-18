@@ -229,47 +229,6 @@ Matrix::Matrix() : n(0), m(0), data(nullptr){
 
 }
 
-template<class Distribution, typename ... Argc>
-Matrix Matrix::random_sample_seeded(int n, int m, uint32_t seed, Argc ... argc) {
-    Matrix res(n, m);
-    static default_random_engine generator(seed);
-    static Distribution dist(argc...);
-    for (int i = 0; i < n*m; ++i)
-        res.data[i] = float(dist(generator));
-    return res;
-}
-
-template<class Distribution, typename ... Argc>
-Matrix Matrix::random_sample(int n, int m, Argc ... argc) {
-    Matrix res(n, m);
-    static random_device generator;
-    static Distribution dist(argc...);
-    for (int i = 0; i < n*m; ++i)
-        res.data[i] = float(dist(generator));
-    return res;
-}
-
-Matrix Matrix::randn(float mu, float sigma, int n, int m, bool seeded, uint32_t seed) {
-    using Dist = normal_distribution<float>;
-    if (seeded)
-        return random_sample_seeded<Dist>(n, m, seed, mu, sigma);
-    return random_sample<Dist>(n, m, mu, sigma);
-}
-
-Matrix Matrix::uniform(float lower, float upper, int n, int m, bool seeded, uint32_t seed) {
-    using Dist = uniform_real_distribution<float>;
-    if (seeded)
-        return random_sample_seeded<Dist>(n, seed, lower, upper);
-    return random_sample<Dist>(n, m, lower, upper);
-}
-
-Matrix Matrix::randint(int lower, int upper, int n, int m, bool seeded, uint32_t seed) {
-    using Dist = uniform_int_distribution<int>;
-    if (seeded)
-        return random_sample_seeded<Dist>(n, m, seed, lower, upper);
-    return random_sample<Dist>(n, m, lower, upper);
-}
-
 float Matrix::mean() {
     return sum() / float(m*n);
 }
@@ -352,6 +311,22 @@ float Matrix::var() {
 
 Vector Matrix::std(int axis) {
     return this->var(axis).apply_([](float& x){return sqrt(x);});
+}
+
+Vector Matrix::get_diag() const {
+    Vector res(min(n, m));
+    for(int i=0; i < res.n; ++i)
+        res[i] = this->at(i, i);
+    return res;
+}
+
+Matrix &Matrix::set_diag(Vector diag) {
+    if (diag.n != min(n, m))
+        throw out_of_range("Shape mismatch: attempting to set matrix diagonal of shape (" +
+            to_string(min(n, m)) + ") with vector of shape (" + to_string(diag.n) + ").");
+    for (int i=0; i < diag.n; ++i)
+        this->at(i, i) = diag[i];
+    return (*this);
 }
 
 

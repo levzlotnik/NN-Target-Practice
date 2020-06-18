@@ -2,8 +2,8 @@
 // Created by LevZ on 6/15/2020.
 //
 
-#ifndef BLAS_CONSTANT_H
-#define BLAS_CONSTANT_H
+#ifndef TARGETPRACTICE_CONSTANT_H
+#define TARGETPRACTICE_CONSTANT_H
 
 
 #include "DistributionBase.h"
@@ -24,4 +24,4 @@ public:
 };
 
 
-#endif //BLAS_CONSTANT_H
+#endif //TARGETPRACTICE_CONSTANT_H
