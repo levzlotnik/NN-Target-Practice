@@ -14,17 +14,16 @@ using namespace std;
 
 class Variable {
 protected:
-    Matrix jac;
+    shared_ptr<Matrix> jac;
     vector<Variable*> dependencies;
     Vector data;
-    bool requires_jac_init;
 
     void check_graph_integrity(unordered_set<Variable*>& visited);
 
 public:
-    explicit Variable(const Vector& data) : data(data), jac(1, data.n), requires_jac_init(true){}
+    explicit Variable(const Vector& data) : data(data){}
     Variable(const Vector& data, const Matrix& jac) :
-        data(data), jac(jac) {}
+        data(data), jac(jac.clone()) {}
 
     virtual ~Variable() {}
 

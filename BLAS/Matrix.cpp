@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <string>
 
-Matrix::Matrix(int n, int m): n(n), m(m) {
+Matrix::Matrix(int n, int m): n(n), m(m), sparse(false) {
     if (n <= 0 || m <= 0)
         throw runtime_error("Matrix sizes must be positive.");
     data = new float[n*m];
@@ -63,7 +63,7 @@ Matrix &Matrix::apply_(float scalar, BinaryOperation op) {
     return (*this);
 }
 
-Matrix Matrix::apply(UnaryOperation op) {
+Matrix Matrix::apply(UnaryOperation op) const {
     Matrix res(n, m);
     for(int i=0; i<n*m; ++i){
         res.data[i] = op(data[i]);
@@ -71,7 +71,7 @@ Matrix Matrix::apply(UnaryOperation op) {
     return res;
 }
 
-Matrix Matrix::apply(const Matrix &other, BinaryOperation op) {
+Matrix Matrix::apply(const Matrix &other, BinaryOperation op) const {
     check_shapes(other);
     Matrix res(n, m);
     for(int i=0; i<n*m; ++i){
@@ -80,7 +80,7 @@ Matrix Matrix::apply(const Matrix &other, BinaryOperation op) {
     return res;
 }
 
-Matrix Matrix::apply(float scalar, BinaryOperation op) {
+Matrix Matrix::apply(float scalar, BinaryOperation op) const {
     Matrix res(n, m);
     for(int i=0; i<n*m; ++i){
         res.data[i] = op(data[i], scalar);
@@ -105,23 +105,21 @@ Matrix Matrix::apply(float scalar, BinaryOperation op) {
     DEF_MATRIX_OPERATOR_SCALAR_INPLACE(op)
 
 #define DEF_MATRIX_OPERATOR_MATRIX(op) \
-    Matrix Matrix::operator op(const Matrix& other) { \
+    Matrix Matrix::operator op(const Matrix& other) const { \
         const BinaryOperation oper = [](float& x, float& y) {return x op y;}; \
         return apply(other, oper); \
     }
 
 #define DEF_MATRIX_OPERATOR_SCALAR(op) \
-    Matrix Matrix::operator op(float scalar) { \
+    Matrix Matrix::operator op(float scalar) const { \
         const BinaryOperation oper = [](float& x, float& y) {return x op y;}; \
         return apply(scalar, oper); \
     }
 
 #define DEF_SCALAR_OPERATOR_MATRIX(op) \
     Matrix operator op(float scalar, const Matrix& matrix) { \
-        Matrix res(matrix.n, matrix.m);\
-        for (int i=0; i<res.n * res.m; ++i) \
-            res.data[i] = scalar op matrix.data[i]; \
-        return res; \
+        const BinaryOperation oper = [](float& x, float& y) {return y op x;}; \
+        return matrix.apply(scalar, oper); \
     }
 
 #define DEF_MATRIX_OPERATOR(op) \
@@ -133,7 +131,7 @@ Matrix Matrix::apply(float scalar, BinaryOperation op) {
 MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(DEF_MATRIX_OPERATOR_INPLACE)
 MACRO_BASIC_ARITHMETIC_OPERATORS(DEF_MATRIX_OPERATOR)
 
-void Matrix::check_shapes(const Matrix &other) {
+void Matrix::check_shapes(const Matrix &other) const {
     if(n != other.n || m != other.m)
         throw runtime_error("Shapes mismatch: " + str_shape() + ", " + other.str_shape());
 }
@@ -163,18 +161,6 @@ float Matrix::trace() {
     for(int i=0; i<n*n; i+=n)
         t += data[i];
     return t;
-}
-
-Matrix Matrix::matmul(const Matrix &other) {
-    if (m != other.n)
-        throw runtime_error("Shape mismatch for matrix multiplication: " + str_shape() + ", " + other.str_shape());
-    Matrix res(n, other.m, 0);
-    for (int i=0; i<res.n; ++i)
-        for (int j=0; j<res.m; ++j)
-            for (int k=0; k < m; ++k)
-                res.at(i, j) += this->at(i, k) * other.at(k, j);
-
-    return res;
 }
 
 Matrix Matrix::transpose() {
@@ -225,7 +211,7 @@ Matrix::Matrix(Matrix &&other) noexcept : Matrix() {
     swap(*this, other);
 }
 
-Matrix::Matrix() : n(0), m(0), data(nullptr){
+Matrix::Matrix() : n(0), m(0), data(nullptr), sparse(false){
 
 }
 
@@ -329,5 +315,12 @@ Matrix &Matrix::set_diag(Vector diag) {
     return (*this);
 }
 
+Matrix Matrix::operator-() const {
+    return apply([](float& x){return -x;});
+}
+
+Matrix *Matrix::clone() const {
+    return new Matrix(*this);
+}
 
 
