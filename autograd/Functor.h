@@ -45,7 +45,7 @@ public:
 
 class Concat : public Functor {
 private:
-    vector<Matrix> const_jacs;
+    vector<SparseMatrix> const_jacs;
 public:
     explicit Concat(const vector<int>& input_shapes);
     Vector operator()(const vector<Vector>& args) const override;

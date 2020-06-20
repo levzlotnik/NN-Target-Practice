@@ -15,9 +15,9 @@ Vector ReduceAndGather::operator()(const vector<Vector>& args) const {
 
 unique_ptr<Matrix> ReduceAndGather::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
     int inp_shape = input_shapes[i];
-    Matrix res(output_shape, inp_shape, 0);
+    SparseMatrix res(output_shape, inp_shape);
     res.set_row(i, reducejac(inputs[i], output[i]));
-    return res;
+    return make_unique<SparseMatrix>(res);
 }
 
 Functor *ReduceAndGather::clone() const {
@@ -41,7 +41,7 @@ Vector Concat::operator()(const vector<Vector>& args) const {
 }
 
 unique_ptr<Matrix> Concat::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
-    return const_jacs[i];
+    return unique_ptr<Matrix>(const_jacs[i].clone());
 }
 
 Functor *Concat::clone() const {
@@ -55,7 +55,7 @@ Concat::Concat(const vector<int> &input_shapes)  :
         {
     int idx = 0;
     for (auto shape: input_shapes){
-        Matrix curr_jac(output_shape, shape, 0);
+        SparseMatrix curr_jac(output_shape, shape);
         // Make an identity matrix at the relevant indices
         for (int i=0; i < shape; ++i)
             curr_jac(idx + i, i) = 1;
@@ -149,9 +149,9 @@ unique_ptr<Matrix> Elemwise::jac(int i, const vector<Vector> &inputs, const Vect
     check_args(inputs);
     if (i==0)
         throw out_of_range("Elemwise only accepts a single vector");
-    Matrix res(output_shape, output_shape, 0);
+    SparseMatrix res(output_shape, output_shape);
     res.set_diag(inputs[0].apply(dfunc));
-    return res;
+    return make_unique<SparseMatrix>(res);
 }
 
 Functor *Elemwise::clone() const {
