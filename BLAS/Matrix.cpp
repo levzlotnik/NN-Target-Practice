@@ -17,7 +17,9 @@ Matrix::Matrix(int n, int m, float init): Matrix(n, m) {
 }
 
 Matrix::Matrix(const Matrix &other): Matrix(other.n, other.m) {
-    std::copy_n(other.data, n*m, data);
+    if (other.data)
+        std::copy_n(other.data, n*m, data);
+    sparse = other.sparse;
 }
 
 Matrix::~Matrix() {
@@ -200,6 +202,7 @@ void swap(Matrix &m1, Matrix &m2) noexcept {
     swap(m1.data, m2.data);
     swap(m1.n, m2.n);
     swap(m1.m, m2.m);
+    swap(m1.sparse, m2.sparse);
 }
 
 Matrix &Matrix::operator=(Matrix other) {
@@ -321,6 +324,36 @@ Matrix Matrix::operator-() const {
 
 Matrix *Matrix::clone() const {
     return new Matrix(*this);
+}
+
+Matrix Matrix::diag(const Vector& v) {
+    Matrix res(v.n, v.n, 0.0);
+    res.set_diag(v);
+    return res;
+}
+
+Matrix Matrix::T() {
+    return transpose();
+}
+
+Matrix::Matrix(initializer_list<initializer_list<float>> list2d) :
+    Matrix(list2d.size(), list2d.begin()->size())
+{
+    // Check sizes identical:
+    for (auto list1d: list2d) {
+        if (list1d.size() != m)
+            throw invalid_argument("The initializer lists must have uniform shapes.");
+    }
+    // Fill in matrix:
+    int i=0, j=0;
+    for (auto l1d : list2d) {
+        j = 0;
+        for (auto x: l1d) {
+            data[i*m + j] = x;
+            ++j;
+        }
+        ++i;
+    }
 }
 
 

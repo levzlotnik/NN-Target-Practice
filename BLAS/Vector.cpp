@@ -292,4 +292,18 @@ void Vector::sliced_set(Vector v, int beg, int end, int step) {
         data[beg + i*step] = v.data[i];
 }
 
+Vector *Vector::clone() const {
+    return new Vector(*this);
+}
+
+Vector::Vector(initializer_list<float> list) :
+    Vector(list.size())
+{
+    int i = 0;
+    for(auto x: list){
+        data[i] = x;
+        ++i;
+    }
+}
+
 

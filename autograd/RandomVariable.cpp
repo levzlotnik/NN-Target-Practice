@@ -34,7 +34,7 @@ float RandomVariable::logp(Vector v) {
     return dist->logp(std::move(v));
 }
 
-void RandomVariable::accumulate_jac(const Matrix &jac) {
+void RandomVariable::accumulate_grad(const Vector &jac) {
 
 }
 
@@ -46,6 +46,6 @@ void RandomVariable::backward(bool recursive) {
 
 }
 
-void RandomVariable::zero_jac(bool recursive) {
+void RandomVariable::zero_grad(bool recursive) {
 
 }

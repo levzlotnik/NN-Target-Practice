@@ -4,7 +4,7 @@
 
 #include "AutogradVariable.h"
 
-void AutogradVariable::accumulate_jac(const Matrix &jac) {
+void AutogradVariable::accumulate_grad(const Vector &jac) {
     if (requires_jac_init)
         this->jac = jac;
     else
@@ -17,21 +17,21 @@ void AutogradVariable::forward() {
     this->data = (*this->source_functor_ptr)(get_args());
 }
 
-void AutogradVariable::backward(bool recursive) {
+void AutogradVariable::backward(const Vector& grad, bool recursive) {
     auto args = get_args();
     for(int i=0; i < dependencies.size(); ++i){
-        dependencies[i]->accumulate_jac(source_functor_ptr->jac(i, args, this->data));
+        dependencies[i]->accumulate_grad(source_functor_ptr->jac(i, args, this->data));
         if (recursive) dependencies[i]->backward(true);
     }
 }
 
-void AutogradVariable::zero_jac(bool recursive) {
+void AutogradVariable::zero_grad(bool recursive) {
     if (requires_jac_init)
         warning::warn("Warning: zeroing jacobian without initializing it is will have no effect.");
     this->jac.apply_([](float& x) {return 0;});
     if(recursive)
         for(auto dep: dependencies)
-            dep->zero_jac(true);
+            dep->zero_grad(true);
 }
 
 vector<Vector> AutogradVariable::get_args() {

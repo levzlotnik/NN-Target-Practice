@@ -22,13 +22,13 @@ public:
 
     RandomVariable(string name, const UnivariateDistribution& dist);
 
-    void accumulate_jac(const Matrix &jac) override;
+    void accumulate_grad(const Vector &jac) override;
 
     void forward() override;
 
     void backward(bool recursive) override;
 
-    void zero_jac(bool recursive) override;
+    void zero_grad(bool recursive) override;
 
     friend ostream& operator <<(ostream& os, const RandomVariable& rv);
 

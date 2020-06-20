@@ -36,4 +36,8 @@ void Variable::check_graph_integrity(unordered_set<Variable *>& visited) {
     visited.erase(this);
 }
 
+Vector &Variable::grad() {
+    return *ptr_grad_data;
+}
+
 

@@ -14,6 +14,12 @@ private:
 public:
     SparseMatrix(int n, int m);
 
+    SparseMatrix(const SparseMatrix& other);
+    SparseMatrix(SparseMatrix&& other) noexcept ;
+
+    friend void swap(SparseMatrix& sm1, SparseMatrix& sm2);
+    SparseMatrix& operator=(SparseMatrix other);
+
     float at(int i, int j) const override;
     float& at(int i, int j) override;
 
@@ -32,6 +38,17 @@ public:
     Matrix operator*(const Matrix& other) const override;
     Matrix operator/(const Matrix& other) const override;
 
+#define DECL_SPARSEMATRIX_OPERATOR_SCALAR(op) \
+    Matrix operator op(float scalar) const;
+
+#define DECL_SPARSEMATRIX_OPERATOR_SCALAR_INPLACE(op) \
+    SparseMatrix& operator op(float scalar);
+
+MACRO_BASIC_ARITHMETIC_OPERATORS(DECL_SPARSEMATRIX_OPERATOR_SCALAR)
+MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(DECL_SPARSEMATRIX_OPERATOR_SCALAR_INPLACE)
+
+
+
     Matrix* clone() const override;
 
     Matrix to_dense() const;
@@ -39,12 +56,22 @@ public:
     Matrix operator-() const override;
 
     friend Matrix matmul(const Matrix& mat1, const Matrix& mat2);
+    friend Vector matmul(const Vector& v, const Matrix& m);
+    friend Vector matmul(const Matrix& m, const Vector& v);
+
+    static SparseMatrix sparsify(const Matrix& m);
+
+    inline int nnz() const { return dok.size(); };
 
 private:
     SparseMatrix transpose_sparse();
 
     static SparseMatrix sparse_matmul(SparseMatrix &sm1, SparseMatrix &sm2);
 };
+
+Matrix matmul(const Matrix& mat1, const Matrix& mat2);
+Vector matmul(const Vector& v, const Matrix& m);
+Vector matmul(const Matrix& m, const Vector& v);
 
 
 #endif //TARGETPRACTICE_SPARSEMATRIX_H

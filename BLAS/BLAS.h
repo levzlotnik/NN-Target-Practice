@@ -7,7 +7,7 @@
 
 #include "VectorMath.h"
 #include "MatrixMath.h"
-#include "../autograd/Variable.h"
+#include "SparseMatrix.h"
 
 #define PI M_PI
 

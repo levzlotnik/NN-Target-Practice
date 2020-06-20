@@ -21,6 +21,7 @@ public:
 
     Matrix(int n, int m);
     Matrix(int n, int m, float init);
+    Matrix(initializer_list<initializer_list<float>> list2d);
 
     Matrix(const Matrix& other);
     Matrix(Matrix&& other) noexcept;
@@ -105,11 +106,13 @@ public:
     Matrix reshape(int new_n, int new_m);
 
     Matrix transpose();
+    Matrix T(); // alias to transpose
 
     static Matrix zeros(int n, int m);
     static Matrix ones(int n, int m);
     static Matrix zeros_like(const Matrix& matrix);
     static Matrix ones_like(const Matrix& matrix);
+    static Matrix diag(const Vector& v);
     static Matrix eye(int n);
 
     virtual Matrix* clone() const;

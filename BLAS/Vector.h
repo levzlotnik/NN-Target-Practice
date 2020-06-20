@@ -31,6 +31,7 @@ public:
 
     explicit Vector(int n, float* data= nullptr, bool create_if_nullptr=true, bool copy=false);
     Vector(int n, float init);
+    Vector(initializer_list<float> list);
 
     friend void swap(Vector& v1, Vector& v2) noexcept;
     Vector(const Vector& other);
@@ -100,6 +101,8 @@ public:
     static Vector linspace(float a, float b, int num=50);
 
     static Vector concat(std::vector<Vector> vectors);
+
+    Vector* clone() const;
     
 private:
     void check_shapes(const Vector& other) const;
