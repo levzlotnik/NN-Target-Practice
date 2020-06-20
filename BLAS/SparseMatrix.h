@@ -12,10 +12,13 @@ class SparseMatrix : public Matrix {
 private:
     unordered_map<int, float> dok; // Dictionary of Keys represntation.
 public:
+    SparseMatrix() {};
     SparseMatrix(int n, int m);
 
     SparseMatrix(const SparseMatrix& other);
     SparseMatrix(SparseMatrix&& other) noexcept ;
+    SparseMatrix(initializer_list<initializer_list<float>> list) :
+        SparseMatrix(sparsify(Matrix(list))) {}
 
     friend void swap(SparseMatrix& sm1, SparseMatrix& sm2);
     SparseMatrix& operator=(SparseMatrix other);

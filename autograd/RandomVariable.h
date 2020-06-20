@@ -8,6 +8,7 @@
 #include <string>
 #include "../distributions/DistributionBase.h"
 #include "../BLAS/BLAS.h"
+#include "Variable.h"
 
 using namespace std;
 

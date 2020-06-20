@@ -7,6 +7,7 @@
 
 #include "../common.h"
 #include <memory>
+#include <utility>
 #include "../BLAS/BLAS.h"
 
 using namespace std;
@@ -22,11 +23,11 @@ protected:
 
 public:
     bool requires_grad;
-    explicit Variable(const Vector& data, bool requires_grad = true) : data(data){}
-    Variable(const Vector& data, const Vector& grad_data, bool requires_grad = true) :
-            data(data), ptr_grad_data(grad_data.clone()) {}
+    explicit Variable(Vector data, bool requires_grad = true) : data(std::move(data)) ,requires_grad(requires_grad){}
+    Variable(Vector data, const Vector& grad_data, bool requires_grad = true) :
+            data(std::move(data)), ptr_grad_data(grad_data.clone()), requires_grad(requires_grad) {}
 
-    virtual ~Variable() {}
+    virtual ~Variable() = default;
 
     Vector& get_data();
     Vector& grad();
@@ -34,8 +35,7 @@ public:
     void add_dependency(Variable* dep);
     virtual void accumulate_grad(const Vector &jac) = 0;
     virtual void forward() = 0;
-    virtual void backward(const Vector& grad, bool recursive=true) = 0;
-    void backward();
+    virtual void backward(const Vector& current_grad, bool recursive=true) = 0;
     virtual void zero_grad(bool recursive=true) = 0;
 
     bool is_leaf();

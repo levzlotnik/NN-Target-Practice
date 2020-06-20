@@ -13,7 +13,7 @@ Vector ReduceAndGather::operator()(const vector<Vector>& args) const {
     return res;
 }
 
-Matrix ReduceAndGather::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
+unique_ptr<Matrix> ReduceAndGather::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
     int inp_shape = input_shapes[i];
     Matrix res(output_shape, inp_shape, 0);
     res.set_row(i, reducejac(inputs[i], output[i]));
@@ -40,7 +40,7 @@ Vector Concat::operator()(const vector<Vector>& args) const {
     return Vector::concat(args);
 }
 
-Matrix Concat::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
+unique_ptr<Matrix> Concat::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
     return const_jacs[i];
 }
 
@@ -80,7 +80,6 @@ Variable* Functor::operator()(vector<Variable*>& args, bool requires_grad) {
     for (auto arg: args)
         res->add_dependency(arg);
     res->forward();
-    res->backward(false);
     return res;
 }
 
@@ -96,10 +95,10 @@ Vector Slice::operator()(const vector<Vector> &args) const {
     return args[0].slice(begin, end, step);
 }
 
-Matrix Slice::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
+unique_ptr<Matrix> Slice::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
     if (i != 0)
         throw out_of_range("Only 1 element available in slice.");
-    return const_jac;
+    return unique_ptr<Matrix>(const_jac.clone());
 }
 
 Functor *Slice::clone() const {
@@ -120,7 +119,7 @@ Slice::Slice(int b, int e, int input_shape, int step) :
     begin = b;
     end = e;
     this->step = step;
-    const_jac = Matrix(output_shape, input_shape, 0.0);
+    const_jac = SparseMatrix(output_shape, input_shape);
     for(int i=0; i<output_shape; ++i)
         const_jac(i, b + i*step) = 1;
 }
@@ -146,7 +145,7 @@ Vector Elemwise::operator()(const vector<Vector> &args) const {
     return args[0].apply(func);
 }
 
-Matrix Elemwise::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
+unique_ptr<Matrix> Elemwise::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
     check_args(inputs);
     if (i==0)
         throw out_of_range("Elemwise only accepts a single vector");

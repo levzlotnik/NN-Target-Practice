@@ -22,7 +22,7 @@ public:
 
     void check_args(const vector<Vector>& args) const; // throws runtime_error if mismatch
 
-    virtual Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const = 0;
+    virtual unique_ptr<Matrix> jac(int i, const vector<Vector>& inputs, const Vector& output) const = 0;
 
     virtual Functor* clone() const = 0;
 
@@ -38,7 +38,7 @@ public:
     ReduceAndGather(const vector<int>& input_shapes, reduce_t func, reducejac_t jac, string func_name);
 
     Vector operator()(const vector<Vector>& args) const override;
-    Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
+    unique_ptr<Matrix> jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
 
     Functor *clone() const override;
 };
@@ -49,14 +49,14 @@ private:
 public:
     explicit Concat(const vector<int>& input_shapes);
     Vector operator()(const vector<Vector>& args) const override;
-    Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
+    unique_ptr<Matrix> jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
 
     Functor *clone() const override;
 };
 
 class Slice : public Functor {
 private:
-    Matrix const_jac;
+    SparseMatrix const_jac;
 public:
     int begin;
     int end;
@@ -66,7 +66,7 @@ public:
 
     Vector operator()(const vector<Vector> &args) const override;
 
-    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
+    unique_ptr<Matrix> jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
 
     Functor *clone() const override;
 };
@@ -83,7 +83,7 @@ public:
     Vector operator()(const vector<Vector> &args) const override;
     Vector operator()(const Vector v) const;
 
-    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
+    unique_ptr<Matrix> jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
 
     Functor *clone() const override;
 };
