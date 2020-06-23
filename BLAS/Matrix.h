@@ -15,11 +15,12 @@ using namespace std;
 class Matrix {
 private:
     float* data;
+    unordered_map<int, float> sparse_dok;
 public:
     int n, m;
     Matrix();
 
-    Matrix(int n, int m);
+    Matrix(int n, int m, bool sparse=false);
     Matrix(int n, int m, float init);
     Matrix(initializer_list<initializer_list<float>> list2d);
 
@@ -34,13 +35,21 @@ public:
     virtual inline float& at(int i, int j){
         i = normalize_index(i, n);
         j = normalize_index(j, m);
-        return data[i*m + j];
+        int idx = i*m + j;
+        if (sparse)
+            return sparse_dok[idx];
+        return data[idx];
     }
 
     virtual inline float at(int i, int j) const {
         i = normalize_index(i, n);
         j = normalize_index(j, m);
-        return data[i*m + j];
+        int idx = i*m + j;
+        if (sparse) {
+            auto it = sparse_dok.find(idx);
+            return (it != sparse_dok.end() ? it->second : 0.0f);
+        }
+        return data[idx];
     }
 
     inline float& operator () (int i, int j){
@@ -112,8 +121,8 @@ public:
     static Matrix ones(int n, int m);
     static Matrix zeros_like(const Matrix& matrix);
     static Matrix ones_like(const Matrix& matrix);
-    static Matrix diag(const Vector& v);
-    static Matrix eye(int n);
+    static Matrix diag(const Vector &v, bool sparse);
+    static Matrix eye(int n, bool sparse);
 
     virtual Matrix* clone() const;
 
@@ -121,14 +130,30 @@ public:
 
     string str_shape() const;
 
+    Matrix to_dense();
+    Matrix to_sparse();
+
+
+    friend Matrix matmul(const Matrix& mat1, const Matrix& mat2);
+    friend Vector matmul(const Vector& v, const Matrix& m);
+    friend Vector matmul(const Matrix& m, const Vector& v);
+
 private:
 
     Vector get_col(int i);
+
+    static Matrix sparse_matmul(Matrix sm1, Matrix sm2);
+
+    inline int nnz() const { return sparse_dok.size(); }
 
 protected:
     void check_shapes(const Matrix& other) const;
 
 };
+
+Matrix matmul(const Matrix& mat1, const Matrix& mat2);
+Vector matmul(const Vector& v, const Matrix& m);
+Vector matmul(const Matrix& m, const Vector& v);
 
 
 #endif //TARGETPRACTICE_MATRIX_H

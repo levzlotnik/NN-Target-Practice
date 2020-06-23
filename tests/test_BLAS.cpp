@@ -9,7 +9,7 @@ float mul2(float& x){return x*2;}
 float add(float& x, float& y) {return x+y;};
 
 int main(){
-    Matrix matrix(3, 4, 3.5);
+    Matrix matrix(3, 4, 3.5f);
     matrix.at(2,-1) /= 45.678;
     matrix.apply_(mul2);
     cout << matrix << endl;
@@ -22,15 +22,13 @@ int main(){
     cout << "m4 = " << m4 << endl;
     m4 *= 10;
     cout << "m4 = " << m4 << endl;
-    Matrix eye3 = Matrix::eye(3);
+    Matrix eye3 = Matrix::eye(3, true);
     cout << "eye(3) = " << eye3 << endl;
     cout << "eye(3) @ m4 = " << matmul(eye3, m4) << endl;
-    SparseMatrix sparse_eye3 = SparseMatrix::sparsify(eye3);
-    Matrix& s_eye3 = sparse_eye3;
+    Matrix s_eye3 = eye3.to_sparse();
     cout << "s_eye(3) = " << eye3 << endl;
     cout << "s_eye(3) @ m4 = " << matmul(s_eye3, m4) << endl;
-    Matrix diag_range = Matrix::diag(Vector::arange(0, 6));
-    SparseMatrix sparse_diag = SparseMatrix::sparsify(diag_range);
+    Matrix sparse_diag = Matrix::diag(Vector::arange(0, 6), true);
     cout << "sparse_diag = " << sparse_diag << endl;
     m4 = m4.reshape(6, 2);
     cout << "m4 = " << m4 << endl;
@@ -46,7 +44,7 @@ int main(){
     Vector v = {2, 3.5, 3.14, 420, 69, 57};
     cout << "m4 = " << m4 << endl;
     cout << "v = " << v << endl;
-    cout << "m4 @ v = " << matmul(SparseMatrix::sparsify(m4), v) << endl;
+    cout << "m4 @ v = " << matmul(m4.to_sparse(), v) << endl;
     cout << "m4 @ sparse_diag = " << matmul(m4, sparse_diag) << endl;
     return 0;
 }

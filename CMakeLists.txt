@@ -7,10 +7,14 @@ set(
         common.h
         common.cpp)
 
-file(
-        GLOB
+set(
         SOURCE_FILES_BLAS ${SOURCE_FILES_PROJECT_GLOBALS}
-        BLAS/*.h BLAS/*.cpp
+        BLAS/MatrixMath.h BLAS/MatrixMath.cpp
+        BLAS/VectorMath.cpp BLAS/VectorMath.h
+        BLAS/BLAS.h
+        BLAS/Matrix.cpp BLAS/Matrix.h
+        BLAS/Vector.cpp BLAS/Vector.h
+        BLAS/common_blas.h
 )
 
 add_library(BLAS SHARED ${SOURCE_FILES_BLAS})

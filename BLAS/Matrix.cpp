@@ -5,21 +5,33 @@
 #include "Matrix.h"
 #include <algorithm>
 #include <string>
+#include <cassert>
+#include <unordered_set>
 
-Matrix::Matrix(int n, int m): n(n), m(m), sparse(false) {
+Matrix::Matrix(int n, int m, bool sparse) : n(n), m(m), sparse(sparse) {
     if (n <= 0 || m <= 0)
         throw runtime_error("Matrix sizes must be positive.");
-    data = new float[n*m];
+    if(sparse)
+        data = nullptr;
+    else
+        data = new float[n*m];
 }
 
-Matrix::Matrix(int n, int m, float init): Matrix(n, m) {
+Matrix::Matrix(int n, int m, float init): Matrix(n, m, false) {
     std::fill_n(data, n*m, init);
 }
 
-Matrix::Matrix(const Matrix &other): Matrix(other.n, other.m) {
-    if (other.data)
-        std::copy_n(other.data, n*m, data);
-    sparse = other.sparse;
+Matrix::Matrix(const Matrix &other):
+    Matrix(other.n, other.m, other.sparse)
+{
+    if (sparse){
+        sparse_dok = unordered_map<int, float>(other.sparse_dok);
+    }
+    else {
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                data[i * m + j] = other.at(i, j);
+    }
 }
 
 Matrix::~Matrix() {
@@ -44,14 +56,26 @@ ostream &operator<<(ostream &os, const Matrix& matrix) {
 }
 
 Matrix &Matrix::apply_(UnaryOperation op) {
-    for(int i=0; i < n*m; ++i){
-        data[i] = op(data[i]);
+    if (sparse) {
+        for (auto& [k, v]: sparse_dok)
+            v = op(v);
+    }
+    else {
+        for (int i = 0; i < n * m; ++i) {
+            data[i] = op(data[i]);
+        }
     }
     return (*this);
 }
 
 Matrix &Matrix::apply_(const Matrix& other, BinaryOperation op) {
     check_shapes(other);
+    if (sparse)
+        throw runtime_error("Inplace application with another matrix as an operator is unsupported for "
+                            "SparseMatrix. Convert to "
+                            "non-sparse representation with "
+                            "'.to_dense()' to allow inplace application with another matrix.");
+
     for(int i=0; i < n*m; ++i){
         data[i] = op(data[i], other.data[i]);
     }
@@ -59,35 +83,28 @@ Matrix &Matrix::apply_(const Matrix& other, BinaryOperation op) {
 }
 
 Matrix &Matrix::apply_(float scalar, BinaryOperation op) {
-    for(int i=0; i < n*m; ++i){
-        data[i] = op(data[i], scalar);
+    if (sparse) {
+        for (auto& [k, v]: sparse_dok)
+            v = op(v, scalar);
+    }
+    else {
+        for (int i = 0; i < n * m; ++i) {
+            data[i] = op(data[i], scalar);
+        }
     }
     return (*this);
 }
 
 Matrix Matrix::apply(UnaryOperation op) const {
-    Matrix res(n, m);
-    for(int i=0; i<n*m; ++i){
-        res.data[i] = op(data[i]);
-    }
-    return res;
+    return Matrix(*this).apply_(op);
 }
 
 Matrix Matrix::apply(const Matrix &other, BinaryOperation op) const {
-    check_shapes(other);
-    Matrix res(n, m);
-    for(int i=0; i<n*m; ++i){
-        res.data[i] = op(data[i], other.data[i]);
-    }
-    return res;
+    return Matrix(*this).apply_(other, op);
 }
 
 Matrix Matrix::apply(float scalar, BinaryOperation op) const {
-    Matrix res(n, m);
-    for(int i=0; i<n*m; ++i){
-        res.data[i] = op(data[i], scalar);
-    }
-    return res;
+    return Matrix(*this).apply_(scalar, op);
 }
 
 #define DEF_MATRIX_OPERATOR_MATRIX_INPLACE(op) \
@@ -143,16 +160,25 @@ string Matrix::str_shape() const{
 }
 
 float Matrix::reduce(float init_value, BinaryOperation op) {
-    for (int i = 0; i < n * m ; ++i)
-        init_value = op(init_value, data[i]);
+    for (int i=0; i < n; ++i)
+        for (int j=0; j < m; ++j)
+            init_value = op(init_value, this->at(i, j));
     return init_value;
 }
 
 float Matrix::sum() {
+    if (sparse){
+        float s = 0;
+        for (auto [k, v] : sparse_dok)
+            s += v;
+        return s;
+    }
     return reduce(0, [](float& x, float& y){return x+y;});
 }
 
 float Matrix::prod() {
+    if (sparse && sparse_dok.size() != n*m)
+        return 0;
     return reduce(1, [](float& x, float& y){return x*y;});
 }
 
@@ -160,26 +186,41 @@ float Matrix::trace() {
     if(n!=m)
         throw runtime_error("Matrix isn't square (n,m should be equal), shape= " + str_shape());
     float t = 0;
-    for(int i=0; i<n*n; i+=n)
-        t += data[i];
+    for(int i=0; i<n; i+=n)
+        t += this->at(i, i);
     return t;
 }
 
-Matrix Matrix::transpose() {
-    Matrix res(m, n);
-    for (int i =0; i < n; ++i)
-        for (int j=0; j < m; ++j)
-            res.at(j, i) = this->at(i, j);
+pair<int, int> denorm_index(int idx, int n, int m) {
+    if (idx >= n*m)
+        throw out_of_range(to_string(idx) + " >= " + to_string(n*m) + ".");
+    if (idx < 0)
+        throw out_of_range(to_string(idx) + " <= 0");
+    return {idx / m, idx % m};
+}
 
+Matrix Matrix::transpose() {
+    Matrix res(m, n, this->sparse);
+    if (this->sparse){
+        for (auto [k, v]: sparse_dok){
+            auto [i, j] = denorm_index(k, n, m);
+            res.at(j, i) = v;
+        }
+    }
+    else {
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                res.at(j, i) = this->at(i, j);
+    }
     return res;
 }
 
 Matrix Matrix::zeros(int n, int m) {
-    return Matrix(n, m, 0);
+    return Matrix(n, m, 0.0f);
 }
 
 Matrix Matrix::ones(int n, int m) {
-    return Matrix(n, m, 1);
+    return Matrix(n, m, 1.0f);
 }
 
 Matrix Matrix::zeros_like(const Matrix &matrix) {
@@ -190,11 +231,13 @@ Matrix Matrix::ones_like(const Matrix &matrix) {
     return ones(matrix.n, matrix.n);
 }
 
-Matrix Matrix::eye(int n) {
-    Matrix res(n, n, 0);
+Matrix Matrix::eye(int n, bool sparse) {
+    Matrix res(n, n, true);
     for (int i = 0; i < n; ++i)
         res.at(i, i) = 1;
-    return res;
+    if (sparse)
+        return res;
+    return res.to_dense();
 }
 
 void swap(Matrix &m1, Matrix &m2) noexcept {
@@ -203,6 +246,7 @@ void swap(Matrix &m1, Matrix &m2) noexcept {
     swap(m1.n, m2.n);
     swap(m1.m, m2.m);
     swap(m1.sparse, m2.sparse);
+    swap(m1.sparse_dok, m2.sparse_dok);
 }
 
 Matrix &Matrix::operator=(Matrix other) {
@@ -326,8 +370,12 @@ Matrix *Matrix::clone() const {
     return new Matrix(*this);
 }
 
-Matrix Matrix::diag(const Vector& v) {
-    Matrix res(v.n, v.n, 0.0);
+Matrix Matrix::diag(const Vector &v, bool sparse) {
+    Matrix res;
+    if (sparse)
+        res = Matrix(v.n, v.n, true);
+    else
+        res = Matrix(v.n, v.n, 0.0f);
     res.set_diag(v);
     return res;
 }
@@ -337,7 +385,7 @@ Matrix Matrix::T() {
 }
 
 Matrix::Matrix(initializer_list<initializer_list<float>> list2d) :
-    Matrix(list2d.size(), list2d.begin()->size())
+        Matrix(list2d.size(), list2d.begin()->size(), false)
 {
     // Check sizes identical:
     for (auto list1d: list2d) {
@@ -356,4 +404,132 @@ Matrix::Matrix(initializer_list<initializer_list<float>> list2d) :
     }
 }
 
+Matrix Matrix::to_dense() {
+    if (!sparse)
+        return Matrix(*this);
+    Matrix res(n, m, 0.0f);
+    for (auto [idx, v]: sparse_dok){
+        auto [i, j] = denorm_index(idx, n, m);
+        res.at(i, j) = v;
+    }
+    return res;
+}
 
+Matrix Matrix::to_sparse() {
+    if (sparse)
+        return Matrix(*this);
+    Matrix res(n, m, true);
+    float v;
+    for (int i=0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            if ((v=this->at(i, j)) != 0)
+                res.at(i, j) = v;
+
+    return res;
+}
+
+Matrix matmul(const Matrix &mat1, const Matrix &mat2) {
+    if (mat1.m != mat2.n)
+        throw runtime_error("Shape mismatch for matrix "
+                            "multiplication: " + mat1.str_shape() + ", " + mat2.str_shape());
+
+    if (mat1.sparse && mat2.sparse) {
+        return Matrix::sparse_matmul(mat1, mat2).to_dense();
+    }
+    Matrix res(mat1.n, mat2.m, 0.0f);
+    if (mat1.sparse) {
+        for (auto [idx, val]: mat1.sparse_dok){
+            auto [i, k] = denorm_index(idx, mat1.n, mat1.m);
+            for (int j=0; j < res.m; ++j)
+                res(i, j) += val * mat2(k, j);
+        }
+    }
+    else if (mat2.sparse){
+        for (auto [idx, val]: mat2.sparse_dok){
+            auto [k, j] = denorm_index(idx, mat2.n, mat2.m);
+            for (int i=0; i < res.n; ++i)
+                res(i, j) += mat1(i, k) * val;
+        }
+    }
+    else {
+        for (int i = 0; i < res.n; ++i)
+            for (int j = 0; j < res.m; ++j)
+                for (int k = 0; k < mat1.m; ++k)
+                    res(i, j) += mat1(i, k) * mat2(k, j);
+    }
+    return res;
+}
+
+Matrix Matrix::sparse_matmul(Matrix sm1, Matrix sm2) {
+    Matrix res(sm1.n, sm2.m);
+    // Heuristic -
+    // strategy = arg min { nnz(one) * respective_dim(other) }
+    // For instance:
+    // sm1.nnz()=3, sm2.n_cols()=5 vs sm2.nnz()=5, sm1.n_rows()=2
+    // the second one wins because we only need to do 10 ops instead of 15.
+    // we assume that the index preprocessing time is negligble.
+    bool strategy_right = sm1.nnz()*sm2.m <= sm2.nnz()*sm1.n;
+    if (strategy_right) {
+        // Preprocess columns to exclude 0 columns of sm2.
+        unordered_set<int> cols;
+        for (auto [idx, v] : sm2.sparse_dok)
+            cols.insert(denorm_index(idx, sm2.n, sm2.m).second);
+
+        for (auto [idx, v] : sm1.sparse_dok){
+            auto [i, k] = denorm_index(idx, sm1.n, sm1.m);
+            for (auto j: cols)
+                res(i, j) += v * sm2(k, j);
+        }
+    }
+    else {
+        // Preprocess columns to exclude 0 columns of sm2.
+        unordered_set<int> rows;
+        for (auto [idx, v] : sm1.sparse_dok)
+            rows.insert(denorm_index(idx, sm1.n, sm1.m).first);
+
+        for (auto [idx, v] : sm2.sparse_dok){
+            auto [k, j] = denorm_index(idx, sm2.n, sm2.m);
+            for (auto i: rows)
+                res(i, j) += sm1(i, k) * v;
+        }
+    }
+    return res;
+}
+
+Vector matmul(const Matrix &m, const Vector &v) {
+    if (m.m != v.n)
+        throw runtime_error("Shape mismatch: matrix multiplication with " +
+                            m.str_shape() + ", (" + to_string(v.n) + ").");
+    Vector res(m.n, 0.0);
+    if (m.sparse){
+        for (auto[idx, val]: m.sparse_dok){
+            auto[i, j] = denorm_index(idx, m.n, m.m);
+            res[i] += val * v[j];
+        }
+    }
+    else {
+        for (int i=0; i < res.n; ++i)
+            for (int j = 0; j < m.m; ++j)
+                res[i] += m(i, j) * v[j];
+    }
+    return res;
+}
+
+Vector matmul(const Vector &v, const Matrix &m) {
+    if (m.n != v.n)
+        throw runtime_error("Shape mismatch: matrix multiplication with " +
+                            to_string(v.n) + ", (" + m.str_shape() + ").");
+    Vector res(m.m, 0.0);
+    if (m.sparse){
+        for (auto[idx, val]: m.sparse_dok) {
+            auto[i, j] = denorm_index(idx, m.n, m.m);
+            res[j] += v[i] * val;
+        }
+    }
+    else {
+        for (int i=0; i < v.n; ++i)
+            for (int j=0; j < m.m; ++j)
+                res[j] += v[i] * m(i, j);
+    }
+    return res;
+}

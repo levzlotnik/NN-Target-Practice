@@ -7,7 +7,6 @@
 
 #include "VectorMath.h"
 #include "MatrixMath.h"
-#include "SparseMatrix.h"
 
 #define PI M_PI
 
