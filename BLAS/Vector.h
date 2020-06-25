@@ -19,7 +19,6 @@ class Vector {
 private:
     float* data;
     bool delete_data = true;
-    Vector();
 
 public:
     int n;
@@ -60,6 +59,8 @@ public:
 
     Vector slice(int beg, int end, int step=1) const;
     void sliced_set(Vector v, int beg, int end, int step=1);
+
+    inline int shape() const { return n; }
 
     friend ostream& operator<<(ostream& os, const Vector& vector);
 
@@ -103,7 +104,9 @@ public:
     static Vector concat(std::vector<Vector> vectors);
 
     Vector* clone() const;
-    
+
+    Vector();
+
 private:
     void check_shapes(const Vector& other) const;
 

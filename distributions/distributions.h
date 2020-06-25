@@ -8,11 +8,8 @@
 #ifndef TARGETPRACTICE_DISTRIBUTIONS_ALL_HEADERS
 
 #include "DistributionBase.h"
-#include "Constant.h"
-#include "MultivariateConstant.h"
 #include "MultivariateGaussian.h"
 #include "Normal.h"
-#include "../autograd/RandomVariable.h"
 #include "Uniform.h"
 
 #endif //TARGETPRACTICE_DISTRIBUTIONS_ALL_HEADERS

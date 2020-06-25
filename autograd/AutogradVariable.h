@@ -14,22 +14,27 @@ protected:
     // The functor that creates the data for the current variable.
     shared_ptr<Functor> source_functor_ptr;
     vector<Vector> get_args();
+    unordered_map<Variable*, int> unvisited_dependees;
+    void backward(Variable *dependee, bool recursive) override;
 
 public:
     using Variable::Variable;
 
-    explicit AutogradVariable(const Functor& source_functor, bool requires_grad=true) :
-            Variable(Vector(source_functor.output_shape), requires_grad),
-            source_functor_ptr(source_functor.clone()) {}
-
+    AutogradVariable(string name, const Functor& source_functor, bool requires_grad=true);
 
     void accumulate_grad(const Vector &grad) override;
 
     void forward() override;
 
-    void backward(const Vector& grad, bool recursive) override;
+    void prepare_backward() override;
 
     void zero_grad(bool recursive) override;
+
+    // Returns true if this variable has no dependencies.
+    // Autograd variable cannot be a root if its' shape isn't 1.
+    bool is_root() const override;
+
+    bool grad_accumulation_complete();
 };
 
 

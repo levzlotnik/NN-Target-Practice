@@ -9,6 +9,13 @@ float mul2(float& x){return x*2;}
 float add(float& x, float& y) {return x+y;};
 
 int main(){
+    float arr[] = {1., 2., 3.};
+    Vector v1(3, arr, false, true);
+    auto v2 = 1 / v1;
+    cout << "Vector::arange(0, 5) = " << Vector::arange(0, 5) << endl;
+    cout << "Vector::linspace(0, 5, 10) = " << Vector::linspace(0, 5, 10) << endl;
+    cout << "Vector::concat({v1, v2}) = " << Vector::concat({v1, v2}) << endl;
+    cout << "sin(Vector::arange(-3, 3) * PI) = " << sin(Vector::arange(-3, 3) * PI) << endl;
     Matrix matrix(3, 4, 3.5f);
     matrix.at(2,-1) /= 45.678;
     matrix.apply_(mul2);

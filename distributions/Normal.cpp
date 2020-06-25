@@ -3,6 +3,7 @@
 //
 
 #include "Normal.h"
+#include "DistributionBase.h"
 #include <cmath>
 
 float Normal::logp(float val) {
@@ -10,10 +11,14 @@ float Normal::logp(float val) {
     return -0.5f*delta*delta - 0.5f*log(2*M_PI*sigma*sigma);
 }
 
-float Normal::random() {
-    float u1 = g1.random(), u2 = g2.random();
+float Normal::sample_base() const {
+    float u1 = g1.sample(), u2 = g2.sample();
     float z0 = sqrt(-2.0f * log(u1)) * cos(2*M_PI*u2);
-    return z0 * sigma + mu;
+    return z0;
+}
+
+float Normal::sample() {
+    return sample_base() * sigma + mu;
 }
 
 Normal::Normal(float mu, float sigma) : g1(0, 1), g2(0, 1) {
@@ -30,5 +35,22 @@ ostream &Normal::print(ostream &os, string indent, bool deep) const {
 
 Normal *Normal::clone() const {
     return new Normal(*this);
+}
+
+float Normal::rsample(const vector<Vector> &inputs) const {
+    return rsample(inputs[0][0], inputs[1][0]);
+}
+
+Normal::sequence_type Normal::jac_rsample(int i, const vector<Vector> &inputs, float output) const {
+    check_rsample_args(inputs);
+    auto [mu, sigma] = tuple{inputs[0][0], inputs[1][0]};
+    auto z = (output - mu) / sigma;
+    vector<Vector> res = {{1.0f}, {z}};
+    return res[i];
+}
+
+float Normal::rsample(float mu, float sigma) const {
+    auto z = sample_base();
+    return z * mu + sigma;
 }
 

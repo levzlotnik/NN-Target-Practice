@@ -7,7 +7,6 @@
 #include <utility>
 
 RandomVariable::RandomVariable(string name, const Distribution& dist) :
-
     name(std::move(name)),
     dist(dist.clone()) {
 
@@ -19,11 +18,11 @@ RandomVariable::RandomVariable(string name, const UnivariateDistribution &dist) 
 }
 
 Vector RandomVariable::sample() {
-    return dist->random();
+    return dist->sample();
 }
 
 Matrix RandomVariable::sample_n(int n) {
-    return dist->random_sequence(n);
+    return dist->sample_sequence(n);
 }
 
 ostream &operator<<(ostream &os, const RandomVariable& rv) {
@@ -42,7 +41,7 @@ void RandomVariable::forward() {
 
 }
 
-void RandomVariable::backward(bool recursive) {
+void RandomVariable::backward(Variable *dependee, bool recursive) {
 
 }
 

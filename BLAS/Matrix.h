@@ -23,6 +23,7 @@ public:
     Matrix(int n, int m, bool sparse=false);
     Matrix(int n, int m, float init);
     Matrix(initializer_list<initializer_list<float>> list2d);
+    Matrix(const vector<Vector>& list_vectors, bool sparse=false);
 
     Matrix(const Matrix& other);
     Matrix(Matrix&& other) noexcept;
@@ -30,9 +31,9 @@ public:
     friend void swap(Matrix& m1, Matrix& m2) noexcept;
     Matrix& operator=(Matrix other);
 
-    virtual ~Matrix();
+    ~Matrix();
 
-    virtual inline float& at(int i, int j){
+    inline float& at(int i, int j){
         i = normalize_index(i, n);
         j = normalize_index(j, m);
         int idx = i*m + j;
@@ -41,7 +42,7 @@ public:
         return data[idx];
     }
 
-    virtual inline float at(int i, int j) const {
+    inline float at(int i, int j) const {
         i = normalize_index(i, n);
         j = normalize_index(j, m);
         int idx = i*m + j;
@@ -63,24 +64,24 @@ public:
 
     friend ostream& operator<<(ostream& os, const Matrix& matrix);
 
-    virtual /* Inplace operations */
+    /* Inplace operations */
     Matrix& apply_(UnaryOperation op);
 
-    virtual Matrix& apply_(const Matrix& other, BinaryOperation op);
+    Matrix& apply_(const Matrix& other, BinaryOperation op);
 
-    virtual Matrix& apply_(float scalar, BinaryOperation op);
+    Matrix& apply_(float scalar, BinaryOperation op);
 
-    virtual /* Out of place operations */
+    /* Out of place operations */
     Matrix apply(UnaryOperation op) const;
 
-    virtual Matrix apply(const Matrix& other, BinaryOperation op) const;
+    Matrix apply(const Matrix& other, BinaryOperation op) const;
 
-    virtual Matrix apply(float scalar, BinaryOperation op) const;
+    Matrix apply(float scalar, BinaryOperation op) const;
 
-    virtual Matrix operator-() const;
+    Matrix operator-() const;
 
 #define DECL_MATRIX_OPERATOR(op) \
-    virtual Matrix operator op(const Matrix& other) const; \
+    Matrix operator op(const Matrix& other) const; \
     Matrix operator op(float scalar) const; \
     friend Matrix operator op(float scalar, const Matrix& matrix);
 
@@ -124,9 +125,11 @@ public:
     static Matrix diag(const Vector &v, bool sparse);
     static Matrix eye(int n, bool sparse);
 
-    virtual Matrix* clone() const;
+    Matrix* clone() const;
 
     bool sparse;
+
+    inline pair<int, int> shape() const { return make_pair(n, m); }
 
     string str_shape() const;
 

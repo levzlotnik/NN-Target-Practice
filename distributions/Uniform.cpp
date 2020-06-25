@@ -3,13 +3,14 @@
 //
 
 #include "Uniform.h"
+#include "DistributionBase.h"
 #include <cmath>
 
 float Uniform::logp(float val) {
     return -log(upper - lower);
 }
 
-float Uniform::random() {
+float Uniform::sample() {
     auto r = generator();
     float r_ = float(r) / float(INT32_MAX);
     return lower + r_ * (upper-lower);
@@ -35,5 +36,28 @@ ostream &Uniform::print(ostream &os, string indent, bool deep) const {
 
 Uniform *Uniform::clone() const {
     return new Uniform(*this);
+}
+
+float Uniform::rsample(const vector<Vector> &inputs) const {
+    check_rsample_args(inputs);
+    return rsample(inputs[0][0], inputs[1][0]);
+}
+
+Uniform::sequence_type Uniform::jac_rsample(int i, const vector<Vector> &inputs, float output) const {
+    check_rsample_args(inputs);
+    const float dparam[] = {-1, 1};
+    return { dparam[i] };
+}
+
+float Uniform::sample() const {
+    auto r = default_random_engine(random_device{}())();
+    float r_ = float(r) / float(INT32_MAX);
+    return lower + r_ * (upper-lower);
+}
+
+float Uniform::rsample(float lower, float upper) const {
+    auto r = default_random_engine(random_device{}())();
+    float r_ = float(r) / float(INT32_MAX);
+    return lower + r_ * (upper-lower);
 }
 

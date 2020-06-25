@@ -533,3 +533,18 @@ Vector matmul(const Vector &v, const Matrix &m) {
     }
     return res;
 }
+
+Matrix::Matrix(const vector<Vector>& list_vectors, bool sparse) :
+    Matrix(list_vectors.size(), list_vectors[0].n, sparse)
+{
+    for (int i=1; i < n; ++i)
+        if (list_vectors[i].n != m)
+            throw invalid_argument("The rows must have uniform shapes.");
+
+    float v;
+    for (int i=0; i < n; ++i)
+        for (int j=0; j < m; ++j)
+            if ((v=list_vectors[i][j]) != 0 || !sparse)
+                at(i, j) = v;
+
+}

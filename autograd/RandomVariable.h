@@ -27,7 +27,7 @@ public:
 
     void forward() override;
 
-    void backward(bool recursive) override;
+    void backward(Variable *dependee, bool recursive) override;
 
     void zero_grad(bool recursive) override;
 
