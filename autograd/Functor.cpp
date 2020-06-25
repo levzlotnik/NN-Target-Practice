@@ -13,11 +13,11 @@ Vector ReduceAndGather::operator()(const vector<Vector>& args) const {
     return res;
 }
 
-unique_ptr<Matrix> ReduceAndGather::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
+Matrix ReduceAndGather::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
     int inp_shape = input_shapes[i];
-    SparseMatrix res(output_shape, inp_shape);
+    Matrix res(output_shape, inp_shape, true);
     res.set_row(i, reducejac(inputs[i], output[i]));
-    return make_unique<SparseMatrix>(res);
+    return res;
 }
 
 Functor *ReduceAndGather::clone() const {
@@ -40,8 +40,8 @@ Vector Concat::operator()(const vector<Vector>& args) const {
     return Vector::concat(args);
 }
 
-unique_ptr<Matrix> Concat::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
-    return unique_ptr<Matrix>(const_jacs[i].clone());
+Matrix Concat::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
+    return const_jacs[i];
 }
 
 Functor *Concat::clone() const {
@@ -55,12 +55,12 @@ Concat::Concat(const vector<int> &input_shapes)  :
         {
     int idx = 0;
     for (auto shape: input_shapes){
-        SparseMatrix curr_jac(output_shape, shape);
+        Matrix curr_jac(output_shape, shape, true);
         // Make an identity matrix at the relevant indices
         for (int i=0; i < shape; ++i)
             curr_jac(idx + i, i) = 1;
 
-        const_jacs.push_back(curr_jac);
+        const_jacs.emplace_back(curr_jac);
         idx += shape;
     }
 }
@@ -76,7 +76,8 @@ void Functor::check_args(const vector<Vector>& args) const {
 }
 
 Variable* Functor::operator()(vector<Variable*>& args, bool requires_grad) {
-    auto res = new AutogradVariable(*this, requires_grad);
+    string name_var = name + ".Result";
+    auto res = new AutogradVariable(name, *this, requires_grad);
     for (auto arg: args)
         res->add_dependency(arg);
     res->forward();
@@ -95,10 +96,10 @@ Vector Slice::operator()(const vector<Vector> &args) const {
     return args[0].slice(begin, end, step);
 }
 
-unique_ptr<Matrix> Slice::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
+Matrix Slice::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
     if (i != 0)
         throw out_of_range("Only 1 element available in slice.");
-    return unique_ptr<Matrix>(const_jac.clone());
+    return const_jac;
 }
 
 Functor *Slice::clone() const {
@@ -119,7 +120,7 @@ Slice::Slice(int b, int e, int input_shape, int step) :
     begin = b;
     end = e;
     this->step = step;
-    const_jac = SparseMatrix(output_shape, input_shape);
+    const_jac = Matrix(output_shape, input_shape, true);
     for(int i=0; i<output_shape; ++i)
         const_jac(i, b + i*step) = 1;
 }
@@ -145,20 +146,19 @@ Vector Elemwise::operator()(const vector<Vector> &args) const {
     return args[0].apply(func);
 }
 
-unique_ptr<Matrix> Elemwise::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
+Matrix Elemwise::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
     check_args(inputs);
     if (i==0)
         throw out_of_range("Elemwise only accepts a single vector");
-    SparseMatrix res(output_shape, output_shape);
+    Matrix res(output_shape, output_shape, true);
     res.set_diag(inputs[0].apply(dfunc));
-    return make_unique<SparseMatrix>(res);
+    return res;
 }
 
 Functor *Elemwise::clone() const {
     return new Elemwise(*this);
 }
 
-Vector Elemwise::operator()(Vector v) const {
-    vector<Vector> args = { v };
-    return this->operator()(args);
+Vector Elemwise::operator()(const Vector& v) const {
+    return this->operator()(vector<Vector>{v});
 }

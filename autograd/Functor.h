@@ -22,9 +22,9 @@ public:
 
     void check_args(const vector<Vector>& args) const; // throws runtime_error if mismatch
 
-    virtual unique_ptr<Matrix> jac(int i, const vector<Vector>& inputs, const Vector& output) const = 0;
+    virtual Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const = 0;
 
-    virtual Functor* clone() const = 0;
+    [[nodiscard]] virtual Functor* clone() const = 0;
 
     Variable* operator()(vector<Variable*>& args, bool requires_grad=true);
 };
@@ -38,25 +38,26 @@ public:
     ReduceAndGather(const vector<int>& input_shapes, reduce_t func, reducejac_t jac, string func_name);
 
     Vector operator()(const vector<Vector>& args) const override;
-    unique_ptr<Matrix> jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
+    Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
 
-    Functor *clone() const override;
+    [[nodiscard]] Functor *clone() const override;
 };
 
 class Concat : public Functor {
 private:
-    vector<SparseMatrix> const_jacs;
+    vector<Matrix> const_jacs;
 public:
     explicit Concat(const vector<int>& input_shapes);
     Vector operator()(const vector<Vector>& args) const override;
-    unique_ptr<Matrix> jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
 
-    Functor *clone() const override;
+    Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
+
+    [[nodiscard]] Functor *clone() const override;
 };
 
 class Slice : public Functor {
 private:
-    SparseMatrix const_jac;
+    Matrix const_jac;
 public:
     int begin;
     int end;
@@ -66,9 +67,9 @@ public:
 
     Vector operator()(const vector<Vector> &args) const override;
 
-    unique_ptr<Matrix> jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
+    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
 
-    Functor *clone() const override;
+    [[nodiscard]] Functor *clone() const override;
 };
 
 class Elemwise : public Functor {
@@ -81,11 +82,11 @@ public:
     Elemwise(elemwise_t func, int shape, elemwise_t dfunc, string func_name);
 
     Vector operator()(const vector<Vector> &args) const override;
-    Vector operator()(const Vector v) const;
+    Vector operator()(const Vector& v) const;
 
-    unique_ptr<Matrix> jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
+    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
 
-    Functor *clone() const override;
+    [[nodiscard]] Functor *clone() const override;
 };
 
 #endif //TARGETPRACTICE_VECTORFUNCTION_H

@@ -11,18 +11,29 @@
 
 #define INDENT_INC "    "
 
+template<typename T>
+struct sequence_type;
+
+template<> struct sequence_type<float> {using T = Vector;};
+template<> struct sequence_type<Vector> {using T = Matrix;};
+
 using namespace std;
 
-template<class ResultType>
+template<class T>
 class DistributionBase {
 public:
-    using T = ResultType;
+    using sample_type = T;
+    using sequence_type = typename sequence_type<T>::T;
 
     virtual ~DistributionBase() {};
 
     virtual float logp(T val) = 0;
 
-    virtual T random() = 0;
+    virtual sample_type sample() = 0;
+    virtual sequence_type sample_sequence(size_t n) = 0;
+
+    virtual sample_type rsample(const vector<Vector>& inputs) const = 0;
+    virtual sequence_type jac_rsample(int i, const vector<Vector>& inputs, sample_type output) const = 0;
 
     virtual ostream &print(ostream &os, string indent, bool deep = false) const = 0;
 
@@ -30,35 +41,36 @@ public:
         return dist.print(os, "", false);
     }
 
-    virtual DistributionBase* clone() const = 0;
+    [[nodiscard]] virtual DistributionBase* clone() const = 0;
 };
 
 
 class UnivariateDistribution : public DistributionBase<float> {
 public:
-    Vector random_sequence(size_t n) {
+    sequence_type sample_sequence(size_t n) override {
         Vector res(n);
         for (float& x: res)
-            x = this->random();
+            x = this->sample();
         return res;
     }
 
-    virtual UnivariateDistribution *clone() const override = 0;
+    [[nodiscard]] UnivariateDistribution *clone() const override = 0;
 
 };
+
 class MultivariateDistribution : public DistributionBase<Vector> {
 public:
     int k;
     explicit MultivariateDistribution(int k): k(k) {}
 
-    Matrix random_sequence(size_t n) {
-        Matrix res(n, k);
+    Matrix sample_sequence(size_t n) override {
+        Matrix res(n, k, false);
         for (int i=0; i < n; ++i)
-            res.set_row(i, this->random());
+            res.set_row(i, this->sample());
         return res;
     }
 
-    virtual MultivariateDistribution *clone() const override = 0;
+    [[nodiscard]] MultivariateDistribution *clone() const override = 0;
 };
 
 
@@ -67,7 +79,7 @@ private:
     std::shared_ptr<UnivariateDistribution> dist;
 
 public:
-    EncapsulateUnivariate(const UnivariateDistribution& dist) : dist(dist.clone()),
+    explicit EncapsulateUnivariate(const UnivariateDistribution& dist) : dist(dist.clone()),
         MultivariateDistribution(1) {
 
     }
@@ -76,8 +88,20 @@ public:
         return dist->logp(val[0]);
     }
 
-    Vector random() override {
-        return Vector(1, dist->random());
+    Vector sample() override {
+        return Vector(1, dist->sample());
+    }
+
+    sample_type rsample(const vector<Vector> &inputs) const override {
+        return Vector(1, dist->rsample(inputs));
+    }
+
+    sequence_type jac_rsample(int i, const vector<Vector> &inputs, sample_type output) const override {
+        if (output.n != 1)
+            throw runtime_error("Wtf dude output was supposed to have n = 1, "
+                                "got n = " + to_string(output.n) + ".");
+        Matrix res_vec({ dist->jac_rsample(i, inputs, output[0]) });
+        return res_vec;
     }
 
     ostream &print(ostream &os, string indent, bool deep) const override {
@@ -95,52 +119,13 @@ public:
         return os;
     }
 
-    EncapsulateUnivariate *clone() const override {
+    [[nodiscard]] EncapsulateUnivariate *clone() const override {
         return new EncapsulateUnivariate(*this);
     }
 };
 
-class UnivariateProjection : public UnivariateDistribution {
-private:
-    int i; // index of projection
-    std::shared_ptr<MultivariateDistribution> dist;
-
-public:
-    explicit UnivariateProjection(const MultivariateDistribution& dist, int i = 0) : dist(dist.clone()), i(i) {}
-
-    float logp(T val) override {
-        warning::warn("UserWarning: cannot determine the marginal probability "
-                    "for projection without additional information. This is usually caused by the"
-                    " intractability of the integral of all dependencies + joint variables.");
-        return 0;
-    }
-
-    T random() override {
-        return dist->random()[i];
-    }
-
-    ostream &print(ostream &os, string indent, bool deep) const override {
-        os << "UnivariateProjection(i=" << i << ", ";
-        if (deep){
-            os << endl << indent << "dist=";
-            dist->print(os, indent + INDENT_INC, true);
-            os << indent << endl << ")";
-        }
-        else {
-            os << "dist=";
-            dist->print(os, indent + INDENT_INC, false);
-            os << ")";
-        }
-        return os;
-    }
-
-    UnivariateProjection *clone() const override {
-        return new UnivariateProjection(*this);
-    }
-};
-
 // Model / Graph default distribution type is MultivariateDistribution
-// Because it can represent UnivariateDistributions as well
+// Because it can represent UnivariateDistributions as well by using size()==1.
 
 using Distribution = MultivariateDistribution;
 
