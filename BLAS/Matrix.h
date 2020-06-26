@@ -101,7 +101,7 @@ public:
     float prod();
     float trace();
 
-    Vector reduce_axis(float init_value, int axis, BinaryOperation op);
+    Vector reduce_axis(int axis, BinaryOperation op);
     Vector sum(int axis);
     Vector mean(int axis);
     Vector var(int axis);

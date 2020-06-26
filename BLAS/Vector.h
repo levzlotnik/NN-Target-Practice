@@ -88,7 +88,7 @@ public:
     MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(DECL_VECTOR_OPERATOR_INPLACE)
 
     float dot(const Vector& other);
-    float reduce(BinaryOperation op, float init_val=0);
+    float reduce(BinaryOperation op);
     float sum();
     float mean();
     float var();

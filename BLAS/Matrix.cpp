@@ -289,14 +289,14 @@ void Matrix::set_row(int i, const Vector &row) {
 
 }
 
-Vector Matrix::reduce_axis(float init_value, int axis, BinaryOperation op) {
+Vector Matrix::reduce_axis(int axis, BinaryOperation op) {
     if (axis != 0 && axis != 1)
         throw out_of_range("Axes are only 0, 1.");
     int k = axis == 0 ? n : m;
     int t = axis == 0 ? m : n;
     auto fn = axis == 0 ? &Matrix::get_row : &Matrix::get_col;
-    Vector res(t, init_value);
-    for (int i = 0; i < k; ++i)
+    Vector res = (this->*fn)(0);
+    for (int i = 1; i < k; ++i)
         res.apply_((this->*fn)(i), op);
     return res;
 }
@@ -310,7 +310,7 @@ Vector Matrix::get_col(int i) {
 }
 
 Vector Matrix::sum(int axis) {
-    return reduce_axis(0, axis, [](float& x, float& y) {return x+y;});
+    return reduce_axis(axis, [](float &x, float &y) { return x + y; });
 }
 
 Vector Matrix::mean(int axis) {

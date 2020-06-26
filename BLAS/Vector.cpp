@@ -167,14 +167,15 @@ float Vector::dot(const Vector &other) {
     return res;
 }
 
-float Vector::reduce(BinaryOperation op, float init_val) {
-    for (int i = 0; i < n; ++i)
+float Vector::reduce(BinaryOperation op) {
+    float init_val = at(0);
+    for (int i = 1; i < n; ++i)
         init_val = op(init_val, data[i]);
     return init_val;
 }
 
 float Vector::sum() {
-    return reduce([](float& x, float& y){return x+y;});
+    return reduce([](float &x, float &y) { return x + y; });
 }
 
 Vector Vector::zeros(int n) {
