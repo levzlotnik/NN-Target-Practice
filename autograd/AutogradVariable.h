@@ -16,16 +16,19 @@ private:
     vector<Vector> get_args();
     void backward(Variable *dependee, bool recursive) override;
 
-public:
-    using Variable::Variable;
-
     AutogradVariable(string name, const Functor& source_functor, bool requires_grad=true);
 
+public:
     Vector forward() override;
 
     // Returns true if this variable has no dependencies.
     // Autograd variable cannot be a root if its' shape isn't 1.
     bool is_root() const override;
+
+    static shared_ptr<Variable> make(const string& name,
+            const Functor& source_functor, bool requires_grad=true) {
+        return shared_ptr<Variable>{new AutogradVariable(name, source_functor, requires_grad)};
+    }
 
 };
 

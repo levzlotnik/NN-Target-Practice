@@ -75,9 +75,9 @@ void Functor::check_args(const vector<Vector>& args) const {
                 + to_string(args[i].n) + ", " + to_string(input_shapes[i]));
 }
 
-Variable* Functor::operator()(vector<Variable*>& args, bool requires_grad) {
+shared_ptr<Variable> Functor::operator()(vector<shared_ptr<Variable>>& args, bool requires_grad) {
     string name_var = name + ".Result";
-    auto res = new Deterministic(name, *this, requires_grad);
+    auto res = make_shared<Deterministic>(name, *this, requires_grad);
     for (auto arg: args)
         res->add_dependency(arg);
     res->forward();

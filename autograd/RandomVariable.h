@@ -6,6 +6,7 @@
 #define TARGETPRACTICE_RANDOMVARIABLE_H
 
 #include <string>
+#include <utility>
 #include "../distributions/DistributionBase.h"
 #include "../BLAS/BLAS.h"
 #include "Variable.h"
@@ -17,11 +18,11 @@ private:
     shared_ptr<Distribution> dist;
     vector<Vector> get_args();
 
-public:
-
     RandomVariable(string name, const Distribution &dist, bool requires_grad=true);
 
     RandomVariable(string name, const UnivariateDistribution &dist, bool requires_grad=true);
+public:
+
 
     Vector forward() override;
 
@@ -31,6 +32,14 @@ public:
 
     Vector sample();
     Matrix sample_sequence(int n);
+
+    static shared_ptr<Variable> make(string name, const Distribution &dist, bool requires_grad=true) {
+        return shared_ptr<Variable>(new RandomVariable(std::move(name), dist, requires_grad));
+    }
+
+    static shared_ptr<Variable> make(string name, const UnivariateDistribution &dist, bool requires_grad=true) {
+        return shared_ptr<Variable>(new RandomVariable(std::move(name), dist, requires_grad));
+    }
 
     float logp(Vector v);
 };

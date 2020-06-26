@@ -12,9 +12,8 @@ Vector InputBuffer::forward() {
 
 void InputBuffer::backward(Variable *dependee, bool recursive) {
     // Do nothing - leaf variable.
-    warning::warn("InputBuffer is an independent variable, adding dependencies to it will have no effect.");
 }
 
-Vector &InputBuffer::set_data(Vector data) {
-    return (this->_data = std::move(data));
+void InputBuffer::add_dependency(const shared_ptr<Variable> &dep) {
+    throw runtime_error("InputBuffer is an independent variable, adding dependencies to it will have no effect.");
 }

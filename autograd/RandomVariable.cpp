@@ -32,7 +32,7 @@ float RandomVariable::logp(Vector v) {
 Vector RandomVariable::forward() {
     if (is_leaf())
         _data = dist->sample();
-    else
+    else // This distribution requires arguments.
         _data = dist->rsample(get_args());
     return _data;
 }

@@ -15,7 +15,7 @@ using namespace std;
 
 class Variable {
 protected:
-    vector<Variable*> dependencies;
+    vector<shared_ptr<Variable>> dependencies;
     vector<Variable*> dependees;
     Vector _data;
     Vector _grad;
@@ -33,21 +33,21 @@ protected:
     friend class AutogradVariable;
     friend class RandomVariable;
 
-public:
-    bool requires_grad;
     Variable(string name, Vector data, bool requires_grad = true)
             : name(std::move(name)), _data(std::move(data)),
               _grad(Vector::zeros_like(data)), requires_grad(requires_grad){}
     Variable(string name, Vector data, Vector  grad_data, bool requires_grad = true) :
             name(std::move(name)), _data(std::move(data)),
             _grad(std::move(grad_data)), requires_grad(requires_grad) {}
+public:
+    bool requires_grad;
 
     virtual ~Variable() = default;
 
     Vector& data();
     Vector& grad();
 
-    virtual void add_dependency(Variable* dep);
+    virtual void add_dependency(const shared_ptr<Variable>& dep);
     void accumulate_grad(const Vector &grad);
     virtual Vector forward() = 0;
 
@@ -66,8 +66,10 @@ public:
     // Returns true if this is a root of the graph - idx_proj.e. no dependees.
     virtual bool is_root() const;
 
+    virtual bool is_param() const { return false; }
+    virtual bool is_input_buffer() const { return false; }
+
     void check_graph_integrity();
 };
-
 
 #endif //TARGETPRACTICE_VARIABLE_H

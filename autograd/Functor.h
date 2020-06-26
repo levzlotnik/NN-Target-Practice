@@ -26,7 +26,7 @@ public:
 
     [[nodiscard]] virtual Functor* clone() const = 0;
 
-    Variable* operator()(vector<Variable*>& args, bool requires_grad=true);
+    shared_ptr<Variable> operator()(vector<shared_ptr<Variable>>& args, bool requires_grad=true);
 };
 
 class ReduceAndGather : public Functor {

@@ -14,7 +14,9 @@ public:
 
     Vector forward() override;
 
-    void add_dependency(Variable *dep) override;
+    void add_dependency(const shared_ptr<Variable>& dep) override;
+
+    inline bool is_param() const final { return true; }
 
 protected:
     void backward(Variable *dependee, bool recursive) override;
