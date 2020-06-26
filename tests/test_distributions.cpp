@@ -17,7 +17,10 @@ int main() {
     cout << "vector_samples.mean(axis=0), vector_samples.std(axis=0) = "
          << vector_samples.mean(0) << ", "
          << vector_samples.std(0) << endl;
-
+    vector_samples = gaussian.sample_sequence(10);
+    cout << "vector_samples, gaussian.pdf(vector_samples) = "
+         << vector_samples << ", "
+         << exp(gaussian.logp_batch(vector_samples)) << endl;
 
     EncapsulateUnivariate encapsulated_normal(dist);
     MultivariateDistribution& encap = encapsulated_normal;

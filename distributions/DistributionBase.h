@@ -27,7 +27,8 @@ public:
 
     virtual ~DistributionBase() {};
 
-    virtual float logp(T val) = 0;
+    virtual float logp(sample_type samples) = 0;
+    virtual sequence_type logp_batch(sequence_type samples) = 0;
 
     virtual sample_type sample() = 0;
     virtual sequence_type sample_sequence(size_t n) = 0;
@@ -47,6 +48,10 @@ public:
 
 class UnivariateDistribution : public DistributionBase<float> {
 public:
+    sequence_type logp_batch(sequence_type samples) override {
+        return samples.apply([this](float& x){ return this->logp(x);});
+    }
+
     sequence_type sample_sequence(size_t n) override {
         Vector res(n);
         for (float& x: res)
@@ -60,11 +65,18 @@ public:
 
 class MultivariateDistribution : public DistributionBase<Vector> {
 public:
-    int k;
-    explicit MultivariateDistribution(int k): k(k) {}
+    int sample_shape;
+    explicit MultivariateDistribution(int k): sample_shape(k) {}
+
+    sequence_type logp_batch(sequence_type samples) override {
+        Matrix ret(samples.n, 1);
+        for (int i=0; i < ret.n; ++i)
+            ret(i, 0) = this->logp(samples.get_row(i));
+        return ret;
+    }
 
     Matrix sample_sequence(size_t n) override {
-        Matrix res(n, k, false);
+        Matrix res(n, sample_shape, false);
         for (int i=0; i < n; ++i)
             res.set_row(i, this->sample());
         return res;

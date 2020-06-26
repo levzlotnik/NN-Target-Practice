@@ -15,46 +15,51 @@ using namespace std;
 
 class Variable {
 protected:
-    shared_ptr<Vector> ptr_grad_data;
     vector<Variable*> dependencies;
     vector<Variable*> dependees;
-    Vector data;
+    Vector _data;
+    Vector _grad;
     string name;
 
     void check_graph_integrity(unordered_set<Variable*>& visited);
 
     // Backpropagates the gradient to the current dependencies.
     // If recursive=true - backpropagates for all dependencies as well.
+    bool grad_accumulation_complete() const;
     virtual void backward(Variable *dependee, bool recursive) = 0;
+    unordered_map<Variable*, int> unvisited_dependees;
+    Vector forward_recursive();
+
     friend class AutogradVariable;
     friend class RandomVariable;
 
 public:
     bool requires_grad;
     Variable(string name, Vector data, bool requires_grad = true)
-            : name(std::move(name)), data(std::move(data)) , requires_grad(requires_grad){}
-    Variable(string name, Vector data, const Vector& grad_data, bool requires_grad = true) :
-            name(std::move(name)), data(std::move(data)),
-            ptr_grad_data(grad_data.clone()), requires_grad(requires_grad) {}
+            : name(std::move(name)), _data(std::move(data)),
+              _grad(Vector::zeros_like(data)), requires_grad(requires_grad){}
+    Variable(string name, Vector data, Vector  grad_data, bool requires_grad = true) :
+            name(std::move(name)), _data(std::move(data)),
+            _grad(std::move(grad_data)), requires_grad(requires_grad) {}
 
     virtual ~Variable() = default;
 
-    Vector& get_data();
+    Vector& data();
     Vector& grad();
 
-    void add_dependency(Variable* dep);
-    virtual void accumulate_grad(const Vector &jac) = 0;
-    virtual void forward() = 0;
+    virtual void add_dependency(Variable* dep);
+    void accumulate_grad(const Vector &grad);
+    virtual Vector forward() = 0;
 
     // Prepares the graph for backward operation. Should be called before
     // calling backward each time.
-    virtual void prepare_backward() = 0;
+    void prepare_backward();
 
     // Backpropagates through the entire graph and assigns gradients for every variable
     // according to the current gradient.
     void backward();
 
-    virtual void zero_grad(bool recursive) = 0;
+    void zero_grad(bool recursive);
 
     // Returns true if this is a leaf of the graph - idx_proj.e. no dependencies.
     bool is_leaf() const;

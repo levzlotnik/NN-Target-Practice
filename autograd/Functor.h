@@ -79,7 +79,7 @@ private:
 public:
 
     Elemwise(elemwise_t func, int shape);
-    Elemwise(elemwise_t func, int shape, elemwise_t dfunc, string func_name);
+    Elemwise(elemwise_t func, int shape, elemwise_t dfunc, const string& func_name);
 
     Vector operator()(const vector<Vector> &args) const override;
     Vector operator()(const Vector& v) const;

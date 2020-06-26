@@ -15,26 +15,22 @@ using namespace std;
 class RandomVariable : public Variable {
 private:
     shared_ptr<Distribution> dist;
+    vector<Vector> get_args();
 
 public:
-    string name;
 
-    RandomVariable(string name, const Distribution& dist);
+    RandomVariable(string name, const Distribution &dist, bool requires_grad=true);
 
-    RandomVariable(string name, const UnivariateDistribution& dist);
+    RandomVariable(string name, const UnivariateDistribution &dist, bool requires_grad=true);
 
-    void accumulate_grad(const Vector &jac) override;
-
-    void forward() override;
+    Vector forward() override;
 
     void backward(Variable *dependee, bool recursive) override;
-
-    void zero_grad(bool recursive) override;
 
     friend ostream& operator <<(ostream& os, const RandomVariable& rv);
 
     Vector sample();
-    Matrix sample_n(int n);
+    Matrix sample_sequence(int n);
 
     float logp(Vector v);
 };

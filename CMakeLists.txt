@@ -28,11 +28,13 @@ add_library(distributions SHARED ${SOURCE_FILES_DISTRIBUTIONS})
 
 set(
         SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
+        autograd/autograd.h
         autograd/AutogradVariable.cpp autograd/AutogradVariable.h
         autograd/Variable.h autograd/Variable.cpp
         autograd/Functor.cpp autograd/Functor.h
         autograd/RandomVariable.cpp autograd/RandomVariable.h
-)
+        autograd/Parameter.cpp autograd/Parameter.h
+        autograd/InputBuffer.cpp autograd/InputBuffer.h)
 add_library(autograd SHARED ${SOURCE_FILES_AUTOGRAD})
 
 # Tests

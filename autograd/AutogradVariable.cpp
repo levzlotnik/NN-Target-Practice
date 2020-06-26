@@ -4,17 +4,11 @@
 
 #include "AutogradVariable.h"
 
-void AutogradVariable::accumulate_grad(const Vector &grad) {
-    if (ptr_grad_data == nullptr)
-        ptr_grad_data = shared_ptr<Vector>(grad.clone());
-    else
-        this->grad() += grad;
-}
 
-void AutogradVariable::forward() {
-    if (is_leaf())
-        return;
-    this->data = (*this->source_functor_ptr)(get_args());
+Vector AutogradVariable::forward() {
+    if (!is_leaf())
+         _data = (*this->source_functor_ptr)(get_args());
+    return _data;
 }
 
 void AutogradVariable::backward(Variable *dependee, bool recursive) {
@@ -27,7 +21,7 @@ void AutogradVariable::backward(Variable *dependee, bool recursive) {
         return;
     auto args = get_args();
     for(int i=0; i < dependencies.size(); ++i) {
-        auto jac = source_functor_ptr->jac(i, args, this->data);
+        auto jac = source_functor_ptr->jac(i, args, this->_data);
         auto dep_grad = matmul(this->grad(), jac);
         dependencies[i]->accumulate_grad(dep_grad);
         if (recursive)
@@ -35,39 +29,18 @@ void AutogradVariable::backward(Variable *dependee, bool recursive) {
     }
 }
 
-void AutogradVariable::zero_grad(bool recursive) {
-    this->grad().apply_([](float& x) {return 0;});
-    if(recursive)
-        for(auto dep: dependencies)
-            dep->zero_grad(true);
-}
-
 vector<Vector> AutogradVariable::get_args() {
-    vector<Vector> arg_refs;
+    vector<Vector> args;
     for (auto dep: dependencies)
-        arg_refs.emplace_back(dep->get_data());
-    return arg_refs;
-}
-
-void AutogradVariable::prepare_backward() {
-    unvisited_dependees.clear();
-    for (auto dependeePtr: dependees)
-        unvisited_dependees[dependeePtr]++;
-    for (auto dep: dependencies)
-        dep->prepare_backward();
+        args.emplace_back(dep->data());
+    return args;
 }
 
 bool AutogradVariable::is_root() const {
-    return Variable::is_root() && data.n == 1;
+    return Variable::is_root() && _data.n == 1;
 }
 
 AutogradVariable::AutogradVariable(string name, const Functor &source_functor, bool requires_grad) :
         Variable(std::move(name), Vector(source_functor.output_shape), requires_grad),
         source_functor_ptr(source_functor.clone()) {}
 
-bool AutogradVariable::grad_accumulation_complete() {
-    for (auto [dep_ptr, required_visits] : unvisited_dependees)
-        if (required_visits > 0)
-            return false;
-    return true;
-}

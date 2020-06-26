@@ -15,8 +15,8 @@ void Variable::add_dependency(Variable *depend) {
 }
 
 
-Vector &Variable::get_data() {
-    return data;
+Vector &Variable::data() {
+    return _data;
 }
 
 bool Variable::is_leaf() const {
@@ -38,7 +38,7 @@ void Variable::check_graph_integrity(unordered_set<Variable *>& visited) {
 }
 
 Vector &Variable::grad() {
-    return *ptr_grad_data;
+    return *_grad;
 }
 
 bool Variable::is_root() const {
@@ -50,7 +50,43 @@ void Variable::backward() {
         warning::warn("Calling '.backward()' on a non-root variable will force the gradients to"
                       "flow from the middle of the graph, and may produce unexpected results. "
                       "Avoid it unless you really know what you're doing.");
+    prepare_backward();
     backward(nullptr, true);
 }
 
 
+void Variable::accumulate_grad(const Vector &grad) {
+    if (requires_grad)
+        _grad += grad;
+}
+
+void Variable::prepare_backward() {
+    unvisited_dependees.clear();
+    for (auto dependeePtr: dependees)
+        unvisited_dependees[dependeePtr]++;
+    for (auto dep: dependencies)
+        dep->prepare_backward();
+}
+
+
+bool Variable::grad_accumulation_complete() const {
+    for (auto [dep_ptr, required_visits] : unvisited_dependees)
+        if (required_visits > 0)
+            return false;
+    return true;
+}
+
+
+void Variable::zero_grad(bool recursive) {
+    _grad.apply_([](float& x) { return 0; });
+    if (recursive)
+        for (auto dep: dependencies)
+            dep->zero_grad(true);
+}
+
+
+Vector Variable::forward_recursive() {
+    for (auto dep: dependencies)
+        dep->forward_recursive();
+    return forward();
+}

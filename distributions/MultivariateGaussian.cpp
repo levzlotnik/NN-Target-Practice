@@ -14,8 +14,8 @@ float MultivariateGaussian::logp(Vector val) {
 }
 
 Vector MultivariateGaussian::sample() {
-    Vector res(k);
-    for (int i = 0; i < k; ++i)
+    Vector res(sample_shape);
+    for (int i = 0; i < sample_shape; ++i)
         res[i] = generators[i].sample();
     return res;
 }
@@ -25,7 +25,7 @@ MultivariateGaussian::MultivariateGaussian(Vector mu, Vector sigma) :
     mu(std::move(mu)), sigma(std::move(sigma)){
     if (mu.n != sigma.n)
         throw runtime_error("Shape mismatch: " + to_string(mu.n) + ", " + to_string(sigma.n));
-    for (int i = 0; i < k; ++i)
+    for (int i = 0; i < sample_shape; ++i)
         generators.emplace_back(this->mu[i], this->sigma[i]);
 }
 
@@ -60,10 +60,7 @@ MultivariateGaussian::jac_rsample(int i, const vector<Vector> &inputs, Vector ou
     if (i < 0 || i > 1)
         throw out_of_range("Only two arguments available.");
     auto [mu_, sigma_] = tuple{inputs[0], inputs[1]};
-    Matrix res(inputs[0].shape(), inputs[0].shape(), true);
-    if (i == 0)
-        res.set_diag(Vector::ones_like(mu_));
-    else
-        res.set_diag((output - mu_) / sigma_);
-    return res;
+    return i == 0 ?
+        Matrix::diag(Vector::ones_like(mu_), true) :
+        Matrix::diag((output - mu_) / sigma_, true);
 }

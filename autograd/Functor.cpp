@@ -77,7 +77,7 @@ void Functor::check_args(const vector<Vector>& args) const {
 
 Variable* Functor::operator()(vector<Variable*>& args, bool requires_grad) {
     string name_var = name + ".Result";
-    auto res = new AutogradVariable(name, *this, requires_grad);
+    auto res = new Deterministic(name, *this, requires_grad);
     for (auto arg: args)
         res->add_dependency(arg);
     res->forward();
@@ -133,7 +133,7 @@ Elemwise::Elemwise(elemwise_t func, int shape) :
 
 }
 
-Elemwise::Elemwise(elemwise_t func, int shape, elemwise_t dfunc, string func_name) :
+Elemwise::Elemwise(elemwise_t func, int shape, elemwise_t dfunc, const string& func_name) :
     func(func), dfunc(dfunc),
     Functor(vector<int>(1, shape), shape,
             "Elemwise[" + func_name + "]")
