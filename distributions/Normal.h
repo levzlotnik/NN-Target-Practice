@@ -9,6 +9,7 @@
 
 class Normal : public UnivariateDistribution {
 public:
+
     float mu, sigma;
 private:
     const Uniform g1, g2;
@@ -20,11 +21,11 @@ private:
     }
 public:
     Normal(float mu, float sigma);
+    Normal() : Normal(0, 1) {}
 
     float logp(float val) override;
 
     float sample() override;
-
 
     sample_type rsample(const vector<Vector> &inputs) const override;
     sample_type rsample(float mu, float sigma) const;
@@ -35,6 +36,12 @@ public:
 
     Normal *clone() const override;
 };
+
+Vector randn(float mu, float sigma, int n);
+
+Matrix randn(float mu, float sigma, int n, int m);
+
+
 
 
 #endif //TARGETPRACTICENORMAL_H

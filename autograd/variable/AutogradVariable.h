@@ -7,7 +7,7 @@
 
 
 #include "Variable.h"
-#include "Functor.h"
+#include "../Functor.h"
 
 class AutogradVariable : public Variable {
 private:

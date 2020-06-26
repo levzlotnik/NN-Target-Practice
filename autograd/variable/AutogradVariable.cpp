@@ -12,13 +12,18 @@ Vector AutogradVariable::forward() {
 }
 
 void AutogradVariable::backward(Variable *dependee, bool recursive) {
-    if (unvisited_dependees.at(dependee) <= 0)
-        throw runtime_error("WTF... Did you forget to call '.prepare_backward()'? "
-                            "Maybe '.check_graph_integrity()'?");
-
-    unvisited_dependees[dependee]--;
-    if (!grad_accumulation_complete())
+    if (!requires_grad)
         return;
+    if (dependee)
+    {
+        if (unvisited_dependees.at(dependee) <= 0)
+            throw runtime_error("WTF... Did you forget to call '.prepare_backward()'? "
+                                "Maybe '.check_graph_integrity()'?");
+
+        unvisited_dependees[dependee]--;
+        if (!grad_accumulation_complete())
+            return;
+    }
     auto args = get_args();
     for(int i=0; i < dependencies.size(); ++i) {
         auto jac = source_functor_ptr->jac(i, args, this->_data);
@@ -31,7 +36,7 @@ void AutogradVariable::backward(Variable *dependee, bool recursive) {
 
 vector<Vector> AutogradVariable::get_args() {
     vector<Vector> args;
-    for (auto dep: dependencies)
+    for (const auto& dep: dependencies)
         args.emplace_back(dep->data());
     return args;
 }

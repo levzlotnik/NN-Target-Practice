@@ -61,3 +61,10 @@ float Uniform::rsample(float lower, float upper) const {
     return lower + r_ * (upper-lower);
 }
 
+Vector uniform(float lower, float upper, int n) {
+    return Uniform(lower, upper).sample_sequence(n);
+}
+
+Matrix uniform(float lower, float upper, int n, int m) {
+    return reshape(uniform(lower, upper, n*m), n, m);
+}

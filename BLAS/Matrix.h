@@ -113,7 +113,9 @@ public:
     void set_row(int i, const Vector& row);
 
     Vector flatten(bool copy=true);
-    Matrix reshape(int new_n, int new_m);
+    Matrix reshape(int new_n, int new_m) const;
+
+    friend Matrix reshape(const Vector& v, int new_n, int new_m);
 
     Matrix transpose();
     Matrix T(); // alias to transpose
@@ -157,6 +159,9 @@ protected:
 Matrix matmul(const Matrix& mat1, const Matrix& mat2);
 Vector matmul(const Vector& v, const Matrix& m);
 Vector matmul(const Matrix& m, const Vector& v);
+
+Matrix reshape(const Matrix& m, int new_n, int new_m);
+Matrix reshape(const Vector& v, int new_n, int new_m);
 
 
 #endif //TARGETPRACTICE_MATRIX_H

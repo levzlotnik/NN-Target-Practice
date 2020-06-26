@@ -7,8 +7,8 @@
 
 #include <string>
 #include <utility>
-#include "../distributions/DistributionBase.h"
-#include "../BLAS/BLAS.h"
+#include "../../distributions/DistributionBase.h"
+#include "../../BLAS/BLAS.h"
 #include "Variable.h"
 
 using namespace std;

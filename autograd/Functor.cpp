@@ -3,7 +3,7 @@
 //
 
 #include "Functor.h"
-#include "AutogradVariable.h"
+#include "variable/AutogradVariable.h"
 
 Vector ReduceAndGather::operator()(const vector<Vector>& args) const {
     check_args(args);
@@ -75,10 +75,10 @@ void Functor::check_args(const vector<Vector>& args) const {
                 + to_string(args[i].n) + ", " + to_string(input_shapes[i]));
 }
 
-shared_ptr<Variable> Functor::operator()(vector<shared_ptr<Variable>>& args, bool requires_grad) {
-    string name_var = name + ".Result";
-    auto res = make_shared<Deterministic>(name, *this, requires_grad);
-    for (auto arg: args)
+shared_ptr<Variable> Functor::operator()(const vector<shared_ptr<Variable>>& args, bool requires_grad) const {
+    string name_var = name + ".result";
+    auto res = Deterministic::make(name_var, *this, requires_grad);
+    for (const auto& arg: args)
         res->add_dependency(arg);
     res->forward();
     return res;

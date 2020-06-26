@@ -3,7 +3,7 @@
 //
 
 #include "Variable.h"
-#include "Functor.h"
+#include "../Functor.h"
 
 void Variable::add_dependency(const shared_ptr<Variable>& dep) {
     if(!dep) {
@@ -51,6 +51,7 @@ void Variable::backward() {
                       "flow from the middle of the graph, and may produce unexpected results. "
                       "Avoid it unless you really know what you're doing.");
     prepare_backward();
+    grad().fill_(1);
     backward(nullptr, true);
 }
 
@@ -78,7 +79,9 @@ bool Variable::grad_accumulation_complete() const {
 
 
 void Variable::zero_grad(bool recursive) {
-    _grad.apply_([](float& x) { return 0; });
+    if(!requires_grad)
+        return;
+    _grad.fill_(0);
     if (recursive)
         for (const auto& dep: dependencies)
             dep->zero_grad(true);

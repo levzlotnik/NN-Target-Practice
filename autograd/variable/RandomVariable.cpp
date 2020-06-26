@@ -38,13 +38,18 @@ Vector RandomVariable::forward() {
 }
 
 void RandomVariable::backward(Variable *dependee, bool recursive) {
-    if (unvisited_dependees.at(dependee) <= 0)
-        throw runtime_error("WTF... Did you forget to call '.prepare_backward()'? "
-                            "Maybe '.check_graph_integrity()'?");
-
-    unvisited_dependees[dependee]--;
-    if (!grad_accumulation_complete())
+    if (!requires_grad)
         return;
+    if (dependee)
+    {
+        if (unvisited_dependees.at(dependee) <= 0)
+            throw runtime_error("WTF... Did you forget to call '.prepare_backward()'? "
+                                "Maybe '.check_graph_integrity()'?");
+
+        unvisited_dependees[dependee]--;
+        if (!grad_accumulation_complete())
+            return;
+    }
     auto args = get_args();
     for (int i=0; i < dependencies.size(); ++i) {
         auto jac = dist->jac_rsample(i, args, this->_data);

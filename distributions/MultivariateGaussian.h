@@ -21,6 +21,7 @@ public:
     Vector mu, sigma;
 
     MultivariateGaussian(Vector mu, Vector sigma);
+    explicit MultivariateGaussian(int shape) : MultivariateDistribution(shape) {}
 
     float logp(sample_type val) override;
 

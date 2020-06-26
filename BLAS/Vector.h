@@ -28,6 +28,11 @@ public:
     float* rbegin();
     float* rend();
 
+    const float* begin() const;
+    const float* end() const;
+    const float* rbegin() const;
+    const float* rend() const;
+
     explicit Vector(int n, float* data= nullptr, bool create_if_nullptr=true, bool copy=false);
     Vector(int n, float init);
     Vector(initializer_list<float> list);
@@ -39,6 +44,12 @@ public:
     Vector& operator=(Vector other);
 
     ~Vector();
+
+    inline float item() const {
+        if (n > 1)
+            throw runtime_error("Can only call `.item()` for a vector of a single value.");
+        return data[0];
+    }
 
     inline float operator[](int i) const {
         i = normalize_index(i, n);
@@ -73,10 +84,14 @@ public:
     Vector apply(const Vector& other, BinaryOperation op) const;
     Vector apply(float scalar, BinaryOperation op) const;
 
+    Vector& pow_(float ex);
+    Vector pow(float ex);
+
+    Vector& fill_(float scalar);
 
 #define DECL_VECTOR_OPERATOR(op) \
-    Vector operator op(const Vector& other); \
-    Vector operator op(float scalar); \
+    Vector operator op(const Vector& other) const; \
+    Vector operator op(float scalar) const; \
     friend Vector operator op(float scalar, const Vector& matrix);
 
 #define DECL_VECTOR_OPERATOR_INPLACE(op) \

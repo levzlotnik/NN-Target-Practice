@@ -54,3 +54,11 @@ float Normal::rsample(float mu, float sigma) const {
     return z * mu + sigma;
 }
 
+
+Vector randn(float mu, float sigma, int n) {
+    return Normal(mu, sigma).sample_sequence(n);
+}
+
+Matrix randn(float mu, float sigma, int n, int m) {
+    return reshape(randn(mu, sigma, n*m), n, m);
+}

@@ -131,13 +131,13 @@ Vector Vector::apply(float scalar, BinaryOperation op) const {
     DEF_VECTOR_OPERATOR_SCALAR_INPLACE(op)
 
 #define DEF_VECTOR_OPERATOR_VECTOR(op) \
-    Vector Vector::operator op(const Vector& other) { \
+    Vector Vector::operator op(const Vector& other) const { \
         const BinaryOperation oper = [](float& x, float& y) {return x op y;}; \
         return apply(other, oper); \
     }
 
 #define DEF_VECTOR_OPERATOR_SCALAR(op) \
-    Vector Vector::operator op(float scalar) { \
+    Vector Vector::operator op(float scalar) const { \
         const BinaryOperation oper = [](float& x, float& y) {return x op y;}; \
         return apply(scalar, oper); \
     }
@@ -232,6 +232,27 @@ float *Vector::rend() {
     return data - 1;
 }
 
+
+const float *Vector::begin() const {
+    return data;
+}
+
+
+const float *Vector::end() const {
+    return data+n;
+}
+
+
+const float *Vector::rbegin() const {
+    return data + n - 1;
+}
+
+
+const float *Vector::rend() const {
+    return data - 1;
+}
+
+
 Vector Vector::arange(float a, float b, float step) {
     int n_steps = floor((b - a) / step);
     if (n_steps < 1)
@@ -305,6 +326,20 @@ Vector::Vector(initializer_list<float> list) :
         data[i] = x;
         ++i;
     }
+}
+
+Vector &Vector::fill_(float scalar) {
+    return apply_(scalar, [](float& x, float& y){return y;});
+}
+
+Vector &Vector::pow_(float ex) {
+    using std::pow;
+    return apply_(ex, [](float& x, float& y){return pow(x, y);});
+}
+
+Vector Vector::pow(float ex) {
+    using std::pow;
+    return apply(ex, [](float& x, float& y){return pow(x, y);});
 }
 
 

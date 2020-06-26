@@ -23,6 +23,7 @@ public:
 
     float lower, upper;
     Uniform(float lower, float upper);
+    Uniform() : Uniform(0, 1) {}
 
     float logcdf(float val);
     float logp(sample_type val) override;
@@ -40,6 +41,10 @@ public:
 
     [[nodiscard]] Uniform *clone() const override;
 };
+
+Vector uniform(float lower, float upper, int n);
+
+Matrix uniform(float lower, float upper, int n, int m);
 
 
 #endif //TARGETPRACTICE_UNIFORM_H

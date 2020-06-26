@@ -47,11 +47,12 @@ MultivariateGaussian *MultivariateGaussian::clone() const {
 Vector MultivariateGaussian::rsample(const vector<Vector> &inputs) const {
     check_rsample_args(inputs);
     auto mu_ = inputs[0], sigma_ = inputs[1];
-    auto gen = generators[0];
+    Normal gen;
     Vector res(mu_.n);
     for (int i=0; i < mu_.n; ++i){
         res[i] = gen.rsample(mu_[i], sigma_[i]);
     }
+    return res;
 }
 
 MultivariateGaussian::sequence_type

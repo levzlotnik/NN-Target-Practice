@@ -8,7 +8,6 @@
 #include <functional>
 #include <cmath>
 
-
 #define MACRO_BASIC_ARITHMETIC_OPERATORS(macro) \
     macro(+) \
     macro(-) \
@@ -27,6 +26,8 @@ static int normalize_index(int i, int n){
             " and " + std::to_string(n-1));
     return (i + n) % n;
 }
+
+static inline float relu(float x) { return x > 0 ? x : 0; }
 
 #define MACRO_MATH_FUNCTIONS(macro) \
     macro(sqrt) \
@@ -48,7 +49,8 @@ static int normalize_index(int i, int n){
     macro(atan) \
     macro(sinh) \
     macro(cosh) \
-    macro(tanh)
+    macro(tanh) \
+    macro(relu)
 
 
 using UnaryOperation = std::function<float(float&)>;

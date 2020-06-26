@@ -5,9 +5,9 @@
 #ifndef TARGETPRACTICE_AUTOGRAD_H
 #define TARGETPRACTICE_AUTOGRAD_H
 
-#include "Variable.h"
-#include "Parameter.h"
-#include "AutogradVariable.h"
-#include "RandomVariable.h"
+#include "variable/Variable.h"
+#include "variable/Parameter.h"
+#include "variable/AutogradVariable.h"
+#include "variable/RandomVariable.h"
 
 #endif //TARGETPRACTICE_AUTOGRAD_H

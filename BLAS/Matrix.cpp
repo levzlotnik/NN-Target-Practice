@@ -270,7 +270,7 @@ Vector Matrix::flatten(bool copy) {
     return Vector(n*m, data, false, copy);
 }
 
-Matrix Matrix::reshape(int new_n, int new_m) {
+Matrix Matrix::reshape(int new_n, int new_m) const {
     Matrix matrix(*this);
     matrix.n = new_n;
     matrix.m = new_m;
@@ -531,6 +531,19 @@ Vector matmul(const Vector &v, const Matrix &m) {
             for (int j=0; j < m.m; ++j)
                 res[j] += v[i] * m(i, j);
     }
+    return res;
+}
+
+Matrix reshape(const Matrix &m, int new_n, int new_m) {
+    return m.reshape(new_n, new_n);
+}
+
+Matrix reshape(const Vector &v, int new_n, int new_m) {
+    if (new_n * new_m != v.shape())
+        throw runtime_error("Shape mismatch: cannot reshape shape (" + to_string(v.n) + ") and (" +
+            to_string(new_n) + ", " + to_string(new_m) + ").");
+    Matrix res(new_n, new_m);
+    std::copy(v.begin(), v.end(), res.data);
     return res;
 }
 

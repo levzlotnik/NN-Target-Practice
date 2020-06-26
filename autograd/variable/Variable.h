@@ -5,10 +5,10 @@
 #ifndef TARGETPRACTICE_VARIABLE_H
 #define TARGETPRACTICE_VARIABLE_H
 
-#include "../common.h"
+#include "../../common.h"
 #include <memory>
 #include <utility>
-#include "../BLAS/BLAS.h"
+#include "../../BLAS/BLAS.h"
 
 using namespace std;
 
@@ -28,17 +28,16 @@ protected:
     bool grad_accumulation_complete() const;
     virtual void backward(Variable *dependee, bool recursive) = 0;
     unordered_map<Variable*, int> unvisited_dependees;
-    Vector forward_recursive();
 
     friend class AutogradVariable;
     friend class RandomVariable;
 
-    Variable(string name, Vector data, bool requires_grad = true)
-            : name(std::move(name)), _data(std::move(data)),
-              _grad(Vector::zeros_like(data)), requires_grad(requires_grad){}
     Variable(string name, Vector data, Vector  grad_data, bool requires_grad = true) :
             name(std::move(name)), _data(std::move(data)),
             _grad(std::move(grad_data)), requires_grad(requires_grad) {}
+
+    Variable(string name, const Vector& data, bool requires_grad = true)
+            : Variable(std::move(name), data, Vector::zeros_like(data), requires_grad){}
 public:
     bool requires_grad;
 
@@ -46,6 +45,7 @@ public:
 
     Vector& data();
     Vector& grad();
+    inline int shape() const { return _data.shape(); }
 
     virtual void add_dependency(const shared_ptr<Variable>& dep);
     void accumulate_grad(const Vector &grad);
@@ -70,6 +70,8 @@ public:
     virtual bool is_input_buffer() const { return false; }
 
     void check_graph_integrity();
+
+    Vector forward_recursive();
 };
 
 #endif //TARGETPRACTICE_VARIABLE_H
