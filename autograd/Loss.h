@@ -6,7 +6,7 @@
 #define TARGETPRACTICE_LOSS_H
 
 
-#include "variable/Variable.h"
+#include "variable/VariableBase.h"
 #include "Functor.h"
 
 class MSELoss : public Functor {
@@ -14,8 +14,7 @@ public:
     explicit MSELoss(int shape) : Functor({shape, shape}, 1, "MSELoss") {}
     Vector operator()(const vector<Vector> &args) const override;
     Vector operator()(const Vector& val_true, const Vector& val_pred) const;
-    shared_ptr<Variable> operator()(const shared_ptr<Variable>& var_true, const shared_ptr<Variable>& var_pred,
-            bool requires_grad = true) const;
+    Variable operator()(const Variable& var_true, const Variable& var_pred, bool requires_grad = true) const;
 
     Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
 

@@ -9,10 +9,10 @@ Vector Parameter::forward() {
     return _data;
 }
 
-void Parameter::backward(Variable *dependee, bool recursive) {
+void Parameter::backward(VariableBase *dependee, bool recursive) {
     // Do nothing - this is leaf variable.
 }
 
-void Parameter::add_dependency(const shared_ptr<Variable>& dep) {
+void Parameter::add_dependency(const Variable &dep) {
     throw runtime_error("Parameter is an independent variable, adding dependencies to it will have no effect.");
 }

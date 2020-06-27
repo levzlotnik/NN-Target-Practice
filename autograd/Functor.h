@@ -2,11 +2,11 @@
 // Created by LevZ on 6/16/2020.
 //
 
-#ifndef TARGETPRACTICE_VECTORFUNCTION_H
-#define TARGETPRACTICE_VECTORFUNCTION_H
+#ifndef TARGETPRACTICE_FUNCTOR_H
+#define TARGETPRACTICE_FUNCTOR_H
 
 #include "../BLAS/BLAS.h"
-#include "variable/Variable.h"
+#include "variable/VariableBase.h"
 
 class Functor {
 public:
@@ -21,15 +21,17 @@ public:
     virtual Vector operator()(const vector<Vector>& args) const = 0;
 
     void check_args(const vector<Vector>& args) const; // throws runtime_error if mismatch
+    void check_args(const vector<Variable>& args) const;
 
     virtual Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const = 0;
 
     [[nodiscard]] virtual Functor* clone() const = 0;
 
-    shared_ptr<Variable> operator()(const vector<shared_ptr<Variable>>& args, bool requires_grad=true) const;
+    Variable operator()(const vector<Variable>& args, bool requires_grad=true) const;
 };
 
 class ReduceAndGather : public Functor {
+protected:
     typedef float (*reduce_t)(Vector inp);
     typedef Vector(*reducejac_t)(Vector inp, float output);
     reduce_t func;
@@ -41,6 +43,23 @@ public:
     Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
 
     [[nodiscard]] Functor *clone() const override;
+};
+
+class Reduce : public ReduceAndGather {
+protected:
+    using ReduceAndGather::reduce_t;
+    using ReduceAndGather::reducejac_t;
+public:
+    Reduce(int shape, reduce_t func, reducejac_t jac, string func_name) :
+        ReduceAndGather({shape}, func, jac, func_name){}
+
+    Vector operator()(const Vector& v) const {
+        return ReduceAndGather::operator()({v});
+    }
+
+    Variable operator()(const Variable& v, bool requires_grad=true) {
+        return Functor::operator()({v}, requires_grad);
+    }
 };
 
 class Concat : public Functor {
@@ -74,19 +93,61 @@ public:
 
 class Elemwise : public Functor {
 private:
-    elemwise_t func;
-    elemwise_t dfunc;
+    unary_elemwise_t func;
+    unary_elemwise_t dfunc;
 public:
 
-    Elemwise(elemwise_t func, int shape);
-    Elemwise(elemwise_t func, int shape, elemwise_t dfunc, const string& func_name);
+    Elemwise(string func_name, int shape);
+    Elemwise(unary_elemwise_t func, unary_elemwise_t dfunc, int shape, const string &func_name);
 
     Vector operator()(const vector<Vector> &args) const override;
-    Vector operator()(const Vector& v) const;
+    Variable operator()(const Variable& var, bool requires_grad=true) const ;
 
     Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
 
     [[nodiscard]] Functor *clone() const override;
 };
 
-#endif //TARGETPRACTICE_VECTORFUNCTION_H
+class ScalarElemwise : public Functor {
+private:
+    binary_elemwise_t op;
+    array<jac_binary_elemwise_t, 2> dx_ops;
+    bool scalar_first;
+    BinaryOperation op_for_vector;
+
+public:
+    ScalarElemwise(string op_name, int shape, bool scalar_first);
+    ScalarElemwise(binary_elemwise_t op, pair<jac_binary_elemwise_t, jac_binary_elemwise_t> d_op, int shape,
+                   const string &op_name, bool scalar_first);
+
+    Vector operator()(const vector<Vector> &args) const override;
+    Variable operator()(const Variable& v1, const Variable& v2, bool requires_grad=true) const;
+
+    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
+
+    Functor *clone() const override;
+};
+
+
+class BinaryElemwise : public Functor {
+private:
+    binary_elemwise_t op;
+    array<jac_binary_elemwise_t, 2> dx_op;
+public:
+    BinaryElemwise(string op_name, int shape);
+    BinaryElemwise(binary_elemwise_t op, pair<jac_binary_elemwise_t, jac_binary_elemwise_t> d_op,
+                   int shape, const string &op_name);
+
+    Vector operator()(const vector<Vector> &args) const override;
+    Vector operator()(const Vector& x1, const Vector& x2) const;
+    Variable operator()(const Variable& v1, const Variable& v2, bool requires_grad=true) const;
+
+    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
+
+    Functor *clone() const override;
+};
+
+
+
+
+#endif //TARGETPRACTICE_FUNCTOR_H

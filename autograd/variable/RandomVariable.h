@@ -9,11 +9,11 @@
 #include <utility>
 #include "../../distributions/DistributionBase.h"
 #include "../../BLAS/BLAS.h"
-#include "Variable.h"
+#include "VariableBase.h"
 
 using namespace std;
 
-class RandomVariable : public Variable {
+class RandomVariable : public VariableBase {
 private:
     shared_ptr<Distribution> dist;
     vector<Vector> get_args();
@@ -26,19 +26,19 @@ public:
 
     Vector forward() override;
 
-    void backward(Variable *dependee, bool recursive) override;
+    void backward(VariableBase *dependee, bool recursive) override;
 
     friend ostream& operator <<(ostream& os, const RandomVariable& rv);
 
     Vector sample();
     Matrix sample_sequence(int n);
 
-    static shared_ptr<Variable> make(string name, const Distribution &dist, bool requires_grad=true) {
-        return shared_ptr<Variable>(new RandomVariable(std::move(name), dist, requires_grad));
+    static Variable make(string name, const Distribution &dist, bool requires_grad=true) {
+        return Variable{new RandomVariable(std::move(name), dist, requires_grad)};
     }
 
-    static shared_ptr<Variable> make(string name, const UnivariateDistribution &dist, bool requires_grad=true) {
-        return shared_ptr<Variable>(new RandomVariable(std::move(name), dist, requires_grad));
+    static shared_ptr<VariableBase> make(string name, const UnivariateDistribution &dist, bool requires_grad=true) {
+        return shared_ptr<VariableBase>(new RandomVariable(std::move(name), dist, requires_grad));
     }
 
     float logp(Vector v);

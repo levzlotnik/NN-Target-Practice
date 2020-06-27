@@ -7,24 +7,24 @@
 
 #include <utility>
 
-#include "Variable.h"
+#include "VariableBase.h"
 
 // Represents a leaf variable with data only.
-class Parameter : public Variable {
+class Parameter : public VariableBase {
 public:
     Vector forward() override;
 
-    void add_dependency(const shared_ptr<Variable>& dep) override;
+    void add_dependency(const Variable &dep) override;
 
     inline bool is_param() const final { return true; }
 
-    static shared_ptr<Variable> make(string name, Vector data, bool requires_grad=true) {
-        return shared_ptr<Variable>(new Parameter(std::move(name), std::move(data), requires_grad));
+    static Variable make(string name, Vector data, bool requires_grad=true) {
+        return Variable{new Parameter(std::move(name), std::move(data), requires_grad)};
     }
 
 protected:
-    using Variable::Variable;
-    void backward(Variable *dependee, bool recursive) override;
+    using VariableBase::VariableBase;
+    void backward(VariableBase *dependee, bool recursive) override;
 };
 
 

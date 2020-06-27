@@ -539,6 +539,9 @@ Matrix reshape(const Matrix &m, int new_n, int new_m) {
 }
 
 Matrix reshape(const Vector &v, int new_n, int new_m) {
+    new_n = new_n == -1 ? v.n : new_n;
+    new_m = new_m == -1 ? v.n : new_m;
+
     if (new_n * new_m != v.shape())
         throw runtime_error("Shape mismatch: cannot reshape shape (" + to_string(v.n) + ") and (" +
             to_string(new_n) + ", " + to_string(new_m) + ").");

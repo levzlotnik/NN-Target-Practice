@@ -6,15 +6,15 @@
 #define TARGETPRACTICE_AUTOGRADVARIABLE_H
 
 
-#include "Variable.h"
+#include "VariableBase.h"
 #include "../Functor.h"
 
-class AutogradVariable : public Variable {
+class AutogradVariable : public VariableBase {
 private:
     // The functor that creates the data for the current variable.
     shared_ptr<Functor> source_functor_ptr;
     vector<Vector> get_args();
-    void backward(Variable *dependee, bool recursive) override;
+    void backward(VariableBase *dependee, bool recursive) override;
 
     AutogradVariable(string name, const Functor& source_functor, bool requires_grad=true);
 
@@ -25,9 +25,9 @@ public:
     // Autograd variable cannot be a root if its' shape isn't 1.
     bool is_root() const override;
 
-    static shared_ptr<Variable> make(const string& name,
-            const Functor& source_functor, bool requires_grad=true) {
-        return shared_ptr<Variable>{new AutogradVariable(name, source_functor, requires_grad)};
+    static Variable make(const string& name, const Functor& source_functor, bool requires_grad=true) {
+        Variable res{new AutogradVariable(name, source_functor, requires_grad)};
+        return res;
     }
 
 };

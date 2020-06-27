@@ -7,8 +7,8 @@
 #include <utility>
 
 RandomVariable::RandomVariable(string name, const Distribution &dist, bool requires_grad) :
-    Variable(std::move(name), Vector(dist.sample_shape), requires_grad),
-    dist(dist.clone()) { }
+        VariableBase(std::move(name), Vector(dist.sample_shape), requires_grad),
+        dist(dist.clone()) { }
 
 RandomVariable::RandomVariable(string name, const UnivariateDistribution &dist, bool requires_grad) :
         RandomVariable(std::move(name), EncapsulateUnivariate{dist}, requires_grad) {}
@@ -37,7 +37,7 @@ Vector RandomVariable::forward() {
     return _data;
 }
 
-void RandomVariable::backward(Variable *dependee, bool recursive) {
+void RandomVariable::backward(VariableBase *dependee, bool recursive) {
     if (!requires_grad)
         return;
     if (dependee)
@@ -52,11 +52,14 @@ void RandomVariable::backward(Variable *dependee, bool recursive) {
     }
     auto args = get_args();
     for (int i=0; i < dependencies.size(); ++i) {
+        auto dep = dependencies[i];
+        if (!dep->requires_grad)
+            continue;
         auto jac = dist->jac_rsample(i, args, this->_data);
         auto dep_grad = matmul(grad(), jac);
-        dependencies[i]->accumulate_grad(dep_grad);
+        dep->accumulate_grad(dep_grad);
         if (recursive)
-            dependencies[i]->backward(this, true);
+            dep->backward(this, true);
     }
 }
 

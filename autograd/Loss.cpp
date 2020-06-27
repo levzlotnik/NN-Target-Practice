@@ -27,7 +27,6 @@ Vector MSELoss::operator()(const Vector &val_true, const Vector &val_pred) const
     return operator()({val_true, val_pred});
 }
 
-shared_ptr<Variable> MSELoss::operator()(const shared_ptr<Variable> &var_true, const shared_ptr<Variable> &var_pred,
-                                         bool requires_grad) const {
+Variable MSELoss::operator()(const Variable &var_true, const Variable &var_pred, bool requires_grad) const {
     return Functor::operator()({var_true, var_pred}, requires_grad);
 }

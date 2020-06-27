@@ -11,7 +11,7 @@ Vector AutogradVariable::forward() {
     return _data;
 }
 
-void AutogradVariable::backward(Variable *dependee, bool recursive) {
+void AutogradVariable::backward(VariableBase *dependee, bool recursive) {
     if (!requires_grad)
         return;
     if (dependee)
@@ -26,11 +26,14 @@ void AutogradVariable::backward(Variable *dependee, bool recursive) {
     }
     auto args = get_args();
     for(int i=0; i < dependencies.size(); ++i) {
+        auto dep = dependencies[i];
+        if (!dep->requires_grad)
+            continue;
         auto jac = source_functor_ptr->jac(i, args, this->_data);
         auto dep_grad = matmul(this->grad(), jac);
-        dependencies[i]->accumulate_grad(dep_grad);
+        dep->accumulate_grad(dep_grad);
         if (recursive)
-            dependencies[i]->backward(this, true);
+            dep->backward(this, true);
     }
 }
 
@@ -42,10 +45,10 @@ vector<Vector> AutogradVariable::get_args() {
 }
 
 bool AutogradVariable::is_root() const {
-    return Variable::is_root() && _data.n == 1;
+    return VariableBase::is_root() && _data.n == 1;
 }
 
 AutogradVariable::AutogradVariable(string name, const Functor &source_functor, bool requires_grad) :
-        Variable(std::move(name), Vector(source_functor.output_shape), requires_grad),
+        VariableBase(std::move(name), Vector(source_functor.output_shape), requires_grad),
         source_functor_ptr(source_functor.clone()) {}
 

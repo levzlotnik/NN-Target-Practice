@@ -8,22 +8,22 @@
 
 #include <utility>
 
-#include "Variable.h"
+#include "VariableBase.h"
 
-class InputBuffer : public Variable {
+class InputBuffer : public VariableBase {
 public:
     Vector forward() override;
-    static shared_ptr<Variable> make(string name, Vector data){
-        return shared_ptr<Variable>(new InputBuffer(std::move(name), std::move(data)));
+    static Variable make(string name, Vector data){
+        return Variable{new InputBuffer(std::move(name), std::move(data))};
     }
 
-    void add_dependency(const shared_ptr<Variable> &dep) override;
+    void add_dependency(const Variable &dep) override;
 
     bool is_input_buffer() const final { return true; }
 
 protected:
-    InputBuffer(string name, Vector data) : Variable(std::move(name), std::move(data), false) {}
-    void backward(Variable *dependee, bool recursive) override;
+    InputBuffer(string name, Vector data) : VariableBase(std::move(name), std::move(data), false) {}
+    void backward(VariableBase *dependee, bool recursive) override;
 };
 
 

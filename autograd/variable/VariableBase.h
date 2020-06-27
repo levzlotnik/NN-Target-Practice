@@ -2,8 +2,8 @@
 // Created by LevZ on 6/16/2020.
 //
 
-#ifndef TARGETPRACTICE_VARIABLE_H
-#define TARGETPRACTICE_VARIABLE_H
+#ifndef TARGETPRACTICE_VARIABLEBASE_H
+#define TARGETPRACTICE_VARIABLEBASE_H
 
 #include "../../common.h"
 #include <memory>
@@ -12,42 +12,48 @@
 
 using namespace std;
 
+class VariableBase;
 
-class Variable {
+class Variable : public shared_ptr<VariableBase> {
+public:
+    using shared_ptr<VariableBase>::shared_ptr;
+};
+
+class VariableBase {
 protected:
-    vector<shared_ptr<Variable>> dependencies;
-    vector<Variable*> dependees;
+    vector<shared_ptr<VariableBase>> dependencies;
+    vector<VariableBase*> dependees;
     Vector _data;
     Vector _grad;
     string name;
 
-    void check_graph_integrity(unordered_set<Variable*>& visited);
+    void check_graph_integrity(unordered_set<VariableBase*>& visited);
 
     // Backpropagates the gradient to the current dependencies.
     // If recursive=true - backpropagates for all dependencies as well.
     bool grad_accumulation_complete() const;
-    virtual void backward(Variable *dependee, bool recursive) = 0;
-    unordered_map<Variable*, int> unvisited_dependees;
+    virtual void backward(VariableBase *dependee, bool recursive) = 0;
+    unordered_map<VariableBase*, int> unvisited_dependees;
 
     friend class AutogradVariable;
     friend class RandomVariable;
 
-    Variable(string name, Vector data, Vector  grad_data, bool requires_grad = true) :
+    VariableBase(string name, Vector data, Vector  grad_data, bool requires_grad = true) :
             name(std::move(name)), _data(std::move(data)),
             _grad(std::move(grad_data)), requires_grad(requires_grad) {}
 
-    Variable(string name, const Vector& data, bool requires_grad = true)
-            : Variable(std::move(name), data, Vector::zeros_like(data), requires_grad){}
+    VariableBase(string name, const Vector& data, bool requires_grad = true)
+            : VariableBase(std::move(name), data, Vector::zeros_like(data), requires_grad){}
 public:
     bool requires_grad;
 
-    virtual ~Variable() = default;
+    virtual ~VariableBase() = default;
 
     Vector& data();
     Vector& grad();
     inline int shape() const { return _data.shape(); }
 
-    virtual void add_dependency(const shared_ptr<Variable>& dep);
+    virtual void add_dependency(const Variable &dep);
     void accumulate_grad(const Vector &grad);
     virtual Vector forward() = 0;
 
@@ -74,4 +80,6 @@ public:
     Vector forward_recursive();
 };
 
-#endif //TARGETPRACTICE_VARIABLE_H
+
+
+#endif //TARGETPRACTICE_VARIABLEBASE_H

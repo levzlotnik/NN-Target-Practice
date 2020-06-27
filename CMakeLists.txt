@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(
         SOURCE_FILES_PROJECT_GLOBALS
         common.h
-        common.cpp)
+        common.cpp common_math.h)
 
 set(
         SOURCE_FILES_BLAS ${SOURCE_FILES_PROJECT_GLOBALS}
@@ -31,12 +31,12 @@ set(
         SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
         autograd/autograd.h
         autograd/variable/AutogradVariable.cpp autograd/variable/AutogradVariable.h
-        autograd/variable/Variable.h autograd/variable/Variable.cpp
+        autograd/variable/VariableBase.h autograd/variable/VariableBase.cpp
         autograd/Functor.cpp autograd/Functor.h
         autograd/variable/RandomVariable.cpp autograd/variable/RandomVariable.h
         autograd/variable/Parameter.cpp autograd/variable/Parameter.h
         autograd/variable/InputBuffer.cpp autograd/variable/InputBuffer.h
-        autograd/Loss.cpp autograd/Loss.h)
+        autograd/Loss.cpp autograd/Loss.h autograd/variable/Constant.h autograd/VariableMath.cpp autograd/VariableMath.h)
 
 add_library(autograd SHARED ${SOURCE_FILES_AUTOGRAD})
 target_link_libraries(autograd distributions)

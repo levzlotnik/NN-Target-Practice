@@ -6,7 +6,7 @@
 #include "../BLAS/BLAS.h"
 
 float mul2(float& x){return x*2;}
-float add(float& x, float& y) {return x+y;};
+float add_(float& x, float& y) {return x+y;};
 
 int main(){
     float arr[] = {1., 2., 3.};
@@ -25,7 +25,7 @@ int main(){
     Matrix m2 = matrix.apply(mul2);
     m2.at(0, 0) *= 19;
     cout << "m2 = " << m2 << endl;
-    Matrix m3 = m2.apply(matrix, add);
+    Matrix m3 = m2.apply(matrix, add_);
     cout << "m3 = " << m3 << endl;
     Matrix m4 = 4.0 / m3;
     cout << "m4 = " << m4 << endl;

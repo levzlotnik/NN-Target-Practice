@@ -6,6 +6,7 @@
 #define TARGETPRACTICE_MATRIXMATH_H
 
 #include "Matrix.h"
+#include "../common_math.h"
 
 #define MATRIX_MATH_FUNC_DECL(math_func) \
     Matrix math_func(Matrix m);

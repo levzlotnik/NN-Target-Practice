@@ -10,10 +10,10 @@ Vector InputBuffer::forward() {
     return _data;
 }
 
-void InputBuffer::backward(Variable *dependee, bool recursive) {
+void InputBuffer::backward(VariableBase *dependee, bool recursive) {
     // Do nothing - leaf variable.
 }
 
-void InputBuffer::add_dependency(const shared_ptr<Variable> &dep) {
+void InputBuffer::add_dependency(const Variable &dep) {
     throw runtime_error("InputBuffer is an independent variable, adding dependencies to it will have no effect.");
 }
