@@ -16,3 +16,7 @@ void Parameter::backward(VariableBase *dependee, bool recursive) {
 void Parameter::add_dependency(const Variable &dep) {
     throw runtime_error("Parameter is an independent variable, adding dependencies to it will have no effect.");
 }
+
+string Parameter::node_style_graphviz() {
+    return "shape=box style=\"rounded\"";
+}

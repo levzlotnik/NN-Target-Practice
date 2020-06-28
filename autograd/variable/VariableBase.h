@@ -9,19 +9,16 @@
 #include <memory>
 #include <utility>
 #include "../../BLAS/BLAS.h"
+#include "../../utils/GraphvizPrinter.h"
 
 using namespace std;
 
-class VariableBase;
+class Variable;
 
-class Variable : public shared_ptr<VariableBase> {
-public:
-    using shared_ptr<VariableBase>::shared_ptr;
-};
 
 class VariableBase {
 protected:
-    vector<shared_ptr<VariableBase>> dependencies;
+    vector<Variable> dependencies;
     vector<VariableBase*> dependees;
     Vector _data;
     Vector _grad;
@@ -47,13 +44,14 @@ protected:
 public:
     bool requires_grad;
 
-    virtual ~VariableBase() = default;
+    virtual ~VariableBase();
 
     Vector& data();
     Vector& grad();
     inline int shape() const { return _data.shape(); }
 
     virtual void add_dependency(const Variable &dep);
+    void remove_dependency(const Variable& dep);
     void accumulate_grad(const Vector &grad);
     virtual Vector forward() = 0;
 
@@ -77,9 +75,23 @@ public:
 
     void check_graph_integrity();
 
+    VariableBase& rename(string name) { this->name = name; return (*this);}
+
     Vector forward_recursive();
+
+    ostream& print_graphviz(ostream& os);
+    GraphvizPrinter& gather_connection_graphviz(GraphvizPrinter& gvzp);
+
+private:
+    virtual string node_style_graphviz();
 };
 
+
+class Variable : public shared_ptr<VariableBase> {
+public:
+    using shared_ptr<VariableBase>::shared_ptr;
+    Variable& rename(string name) { get()->rename(name); return (*this); }
+};
 
 
 #endif //TARGETPRACTICE_VARIABLEBASE_H

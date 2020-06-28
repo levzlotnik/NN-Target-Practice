@@ -44,5 +44,18 @@ public:
     float logp(Vector v);
 };
 
+void VariableBase::remove_dependency(const Variable &dep) {
+    auto& d_dependees = dep->dependees;
+    d_dependees.erase(std::remove(d_dependees.begin(), d_dependees.end(), this), d_dependees.end());
+    dependencies.erase(std::remove(dependencies.begin(), dependencies.end(), dep), dependencies.end());
+}
+
+VariableBase::~VariableBase() {
+    for (auto dep: dependencies){
+        auto& d_dependees = dep->dependees;
+        d_dependees.erase(std::remove(d_dependees.begin(), d_dependees.end(), this), d_dependees.end());
+    }
+}
+
 
 #endif //TARGETPRACTICE_RANDOMVARIABLE_H

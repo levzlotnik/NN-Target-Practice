@@ -93,3 +93,22 @@ Vector VariableBase::forward_recursive() {
         dep->forward_recursive();
     return forward();
 }
+
+GraphvizPrinter &VariableBase::gather_connection_graphviz(GraphvizPrinter& gvzp) {
+    gvzp.create_node(this->name, this->node_style_graphviz());
+    for (const auto& dep: dependencies) {
+        dep->gather_connection_graphviz(gvzp);
+        gvzp.create_dependency(this->name, dep->name);
+    }
+    return gvzp;
+}
+
+ostream &VariableBase::print_graphviz(ostream &os) {
+    GraphvizPrinter gvzp;
+    gather_connection_graphviz(gvzp);
+    return gvzp.print_dot(os);
+}
+
+string VariableBase::node_style_graphviz() {
+    return "";
+}

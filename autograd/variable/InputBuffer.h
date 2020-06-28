@@ -21,6 +21,9 @@ public:
 
     bool is_input_buffer() const final { return true; }
 
+private:
+    string node_style_graphviz() override;
+
 protected:
     InputBuffer(string name, Vector data) : VariableBase(std::move(name), std::move(data), false) {}
     void backward(VariableBase *dependee, bool recursive) override;

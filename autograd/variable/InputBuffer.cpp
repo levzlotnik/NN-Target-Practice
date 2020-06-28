@@ -17,3 +17,7 @@ void InputBuffer::backward(VariableBase *dependee, bool recursive) {
 void InputBuffer::add_dependency(const Variable &dep) {
     throw runtime_error("InputBuffer is an independent variable, adding dependencies to it will have no effect.");
 }
+
+string InputBuffer::node_style_graphviz() {
+    return "shape=box style=\"rounded, filled\"";
+}

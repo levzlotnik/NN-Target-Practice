@@ -1,0 +1,1 @@
+add_library(graph2dot SHARED GraphvizPrinter.cpp GraphvizPrinter.h)

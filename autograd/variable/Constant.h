@@ -24,6 +24,11 @@ public:
         return Variable{new Constant{name, data}};
     }
 
+private:
+    string node_style_graphviz() override {
+        return "shape=box style=\"filled\"";
+    }
+
 protected:
     void backward(VariableBase *dependee, bool recursive) override {
         // Do nothing - this is a constant.

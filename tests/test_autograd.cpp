@@ -30,26 +30,33 @@ void test_autograd_simple(){
 
 void test_autograd_ops(){
     cout << "TEST AUTOGRAD OPS" << endl;
-    auto x = Vector::linspace(-1, 1, 500);
-    auto y = x * 3 + 5;
-    auto [x_buf, y_true] = tuple {InputBuffer::make("x_buf", x), InputBuffer::make("y_true", y)};
+    auto x1 = Vector::linspace(-1, 1, 4);
+    auto x2 = Vector::linspace(-2, 4, 4);
+    auto y = x1 * 3 + x2 * 3 + 5;
+    auto [x1_b, x2_b, y_true] = tuple
+            {InputBuffer::make("x1_b", x1),
+             InputBuffer::make("x2_b", x2),
+             InputBuffer::make("y_true", y)};
     auto [a, b] = tuple
-        { Parameter::make("a", randn(0, 1, 1)),
-          Parameter::make("b", randn(0, 1, 1))};
-    auto y_pred = x_buf * a + b;
-    auto loss = mean(pow(y_pred - y_true, 2)); // The problem is here!
-//    auto loss = mse(y_true, y_pred); // This works!
-    float alpha = 1e-1f;
-    for(int i=0; i < 100; ++i){
-        loss->zero_grad(true);
-        if (i % 10 == 0)
+        { Parameter::make("a", Vector::zeros(1)),
+          Parameter::make("b", Vector::zeros(1))};
+    auto y_pred = ((x1_b * a) + (a * x2_b) + b).rename("y_pred");
+//    auto loss = mean(pow(y_pred - y_true, 2)); // The problem is here!
+    auto loss = mse(y_true, y_pred); // This doesn't work for current shit...
+    GraphvizPrinter gvzp;
+    loss->gather_connection_graphviz(gvzp);
+    gvzp.export_to("svg");
+    float alpha = 2e-4f;
+    for(int i=0; i < 1; ++i){
+        if (i % 1 == 0)
             cout << "Epoch " << i+1 << ": loss= " << loss->forward_recursive().item() << "\t";
+        loss->zero_grad(true);
         loss->backward();
         a->data() -= (alpha*a->grad());
         b->data() -= (alpha*b->grad());
-        if (i % 10 == 0) {
-            cout << " a.data, b.data = " << a->data() << ", " << b->data() << endl;
-            cout << " a.grad, b.grad = " << a->grad() << ", " << b->grad() << endl;
+        if (i % 1 == 0) {
+            cout << " a.data, b.data = (" << a->data() << ", " << b->data();
+            cout << ")\t a.grad, b.grad = (" << a->grad() << ", " << b->grad() << ")" << endl;
         }
     }
 }
@@ -84,8 +91,8 @@ void test_vi_simple(){
 }
 
 int main(){
-    test_autograd_simple();
+//    test_autograd_simple();
     test_autograd_ops();
-    test_vi_simple();
+//    test_vi_simple();
     return 0;
 }

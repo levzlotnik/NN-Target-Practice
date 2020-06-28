@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 project(TargetPractice)
 set(CMAKE_CXX_STANDARD 17)
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+#set (CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
+add_subdirectory(utils)
 
 set(
         SOURCE_FILES_PROJECT_GLOBALS
@@ -39,7 +42,7 @@ set(
         autograd/Loss.cpp autograd/Loss.h autograd/variable/Constant.h autograd/VariableMath.cpp autograd/VariableMath.h)
 
 add_library(autograd SHARED ${SOURCE_FILES_AUTOGRAD})
-target_link_libraries(autograd distributions)
+target_link_libraries(autograd distributions graph2dot)
 
 set(
         SOURCE_FILES_NN ${SOURCE_FILES_PROJECT_GLOBAL}

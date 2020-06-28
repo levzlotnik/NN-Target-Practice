@@ -22,6 +22,9 @@ public:
         return Variable{new Parameter(std::move(name), std::move(data), requires_grad)};
     }
 
+private:
+    string node_style_graphviz() override;
+
 protected:
     using VariableBase::VariableBase;
     void backward(VariableBase *dependee, bool recursive) override;

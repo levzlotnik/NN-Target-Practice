@@ -183,7 +183,7 @@ Vector BinaryElemwise::operator()(const vector<Vector> &args) const {
 
 Matrix BinaryElemwise::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
     auto dxi_op = dx_op[i];
-    Vector res(output_shape);
+    Vector res(output_shape, 0.0f);
     for (int j=0; j < res.shape(); ++j){
         res[i] = dxi_op(inputs[0][i], inputs[1][i], output[i]);
     }

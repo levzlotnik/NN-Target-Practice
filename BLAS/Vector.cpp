@@ -266,8 +266,11 @@ Vector Vector::arange(float a, float b, float step) {
 }
 
 Vector Vector::linspace(float a, float b, int num) {
-    float step = (b-a) / float(num);
-    return arange(a, b, step);
+    float step = (b-a) / float(num-1);
+    Vector res(num);
+    for (int i=0; i < num; ++i)
+        res[i] = a + i * step;
+    return res;
 }
 
 Vector Vector::concat(std::vector<Vector> vectors) {
