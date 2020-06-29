@@ -25,6 +25,7 @@ private:
     unordered_map<string /*label*/, size_t /*id*/> nodes;
     unordered_map<string /*label*/, string /*style*/> styles;
     unordered_set<string /*node1 -> node2*/ > connections;
+    static const unordered_set<string> available_formats;
 };
 
 

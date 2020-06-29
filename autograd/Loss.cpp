@@ -6,7 +6,9 @@
 
 Vector MSELoss::operator()(const vector<Vector> &args) const {
     check_args(args);
-    return { (args[0] - args[1]).pow_(2).mean() };
+    auto delta = (args[0] - args[1]);
+    Vector res { delta.pow_(2).mean() };
+    return res;
 }
 
 Matrix MSELoss::jac(int i, const vector<Vector> &inputs, const Vector &output) const {

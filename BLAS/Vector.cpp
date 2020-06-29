@@ -345,5 +345,11 @@ Vector Vector::pow(float ex) {
     return apply(ex, [](float& x, float& y){return pow(x, y);});
 }
 
+string Vector::to_str() {
+    ostringstream ss;
+    ss << *this;
+    return ss.str();
+}
+
 
 

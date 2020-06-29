@@ -12,6 +12,7 @@
 #include "common_blas.h"
 #include <random>
 #include <type_traits>
+#include <sstream>
 
 using namespace std;
 
@@ -88,6 +89,8 @@ public:
     Vector pow(float ex);
 
     Vector& fill_(float scalar);
+
+    string to_str();
 
 #define DECL_VECTOR_OPERATOR(op) \
     Vector operator op(const Vector& other) const; \

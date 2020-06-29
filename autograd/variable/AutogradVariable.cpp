@@ -12,7 +12,7 @@ Vector AutogradVariable::forward() {
 }
 
 void AutogradVariable::backward(VariableBase *dependee, bool recursive) {
-    cout << name << ".backward()" << endl;
+//    cout << name << ".backward()" << endl;
     if (!requires_grad)
         return;
     if (dependee)
@@ -28,13 +28,13 @@ void AutogradVariable::backward(VariableBase *dependee, bool recursive) {
     auto args = get_args();
     for(int i=0; i < dependencies.size(); ++i) {
         auto dep = dependencies[i];
-        cout << "dep[" << i << "] = " << dep->name << endl;
+//        cout << "dep[" << i << "] = " << dep->name << endl;
         if (!dep->requires_grad)
             continue;
         auto jac = source_functor_ptr->jac(i, args, this->_data);
-        cout << name << ".jac(" << i << ") = " << jac << endl;
+//        cout << name << ".jac(" << i << ") = " << jac << endl;
         auto dep_grad = matmul(this->grad(), jac);
-        cout << name << ".dep[" << i << "]_grad = " << dep_grad << endl;
+//        cout << name << ".dep[" << i << "]_grad = " << dep_grad << endl;
         dep->accumulate_grad(dep_grad);
         if (recursive)
             dep->backward(this, true);

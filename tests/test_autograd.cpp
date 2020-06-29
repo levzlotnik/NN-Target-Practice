@@ -30,8 +30,9 @@ void test_autograd_simple(){
 
 void test_autograd_ops(){
     cout << "TEST AUTOGRAD OPS" << endl;
-    auto x1 = Vector::linspace(-1, 1, 4);
-    auto x2 = Vector::linspace(-2, 4, 4);
+    auto x1 = Vector::linspace(-1, 1, 3);
+    auto x2 = Vector::linspace(-2, 2, 3);
+    cout << "x1.to_str() = " << x1.to_str() << endl;
     auto y = x1 * 3 + x2 * 3 + 5;
     auto [x1_b, x2_b, y_true] = tuple
             {InputBuffer::make("x1_b", x1),
@@ -46,16 +47,18 @@ void test_autograd_ops(){
     GraphvizPrinter gvzp;
     loss->gather_connection_graphviz(gvzp);
     gvzp.export_to("svg");
+    // TODO - debug against pytorch
     float alpha = 2e-4f;
-    for(int i=0; i < 1; ++i){
-        if (i % 1 == 0)
-            cout << "Epoch " << i+1 << ": loss= " << loss->forward_recursive().item() << "\t";
+    for(int i=0; i < 10; ++i){
+        if (i % 1 == 0) {
+            cout << "Epoch " << i + 1 << ": loss= " << loss->forward_recursive().item() << "\t";
+            cout << " a.data, b.data = (" << a->data() << ", " << b->data();
+        }
         loss->zero_grad(true);
         loss->backward();
         a->data() -= (alpha*a->grad());
         b->data() -= (alpha*b->grad());
         if (i % 1 == 0) {
-            cout << " a.data, b.data = (" << a->data() << ", " << b->data();
             cout << ")\t a.grad, b.grad = (" << a->grad() << ", " << b->grad() << ")" << endl;
         }
     }

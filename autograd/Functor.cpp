@@ -79,8 +79,7 @@ void Functor::check_args(const vector<Vector>& args) const {
 
 Variable Functor::operator()(const vector<Variable>& args, bool requires_grad) const {
     check_args(args);
-    string name_var = name + ".result";
-    auto res = Deterministic::make(name_var, *this, requires_grad);
+    auto res = Deterministic::make(name, *this, requires_grad);
     for (const auto& arg: args)
         res->add_dependency(arg);
     res->forward();
