@@ -11,6 +11,7 @@ int main(){
             {1, 2, 3, 4, 5, 6},
             {2, 1, 3}
     );
+    cout << t << endl;
     auto t1 = t({1, 2});
     t1 = 900;
     cout << t << endl;

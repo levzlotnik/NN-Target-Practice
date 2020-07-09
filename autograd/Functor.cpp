@@ -123,7 +123,7 @@ Slice::Slice(int b, int e, int input_shape, int step) :
     Functor(vector<int>(1, input_shape), 1,
             "Slice(" + to_string(b) + ", " + to_string(e) + ", " + to_string(step) + ")") {
     b = normalize_index(b, input_shape);
-    e = normalize_index(e, input_shape);
+    e = normalize_index(e, input_shape, true);
     output_shape = (e - b) / step;
     if (output_shape == 0)
         throw runtime_error("The Slice size cannot be 0.");

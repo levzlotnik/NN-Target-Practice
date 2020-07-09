@@ -17,7 +17,7 @@ public:
     const char* what() { return msg.c_str(); }
 
     static void warn(const std::string& msg) {
-#ifdef DEBUG
+#ifndef NDEBUG
       throw warning(msg);
 #else
       if (warning::history.count(msg) == 0)

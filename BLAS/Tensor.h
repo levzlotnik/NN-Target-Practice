@@ -7,6 +7,8 @@
 
 #include <type_traits>
 #include <vector>
+#include <string>
+#include <sstream>
 #include <stdexcept>
 #include "common_blas.h"
 
@@ -14,12 +16,20 @@ using std::vector;
 using std::tuple;
 using std::initializer_list;
 using std::ostream;
+using std::string;
+
+
+template<typename T>
+class Tensor;
 
 template <typename T>
 class TensorView;
 
-template<typename T>
-class Tensor;
+template <typename T>
+class TensorSliced;
+
+template <typename T>
+class TensorMasked;
 
 using shape_t = std::vector<size_t>;
 
@@ -131,7 +141,8 @@ public:
     Tensor(const Tensor& other);
     Tensor(Tensor&& other) noexcept ;
     virtual ~Tensor();
-    friend void swap(Tensor& t1, Tensor& t2);
+    template <typename T_>
+    friend void swap(Tensor<T_>& t1, Tensor<T_>& t2);
     Tensor& operator=(Tensor other);
 
     template<typename InputIt>
@@ -167,14 +178,15 @@ public:
                 throw std::out_of_range("Can't operate on different baseline pointers.");
             return pos - other.pos;
         }
-        inline reference operator*() {
-            return Tnsr(&baseline_data_ptr[stride * pos], shape);
+        inline value_type operator*() {
+            Tnsr val(&baseline_data_ptr[stride * pos], shape);
+            return val;
         }
-        inline reference operator[](difference_type n) { return *(*this + n); }
-        inline bool operator <(subtensor_iterator other) { return (*this - other) < 0; }
+        inline value_type operator[](difference_type n) { return *(*this + n); }
+        inline bool operator < (subtensor_iterator other) { return (*this - other) < 0; }
         inline bool operator ==(subtensor_iterator other) { return (*this - other) == 0; }
         inline bool operator !=(subtensor_iterator other) { return (*this - other) != 0; }
-        inline bool operator >(subtensor_iterator other) { return other < *this; }
+        inline bool operator > (subtensor_iterator other) { return other < *this; }
         inline bool operator <=(subtensor_iterator other) { return !(*this > other); }
         inline bool operator >=(subtensor_iterator other) { return !(*this < other); }
         inline subtensor_iterator& operator++() {return (*this += 1); }
@@ -192,30 +204,36 @@ public:
         return at({args...});
     }
 
-    TensorView<T>& at(std::vector<int> index);
+    TensorView<T> at(std::vector<int> index);
     template<typename ... Args>
-    inline TensorView<T>& at(Args... args) {
+    inline TensorView<T> at(Args... args) {
         return at({args...});
     }
     Tensor operator[](int idx) const;
-    TensorView<T>& operator[](int idx);
+    TensorView<T> operator[](int idx);
     Tensor operator[](const vector<int>& index) const;
-    TensorView<T>& operator[](const vector<int>& index);
+    TensorView<T> operator[](const vector<int>& index);
     Tensor operator()(const Slice& slice) const;
-    TensorView<T>& operator()(const Slice& slice);
+    TensorSliced<T> operator()(const Slice& slice);
     Tensor operator()(const SliceGroup& slice) const;
-    TensorView<T>& operator()(const SliceGroup& slice);
-private:
-    Tensor unchecked_subscript(int idx) const;
-    TensorView<T>& unchecked_subscript(int idx);
-    Tensor unchecked_subscript(const vector<int>& index) const;
-    TensorView<T>& unchecked_subscript(const vector<int>& index);
-    Tensor unchecked_slice(const Slice& slice) const;
-    TensorView<T>& unchecked_slice(const Slice& slice);
-    Tensor unchecked_slice_group(const SliceGroup& slice_group) const;
-    TensorView<T>& unchecked_slice_group(const SliceGroup& slice_group);
-public:
+    TensorSliced<T> operator()(const SliceGroup& slice);
 
+    shape_t shape;
+protected:
+    Tensor unchecked_subscript(int idx) const;
+    TensorView<T> unchecked_subscript(int idx);
+    Tensor unchecked_subscript(const vector<int>& index) const;
+    TensorView<T> unchecked_subscript(const vector<int>& index);
+    Tensor unchecked_slice(const Slice& slice) const;
+    TensorView<T> unchecked_slice(const Slice& slice);
+    Tensor unchecked_slice_group(const SliceGroup& slice_group) const;
+    TensorView<T> unchecked_slice_group(const SliceGroup& slice_group);
+
+    // ONLY FOR INTENRAL USE
+    TensorView<T> optimized_unchecked_subscript(int idx) const;
+    TensorView<T> optimized_unchecked_subscript(const vector<int> &index) const;
+
+public:
 
     // Iterate over subtensors.
     iterator begin();
@@ -234,23 +252,23 @@ public:
     inline size_t dim() const { return shape.size(); }
 
     /*Elementwise Operations*/
-    Tensor& apply_(UnaryOperation op);
-    Tensor& apply_(const Tensor& other, BinaryOperation op);
-    Tensor& apply_broadcasted_(const Tensor& other, BinaryOperation op);
-    Tensor& apply_(float scalar, BinaryOperation op);
+    Tensor& apply_(unary_op<T> op);
+    Tensor& apply_(const Tensor& other, binary_op<T> op);
+    Tensor& apply_broadcasted_(const Tensor& other, binary_op<T> op);
+    Tensor& apply_(float scalar, binary_op<T> op);
 
     /* Out of place operations */
-    Tensor apply(UnaryOperation op) const;
-    Tensor apply(const Tensor& other, BinaryOperation op) const;
-    Tensor apply_broadcasted(const Tensor& other, BinaryOperation op);
-    Tensor apply(float scalar, BinaryOperation op) const;
+    Tensor apply(unary_op<T> op) const;
+    Tensor apply(const Tensor& other, binary_op<T> op) const;
+    Tensor apply_broadcasted(const Tensor& other, binary_op<T> op);
+    Tensor apply(float scalar, binary_op<T> op) const;
 
     Tensor operator-() const;
 
 #define DECL_TENSOR_OPERATOR(op) \
     Tensor operator op(const Tensor& other) const; \
     Tensor operator op(float scalar) const; \
-    friend Tensor operator op(float scalar, const Tensor& tensor);
+    template<typename T_> friend Tensor<T_> operator op(float scalar, const Tensor<T_>& tensor);
 
 #define DECL_TENSOR_OPERATOR_INPLACE(op) \
     Tensor& operator op(const Tensor& other); \
@@ -259,21 +277,34 @@ public:
     // Declare all basic element wise operations!
     MACRO_BASIC_ARITHMETIC_OPERATORS(DECL_TENSOR_OPERATOR)
     MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(DECL_TENSOR_OPERATOR_INPLACE)
-    friend ostream& operator <<(ostream& os, const Tensor& t);
+
+    inline friend ostream& operator <<(ostream& os, const Tensor& t) {
+        return t.print_to_os(os, true);
+    }
+
+    inline string to_str(){
+        std::stringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+    T *get_data_ptr();
 
 protected:
     static_assert(std::is_arithmetic_v<T>, "Must be an arithmetic type.");
     T* data;
-    shape_t shape;
     shape_t strides;
     size_t size;
 
-    ostream& print_to_os(ostream& os, bool rec_start);
+    ostream& print_to_os(ostream& os, bool rec_start) const;
 
     shape_t slice2shape(const Slice &slice) const;
 
     Slice normalize_slice(const Slice &slice, int max_size=-1) const;
     SliceGroup normalize_slice_group(const SliceGroup &group) const;
+
+    bool requires_deletion=true;
+
 };
 
 /**
@@ -287,13 +318,33 @@ class TensorView : public Tensor<T> {
     explicit TensorView(Tensor<T> t);
 
 public:
-    ~TensorView() = default; // Doesn't delete the data.
+    ~TensorView() override = default; // Doesn't delete the data.
     TensorView(const TensorView& tv) = default;
     TensorView& operator=(const Tensor<T>& t); // COPIES DATA.
     TensorView& operator=(Tensor<T>&&) = delete;
     TensorView& operator=(TensorView&& t) noexcept = delete;
     TensorView& operator=(T scalar) { this->fill_(scalar); return *this; }
 };
+
+template<typename T>
+class TensorSliced : public Tensor<T> {
+    friend class Tensor<T>;
+    // TODO - implement.
+};
+
+template <>
+class Tensor<bool> {
+
+};
+
+
+
+template<typename T>
+class TensorMasked : public Tensor<T> {
+    friend class Tensor<T>;
+    // TODO - implement.
+};
+
 
 
 shape_t shape2strides(const shape_t &shape);
@@ -326,5 +377,7 @@ size_t ravel_index(std::vector<size_t> idx, const shape_t& shape, int size=-1);
  * @return unraveled index for the current tensor
  */
 std::vector<size_t> unravel_index(size_t true_idx, const shape_t& shape, int size=-1);
+
+using DoubleTensor = Tensor<double>;
 
 #endif //TARGETPRACTICE_TENSOR_H
