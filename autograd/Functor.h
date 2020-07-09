@@ -7,6 +7,7 @@
 
 #include "../BLAS/BLAS.h"
 #include "variable/VariableBase.h"
+#include <array>
 
 class Functor {
 public:

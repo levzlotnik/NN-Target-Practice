@@ -6,6 +6,7 @@
 
 #include <utility>
 #include "variable/AutogradVariable.h"
+#include <numeric>
 
 Vector ReduceAndGather::operator()(const vector<Vector>& args) const {
     check_args(args);
@@ -110,7 +111,7 @@ Vector Slice::operator()(const vector<Vector> &args) const {
 
 Matrix Slice::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
     if (i != 0)
-        throw out_of_range("Only 1 element available in slice.");
+        throw out_of_range("Only 1 element available in Slice.");
     return const_jac;
 }
 
@@ -125,9 +126,9 @@ Slice::Slice(int b, int e, int input_shape, int step) :
     e = normalize_index(e, input_shape);
     output_shape = (e - b) / step;
     if (output_shape == 0)
-        throw runtime_error("The slice size cannot be 0.");
+        throw runtime_error("The Slice size cannot be 0.");
     if (output_shape < 0)
-        throw runtime_error("The slice and step directions contradict each other: slice direction =" +
+        throw runtime_error("The Slice and step directions contradict each other: Slice direction =" +
                             to_string(e-b) + ", step = " + to_string(step));
     begin = b;
     end = e;

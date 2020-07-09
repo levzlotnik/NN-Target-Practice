@@ -4,7 +4,8 @@
 
 #include "Normal.h"
 #include "DistributionBase.h"
-#include <cmath>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 float Normal::logp(float val) {
     float delta = (val - mu)/sigma;

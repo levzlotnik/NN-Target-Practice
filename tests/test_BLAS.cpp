@@ -2,6 +2,7 @@
 // Created by LevZ on 6/14/2020.
 //
 
+#define _USE_MATH_DEFINES
 #include <ostream>
 #include "../BLAS/BLAS.h"
 

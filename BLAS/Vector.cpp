@@ -4,6 +4,7 @@
 
 #include "Vector.h"
 #include <algorithm>
+#include <numeric>
 
 Vector::Vector() : n(0), data(nullptr){
 
@@ -292,9 +293,9 @@ Vector Vector::slice(int beg, int end, int step) const {
     end = normalize_index(end, n);
     int size = (end - beg) / step;
     if (size == 0)
-        throw runtime_error("The slice size cannot be 0.");
+        throw runtime_error("The Slice size cannot be 0.");
     if (size < 0)
-        throw runtime_error("The slice and step directions contradict each other: slice direction =" +
+        throw runtime_error("The Slice and step directions contradict each other: Slice direction =" +
             to_string(end-beg) + ", step = " + to_string(step));
     Vector res(size);
     for (int i=0; i < size; ++i)
@@ -309,9 +310,9 @@ void Vector::sliced_set(Vector v, int beg, int end, int step) {
     end = normalize_index(end, n);
     int size = (end - beg) / step;
     if (size == 0)
-        throw runtime_error("The slice size cannot be 0.");
+        throw runtime_error("The Slice size cannot be 0.");
     if (size < 0)
-        throw runtime_error("The slice and step directions contradict each other: slice direction =" +
+        throw runtime_error("The Slice and step directions contradict each other: Slice direction =" +
                             to_string(end-beg) + ", step = " + to_string(step));
     for (int i = 0; i < v.n; ++i)
         data[beg + i*step] = v.data[i];
