@@ -15,6 +15,8 @@
 using std::cout;
 using std::endl;
 
+
+using namespace blas;
 template<typename T>
 Tensor<T>::Tensor() : data(nullptr), size(0) {
 
@@ -54,24 +56,15 @@ Tensor<T>::~Tensor() {
         delete [] data;
 }
 
-template<typename T>
-void swap(Tensor<T> &t1, Tensor<T> &t2) {
-    using std::swap;
-    swap(t1.size, t2.size);
-    swap(t1.data, t2.data);
-    swap(t1.shape, t2.shape);
-    swap(t1.strides, t2.strides);
-    swap(t1.requires_deletion, t2.requires_deletion);
-}
 
 template<typename T>
-Tensor<T> &Tensor<T>::operator=(Tensor other) {
+Tensor<T> &Tensor<T>::operator=(Tensor&& other)  noexcept {
     swap(*this, other);
     return *this;
 }
 
 template<typename T>
-Tensor<T> Tensor<T>::at(const std::vector<int>& index) const {
+Tensor<T> Tensor<T>::at(const index_t& index) const {
     auto [idx, elements] = ravel_index_checked(index, shape, size);
     std::vector<size_t> remaining_shape = elements == 1 ?
                                           std::vector<size_t>{1, 1}:
@@ -80,7 +73,7 @@ Tensor<T> Tensor<T>::at(const std::vector<int>& index) const {
 }
 
 template<typename T>
-TensorView<T> Tensor<T>::at(std::vector<int> index) {
+TensorView<T> Tensor<T>::at(const index_t& index) {
     auto [idx, elements] = ravel_index_checked(index, shape, size);
     std::vector<size_t> remaining_shape = elements == 1 ?
                                           std::vector<size_t>{1, 1}:
@@ -99,14 +92,6 @@ shape_t shape2strides(const shape_t &shape){
     return res;
 }
 
-template<typename T>
-template<typename InputIt>
-Tensor<T> &Tensor<T>::copy_(InputIt b, InputIt e, typename InputIt::iterator_category *p) {
-    std::vector<T> v{b, e};
-    *this = Tensor(v, {v.size()});
-    return *this;
-}
-
 
 template<typename T>
 Tensor<T>::Tensor(T *data, const std::vector<size_t>& shape) :
@@ -115,21 +100,19 @@ size(shape2size(shape)), data(new T[shape2size(shape)]), shape(shape), strides(s
         this->data[i] = data[i];
 }
 
-template<typename T>
-Tensor<T> &Tensor<T>::copy_(const Tensor &other) {
-    if (shape != other.shape)
-        throw shape_mismatch(shape, other.shape, "copy_");
-    for (int i=0; i < size; ++i)
-        this->data[i] = other.data[i];
-
-    return *this;
+template<class Tensor1, class Tensor2>
+Tensor1& copy_(Tensor1& dst, const Tensor2& src) {
+    using sceiterator = typename Tensor2::ceiterator;
+    using deiterator = typename Tensor1::eiterator;
+    if (dst.shape != src.shape)
+        throw shape_mismatch(dst.shape, src.shape, "copy_");
+    sceiterator src_it = Tensor2::const_elem_begin(src);
+    deiterator dst_it = Tensor1::elem_begin(dst);
+    while (dst_it != Tensor1::elem_end(dst))
+        *dst_it++ = *src_it++;
+    return dst;
 }
 
-template<typename T>
-Tensor<T> &Tensor<T>::fill_(T scalar) {
-
-    return *this;
-}
 
 template<typename T>
 typename Tensor<T>::iterator Tensor<T>::begin() {
@@ -224,76 +207,14 @@ TensorView<T>::TensorView(Tensor<T> t) : TensorView<T>(t.get_data_ptr(), t.shape
 
 
 template<typename T>
-TensorView<T> &TensorView<T>::operator=(const Tensor<T>& t) {
-#ifndef NDEBUG
-    cout << "TensorView<T>::operator=" <<endl;
-#endif
-    if(this == &t)
-        return *this;
-    this->copy_(t);
-    return *this;
-}
-
-
-template<typename T>
 template<typename Tnsr>
 Tensor<T>::subtensor_iterator<Tnsr>::subtensor_iterator(T *data_ptr, size_t stride, size_t pos, shape_t shape) :
 baseline_data_ptr(data_ptr), stride(stride), pos(pos), shape(std::move(shape)) {
 
 }
 
-#define DEF_TENSOR_OPERATOR_TENSOR_INPLACE(op) \
-    template<typename T> \
-    Tensor<T>& Tensor<T>::operator op(const Tensor& other) { \
-        const binary_op<T> oper = [](T x, T y) -> T {return x op y;}; \
-        return apply_(other, oper); \
-    }
 
-#define DEF_TENSOR_OPERATOR_SCALAR_INPLACE(op) \
-    template<typename T> \
-    Tensor<T>& Tensor<T>::operator op(float scalar) { \
-        const binary_op<T> oper = [](T x, T y) -> T {return x op y;}; \
-        return apply_(scalar, oper); \
-    }
-
-#define DEF_TENSOR_OPERATOR_INPLACE(op) \
-    DEF_TENSOR_OPERATOR_TENSOR_INPLACE(op) \
-    DEF_TENSOR_OPERATOR_SCALAR_INPLACE(op)
-
-#define DEF_TENSOR_OPERATOR_TENSOR(op) \
-    template<typename T> \
-    Tensor<T> Tensor<T>::operator op(const Tensor& other) const { \
-        const binary_op<T> oper = [](T x, T y) -> T {return x op y;}; \
-        return apply(other, oper); \
-    }
-
-#define DEF_TENSOR_OPERATOR_SCALAR(op) \
-    template<typename T> \
-    Tensor<T> Tensor<T>::operator op(float scalar) const { \
-        const binary_op<T> oper = [](T x, T y) -> T {return x op y;}; \
-        return apply(scalar, oper); \
-    }
-
-#define DEF_SCALAR_OPERATOR_TENSOR(op) \
-    template<typename T> \
-    Tensor<T> operator op(float scalar, const Tensor<T>& tensor) { \
-        const binary_op<T> oper = [](T x, T y) -> T {return x op y;}; \
-        return tensor.apply(scalar, oper); \
-    }
-
-#define DEF_TENSOR_OPERATOR(op) \
-    DEF_TENSOR_OPERATOR_TENSOR(op) \
-    DEF_TENSOR_OPERATOR_SCALAR(op) \
-    DEF_SCALAR_OPERATOR_TENSOR(op)
-
-// Define all basic element wise operations!
-
-
-
-MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(DEF_TENSOR_OPERATOR_INPLACE)
-MACRO_BASIC_ARITHMETIC_OPERATORS(DEF_TENSOR_OPERATOR)
-
-size_t ravel_index(std::vector<size_t> idx, const shape_t &shape, int size) {
+size_t blas::ravel_index(const index_t &idx, const shape_t &shape, int size) {
     size_t index=0;
     size_t stride = size > 0 ? size :
                     std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>{});
@@ -319,21 +240,22 @@ std::vector<size_t> unravel_index(size_t true_idx, const shape_t &shape, int siz
     return res;
 }
 
-template<typename T>
-Tensor<T> &Tensor<T>::apply_(unary_op<T> op) {
-    for (auto it = elem_begin(); it != elem_end(); ++it){
-        *it = op(*it);
+std::string shape2str(const shape_t &shape) {
+    std::string ret = "(";
+    for (int i=0; i< shape.size(); ++i){
+        ret += std::to_string(shape[i]);
+        if (i < shape.size()-1)
+            ret += ", ";
     }
-    return *this;
+    ret += ")";
+    return ret;
 }
 
-template<typename T>
-Tensor<T> &Tensor<T>::apply_(const Tensor &other, binary_op<T> op) {
-    if (shape != other.shape){
-        // Maybe broadcasted operation will work:
-        return apply_broadcasted_(other, op);
-    }
-    return *this;
+template<class Tens, typename T>
+Tens &fill_(Tens &dst, T scalar) {
+    for (auto it = Tens::elem_begin(dst); it != Tens::elem_end(dst); ++it)
+        *it = scalar;
+    return dst;
 }
 
 
@@ -368,24 +290,6 @@ shape_t pull_unbroadcasted_index(const shape_t& brdcst_dst_idx ,const shape_t& b
     return res;
 }
 
-
-
-template<typename T>
-Tensor<T> &Tensor<T>::apply_broadcasted_(const Tensor &other, binary_op<T> op) {
-    auto out_shape = bradcast_shapes(shape, other.shape);
-    if (out_shape != shape)
-        throw broadcast_failure(shape, out_shape, "apply_broadcasted[inplace]");
-    // TODO - create a kernel that does insertion more optimally.
-    // For inplace operation - we know that the size of the other tensor cannot be bigger than the size
-    // of this tensor. If the other tensor is indeed smaller - we can take it's elements and *push* them into
-    // this tensor instead of pulling out of memory needed elements. This way we can store the elements from the other
-    // tensor in a register and reuse it for speed, reducing memory reads.
-    for (int i=0; i < other.size; ++i){
-        T x = other.data[i]; // hopefully stored on a register
-        // Now we broadcast it to all relevant elements for it using a Slice:
-    }
-    return *this;
-}
 
 template<typename T>
 ostream &Tensor<T>::print_to_os(ostream &os, bool rec_start) const {
@@ -436,12 +340,12 @@ TensorView<T> Tensor<T>::operator[](int idx) {
 }
 
 template<typename T>
-Tensor<T> Tensor<T>::operator[](const vector<int> &index) const {
+Tensor<T> Tensor<T>::operator[](const index_t &index) const {
     return at(index);
 }
 
 template<typename T>
-TensorView<T> Tensor<T>::operator[](const vector<int> &index) {
+TensorView<T> Tensor<T>::operator[](const index_t &index) {
     return at(index);
 }
 
@@ -452,7 +356,7 @@ Tensor<T> Tensor<T>::operator()(const Slice &slice) const {
 }
 
 template<typename T>
-TensorView<T> Tensor<T>::operator()(const Slice &slice) {
+TensorSliced<T> Tensor<T>::operator()(const Slice &slice) {
     auto s = normalize_slice(slice, -1);
     return unchecked_slice(s);
 }
@@ -464,39 +368,14 @@ Tensor<T> Tensor<T>::operator()(const SliceGroup &slice_group) const {
 }
 
 template<typename T>
-TensorView<T> Tensor<T>::operator()(const SliceGroup &slice_group) {
+TensorSliced<T> Tensor<T>::operator()(const SliceGroup &slice_group) {
     auto sg = normalize_slice_group(slice_group);
     return unchecked_slice_group(sg);
 }
 
 template<typename T>
-Tensor<T> &Tensor<T>::apply_(float scalar, binary_op<T> op) {
-    return *this;
-}
-
-template<typename T>
-Tensor<T> Tensor<T>::apply(unary_op<T> op) const {
-    return Tensor();
-}
-
-template<typename T>
-Tensor<T> Tensor<T>::apply(const Tensor &other, binary_op<T> op) const {
-    return Tensor();
-}
-
-template<typename T>
-Tensor<T> Tensor<T>::apply_broadcasted(const Tensor &other, binary_op<T> op) {
-    return Tensor();
-}
-
-template<typename T>
-Tensor<T> Tensor<T>::apply(float scalar, binary_op<T> op) const {
-    return Tensor();
-}
-
-template<typename T>
 Tensor<T> Tensor<T>::operator-() const {
-    return Tensor();
+    return apply( [](T x) -> T { return -x ;} );
 }
 
 template<typename T>
@@ -539,12 +418,12 @@ TensorView<T> Tensor<T>::unchecked_subscript(int idx) {
 }
 
 template<typename T>
-Tensor<T> Tensor<T>::unchecked_subscript(const vector<int> &index) const {
+Tensor<T> Tensor<T>::unchecked_subscript(const index_t &index) const {
     return Tensor();
 }
 
 template<typename T>
-TensorView<T> Tensor<T>::unchecked_subscript(const vector<int> &index) {
+TensorView<T> Tensor<T>::unchecked_subscript(const index_t &index) {
     return TensorView(*this);
 }
 
@@ -555,7 +434,7 @@ TensorView<T> Tensor<T>::optimized_unchecked_subscript(int idx) const {
 }
 
 template<typename T>
-TensorView<T> Tensor<T>::optimized_unchecked_subscript(const vector<int> &index) const {
+TensorView<T> Tensor<T>::optimized_unchecked_subscript(const index_t &index) const {
     TensorView<T> x = const_cast<Tensor*>(this)->unchecked_subscript(index);
     return static_cast<TensorView<T>>(x);
 }
@@ -574,8 +453,8 @@ Tensor<T> Tensor<T>::unchecked_slice(const Slice &slice) const {
 }
 
 template<typename T>
-TensorView<T> Tensor<T>::unchecked_slice(const Slice &slice) {
-    return TensorView(*this);
+TensorSliced<T> Tensor<T>::unchecked_slice(const Slice &slice) {
+    return TensorSliced(*this);
 }
 
 template<typename T>
@@ -584,8 +463,8 @@ Tensor<T> Tensor<T>::unchecked_slice_group(const SliceGroup &slice_group) const 
 }
 
 template<typename T>
-TensorView<T> Tensor<T>::unchecked_slice_group(const SliceGroup &slice_group) {
-    return TensorView(*this);
+TensorSliced<T> Tensor<T>::unchecked_slice_group(const SliceGroup &slice_group) {
+    return TensorSliced(*this);
 }
 
 template<typename T>
@@ -644,7 +523,7 @@ size_t SliceGroup::size() const {
             [](size_t x, Slice s) { return x * s.size(); });
 }
 
-SliceGroup::const_iterator::const_iterator(SliceGroup::const_iterator::index_t pos, vector<Slice> slices,
+SliceGroup::const_iterator::const_iterator(index_t pos, vector<Slice> slices,
                                            size_t elems_passed):
        pos(std::move(pos)), slices(std::move(slices)), elems_passed(elems_passed)
 {
@@ -670,8 +549,65 @@ SliceGroup::const_iterator &SliceGroup::const_iterator::operator++() {
     return *this;
 }
 
+SliceGroup::const_iterator &SliceGroup::const_iterator::operator+=(difference_type x) {
+
+    return *this;
+}
+
+
+template<typename T>
+typename TensorSliced<T>::ceiterator TensorSliced<T>::elem_begin(TensorSliced<T>& ts) {
+    return typename TensorSliced<T>::eiterator{ ts.data, ts.slice_group.begin(), ts.shape, ts.size };
+}
+
+template<typename T>
+typename TensorSliced<T>::ceiterator TensorSliced<T>::elem_end(TensorSliced<T> &ts) {
+    return typename TensorSliced<T>::eiterator{ ts.data, ts.slice_group.end(), ts.shape, ts.size };
+}
+
+
+template<typename T>
+typename TensorSliced<T>::ceiterator TensorSliced<T>::const_elem_begin(const TensorSliced<T>& ts) {
+    return typename TensorSliced<T>::ceiterator{ ts.data, ts.slice_group.begin(), ts.shape, ts.size };
+}
+
+template<typename T>
+typename TensorSliced<T>::ceiterator TensorSliced<T>::const_elem_end(const TensorSliced<T> &ts) {
+    return typename TensorSliced<T>::ceiterator{ ts.data, ts.slice_group.end(), ts.shape, ts.size };
+}
+
+template<typename T>
+TensorSliced<T>::TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group) :
+    Tensor<T>(), slice_group(slice_group)
+{
+    Tensor<T>::data = data;
+    Tensor<T>::shape = shape;
+    Tensor<T>::strides = shape2strides(shape);
+    Tensor<T>::size = shape2size(shape);
+    Tensor<T>::requires_deletion = false;
+}
+
+template<typename T>
+TensorSliced<T>::TensorSliced(Tensor<T> t, const SliceGroup &slice_group) {
+
+}
+
+template<typename T>
+T &TensorSliced<T>::get(TensorSliced<T> &ts, size_t true_idx) {
+    index_t vec_idx = ts.slice_group.translate_true_idx(true_idx);
+    size_t data_relative_index = ravel_index(vec_idx, ts.shape, ts.size);
+    return ts.data[data_relative_index];
+}
+
+template<typename T>
+T TensorSliced<T>::get(const TensorSliced<T> &ts, size_t true_idx) {
+    index_t vec_idx = ts.slice_group.translate_true_idx(true_idx);
+    size_t data_relative_index = ravel_index(vec_idx, ts.shape, ts.size);
+    return ts.data[data_relative_index];
+}
+
 
 #define INSTANTIATE_TEMPLATE_TENSOR(dtype) \
-    template class Tensor<dtype>;
+    template class blas::Tensor<dtype>;
 
 INSTANTIATE_TEMPLATE_TENSOR(double)
