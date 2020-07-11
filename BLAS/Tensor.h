@@ -108,184 +108,53 @@ namespace blas {
     template<class Tensor1, class Tensor2>
     Tensor1 &copy_(Tensor1 &dst, const Tensor2 &src);
 
-    /**
-     * Applies a unary operation in place.
-     * @tparam Tnsr
-     * @tparam T
-     * @param dst
-     * @param op
-     * @return
-     */
-    template<class Tnsr, typename T>
-    Tnsr& _apply_unary_(Tnsr& dst, unary_op<T> op);
-
-    /**
-     * Applies inplace a binary operation with another constant operand.
-     * @tparam Tnsr
-     * @tparam T
-     * @param dst
-     * @param scalar
-     * @param op
-     * @return
-     */
-    template<template<typename> class Tnsr, typename T>
-    Tnsr<T>& _apply_scalar_(Tnsr<T>& dst, T scalar, binary_op<T> op);
-
-    /**
-     * Applies a unary operation.
-     * @tparam Tnsr
-     * @tparam T
-     * @param dst
-     * @param op
-     * @return
-     */
-    template<template<typename> class Tnsr, typename T>
-    void _apply_unary(const Tnsr<T> &src, unary_op<T> op, Tensor <T> *out);
-
-    /**
-     * Applies a unary operation.
-     * @tparam Tnsr
-     * @tparam T
-     * @param dst
-     * @param op
-     * @return
-     */
-    template<template<typename> class Tnsr, typename T>
-    inline Tensor<T> _apply_unary(const Tnsr<T> &src, unary_op<T> op) {
-        Tensor<T> dst(src.shape);
-        _apply_unary(src, op, &dst);
-        return dst;
-    }
-
-    /**
-     * Applies a binary operation with another constant operand.
-     * @tparam Tnsr
-     * @tparam T
-     * @param src
-     * @param scalar
-     * @param op
-     * @return
-     */
-    template<template<typename> class Tnsr, typename T>
-    void _apply_scalar(const Tnsr<T> &src, T scalar, binary_op<T> op, Tensor <T> *out);
-
-    /**
-     * Applies a binary operation with another constant operand.
-     * @tparam Tnsr
-     * @tparam T
-     * @param src
-     * @param scalar
-     * @param op
-     * @return
-     */
-    template<template<typename> class Tnsr, typename T>
-    inline Tensor<T> _apply_scalar(const Tnsr<T> &src, T scalar, binary_op<T> op) {
-        Tensor<T> dst(src.shape);
-        _apply_scalar(src, scalar, op, &dst);
-        return dst;
-    }
-
-    /**
-     * Applies an element-wise function on all elements and stores into destination.
-     * @tparam Tensor1
-     * @tparam Tensor2
-     * @tparam T
-     * @param dst
-     * @param src
-     * @param op
-     * @return
-     */
-    template<template<typename> class Tensor1, template<typename> class Tensor2, typename T>
-    Tensor1<T>& _apply_tensors_(Tensor1<T>& dst, const Tensor2<T> &src, std::function<T(T, T)> op);
-
-    /**
-     * Applies an element-wise function on all elements and stores into destination, using broadcast mechanics.
-     * @tparam Tensor1
-     * @tparam Tensor2
-     * @tparam T
-     * @param dst
-     * @param src
-     * @param op
-     * @return
-     */
-    template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
-    Tensor1<T>& _apply_broadcast_(Tensor1<T>& dst, const Tensor2<T> &src, std::function<T(T, T)> op);
-
-    /**
-     * Applies an element-wise function on all elements and stores into a new tensor..
-     * @tparam Tensor1
-     * @tparam Tensor2
-     * @tparam T
-     * @param dst
-     * @param src
-     * @param op
-     * @return
-     */
-    template<template<typename> class Tensor1, template<typename> class Tensor2, typename T>
-    void _apply_tensors(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op,
-                              Tensor <T> *out);
-
-    /**
-     * Applies an element-wise function on all elements and stores into a new tensor..
-     * @tparam Tensor1
-     * @tparam Tensor2
-     * @tparam T
-     * @param dst
-     * @param src
-     * @param op
-     * @return
-     */
-    template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
-    Tensor<T> _apply_tensors(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op);
-
-    /**
-     * Applies an element-wise function on all elements and stores into a new tensor, using broadcast mechanics.
-     * @tparam Tensor1
-     * @tparam Tensor2
-     * @tparam T
-     * @param dst
-     * @param src
-     * @param op
-     * @return
-     */
-    template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
-    void _apply_broadcast(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op,
-                                Tensor <T> *out= nullptr);
 
 #define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_BASE(TensorT1) \
     virtual TensorT1& apply_(T scalar, binary_op<T> op); \
     virtual TensorT1& apply_(unary_op<T>); \
-    virtual void apply(T scalar, binary_op<T> op, Tensor<T>* out) const; \
+    virtual void apply(T scalar, binary_op<T> op, Tensor<T>& out) const; \
+    virtual void apply(T scalar, binary_op<T> op, TensorView<T>& out) const; \
+    virtual void apply(T scalar, binary_op<T> op, TensorSliced<T>& out) const; \
     virtual Tensor<T> apply(T scalar, binary_op<T> op) const; \
-    virtual void apply(unary_op<T>, Tensor<T>* out) const; \
+    virtual void apply(unary_op<T>, Tensor<T>& out) const; \
+    virtual void apply(unary_op<T>, TensorView<T>& out) const; \
+    virtual void apply(unary_op<T>, TensorSliced<T>& out) const; \
     virtual Tensor<T> apply(unary_op<T>) const;
 
 #define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorT1) \
     TensorT1& apply_(T scalar, binary_op<T> op) override; \
     TensorT1& apply_(unary_op<T>) override; \
-    void apply(T scalar, binary_op<T> op, Tensor<T>* out) const override; \
+    void apply(T scalar, binary_op<T> op, Tensor<T>& out) const override; \
+    void apply(T scalar, binary_op<T> op, TensorView<T>& out) const override; \
+    void apply(T scalar, binary_op<T> op, TensorSliced<T>& out) const override; \
     Tensor<T> apply(T scalar, binary_op<T> op) const override; \
-    void apply(unary_op<T>, Tensor<T>* out) const override; \
+    void apply(unary_op<T>, Tensor<T>& out) const override; \
+    void apply(unary_op<T>, TensorView<T>& out) const override; \
+    void apply(unary_op<T>, TensorSliced<T>& out) const override; \
     Tensor<T> apply(unary_op<T>) const override;
 
 
-#define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2) \
+#define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2, T) \
     virtual TensorT1& apply_tensors_(TensorT2<T> other, binary_op<T> op); \
-    virtual void apply_tensors(TensorT2<T> other, binary_op<T> op, Tensor<T>* out) const; \
+    virtual void apply_tensors(TensorT2<T> other, binary_op<T> op, Tensor<T>& out) const; \
+    virtual void apply_tensors(TensorT2<T> other, binary_op<T> op, TensorView<T>& out) const; \
+    virtual void apply_tensors(TensorT2<T> other, binary_op<T> op, TensorSliced<T>& out) const; \
     virtual Tensor<T> apply_tensors(TensorT2<T> other, binary_op<T> op) const;
 
-#define DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE(TensorT1, TensorT2) \
+#define DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE(TensorT1, TensorT2, T) \
     TensorT1& apply_tensors_(TensorT2<T> other, binary_op<T> op)override; \
-    void apply_tensors(TensorT2<T> other, binary_op<T> op, Tensor<T>* out) const override; \
+    void apply_tensors(TensorT2<T> other, binary_op<T> op, Tensor<T>& out) const override; \
+    void apply_tensors(TensorT2<T> other, binary_op<T> op, TensorView<T>& out) const override; \
+    void apply_tensors(TensorT2<T> other, binary_op<T> op, TensorSliced<T>& out) const override; \
     Tensor<T> apply_tensors(TensorT2<T> other, binary_op<T> op) const override;
 
-#define MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTDst) \
-    macro(TensorTDst, Tensor) \
-    macro(TensorTDst, TensorView) \
-    macro(TensorTDst, TensorSliced)
+#define MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTDst, T) \
+    macro(TensorTDst, Tensor, T) \
+    macro(TensorTDst, TensorView, T) \
+    macro(TensorTDst, TensorSliced, T)
     // macro(TensorTDst, TensorSparse, T) - it deserves special treatment.
 
-#define DEF_ASSIGNMENT_TEMPLATE(TensorT1, TensorT2) \
+#define DEF_ASSIGNMENT_TEMPLATE(TensorT1, TensorT2, T) \
     inline TensorT1& copy_(const TensorT2<T>& other) { return blas::copy_(*this, other); } \
     inline TensorT1& operator=(const TensorT2<T>& other) { \
         if (static_cast<const void*>(this) != static_cast<const void*>(&other)) this->copy_(other); \
@@ -293,12 +162,12 @@ namespace blas {
     }
 
 
-#define DEF_COPY_FILL_TEMPLATES(Tensor1) \
+#define DEF_COPY_FILL_TEMPLATES(Tensor1, T) \
     template<typename scalar_t> \
     inline Tensor1& fill_(scalar_t scalar) { return blas::fill_(*this, scalar); } \
     template<typename scalar_t> \
     inline Tensor1& operator=(scalar_t scalar) { this->fill_(scalar); return *this;} \
-    MACRO_INTERACTABLE_TENSORTYPES(DEF_ASSIGNMENT_TEMPLATE, Tensor1)
+    MACRO_INTERACTABLE_TENSORTYPES(DEF_ASSIGNMENT_TEMPLATE, Tensor1, T)
 
 
     class Slice {
@@ -357,6 +226,11 @@ namespace blas {
         inline const_iterator begin() const { return const_iterator(b, stride); }
 
         inline const_iterator end() const { return const_iterator(e, stride); }
+
+        string to_str() const {
+            using std::to_string;
+            return to_string(b) + ":" + to_string(e) + (stride == 1 ? "" : (":" + to_string(stride)));
+        }
     };
 
     /**
@@ -397,12 +271,13 @@ namespace blas {
 
         inline index_t translate_true_idx(size_t true_index) const {
             index_t ret(slices.size());
-            for (int i=0; i < ret.size(); ++i) {
+            for (int i=ret.size()-1; i >= 0; --i) {
                 auto s = slices[i];
-                if (s.size()) {
-                    ret[i] = s.b + (true_index / s.size()) * s.stride;
-                    true_index %= s.size();
+                if (s.size() != 1) {
+                    ret[i] = s.b + (true_index % s.size()) * s.stride;
+                    true_index /= s.size();
                 }
+                else ret[i] = s.b;
             }
             return ret;
         }
@@ -427,6 +302,7 @@ namespace blas {
             return ret;
         }
         inline size_t size() const;
+        string to_str() const;
 
     private:
         inline vector<long> get_init_pos() const {
@@ -462,7 +338,7 @@ namespace blas {
             swap(t1.is_sliced, t2.is_sliced);
         }
 
-        DEF_COPY_FILL_TEMPLATES(Tensor)
+        DEF_COPY_FILL_TEMPLATES(Tensor, T)
 
         Tensor &operator=(Tensor &&other) noexcept;
 
@@ -620,7 +496,7 @@ namespace blas {
         DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_BASE(Tensor)
 
         // Declares all interactions between the different tensor types.
-        MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_BASE, Tensor)
+        MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_BASE, Tensor, T)
 
         Tensor operator-() const;
 
@@ -685,8 +561,9 @@ namespace blas {
         // We don't need this here because it operates the same exact way as for Tensor.
         // // Declares all interactions between the different tensor types.
         // MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE, TensorView, T)
+
         DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorView)
-        DEF_COPY_FILL_TEMPLATES(TensorView)
+        DEF_COPY_FILL_TEMPLATES(TensorView, T)
     };
 
     /**
@@ -698,6 +575,7 @@ namespace blas {
     private:
         friend class Tensor<T>;
         shape_t underlying_tensor_shape;
+        const size_t underlying_tensor_size;
         const SliceGroup slice_group;
 
         TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group);
@@ -711,7 +589,7 @@ namespace blas {
         TensorSliced(TensorSliced&& other) = default;
 
         DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorSliced)
-        DEF_COPY_FILL_TEMPLATES(TensorSliced)
+        DEF_COPY_FILL_TEMPLATES(TensorSliced, T)
 
         template<typename T_>
         struct eliterator {
@@ -762,7 +640,7 @@ namespace blas {
         static T& get(TensorSliced<T>& ts, size_t true_idx);
         static T get(const TensorSliced<T>& ts, size_t true_idx);
 
-        MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE, TensorSliced)
+        MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE, TensorSliced, T)
 
         Tensor<T> contiguous() const;
     };

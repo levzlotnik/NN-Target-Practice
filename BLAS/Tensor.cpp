@@ -280,11 +280,11 @@ namespace blas {
                 int i = 0;
                 for (const auto &sub: *this) {
                     sub.print_to_os(os, false);
-                    if (++i < shape[0]) os << endl << "      ";
+                    if (++i < shape[0]) os << "," << endl << "      ";
                 }
             } else {
                 this->operator[](0).print_to_os(os, false);
-                os << endl << "..." << endl;
+                os << "," << endl << "...," << endl;
                 this->operator[](-1).print_to_os(os, false);
             }
         }
@@ -470,6 +470,7 @@ namespace blas {
                 b = *lst.begin();
                 e = *(lst.begin() + 1);
                 stride = *(lst.begin() + 2);
+                break;
             }
             default:
                 throw std::invalid_argument("Slice takes 1 to 3 arguments.");
@@ -497,6 +498,17 @@ namespace blas {
     size_t SliceGroup::size() const {
         return std::accumulate(slices.begin(), slices.end(), 1,
                                [](size_t x, Slice s) { return x * s.size(); });
+    }
+
+    string SliceGroup::to_str() const {
+        string res = "[";
+        for (int i=0; i < slices.size(); ++i) {
+            auto s = slices[i];
+            res += s.to_str();
+            if (i < slices.size()-1) res+= ", ";
+        }
+        res += "]";
+        return res;
     }
 
     SliceGroup::const_iterator::const_iterator(index_t pos, vector<Slice> slices,
@@ -527,28 +539,38 @@ namespace blas {
 
     template<typename T>
     typename TensorSliced<T>::eiterator TensorSliced<T>::elem_begin(TensorSliced<T> &ts) {
-        return typename TensorSliced<T>::eiterator{ts.data, ts.slice_group.begin(), ts.shape, ts.size};
+        return typename TensorSliced<T>::eiterator{
+            ts.data, ts.slice_group.begin(), ts.underlying_tensor_shape, ts.underlying_tensor_size
+        };
     }
 
     template<typename T>
     typename TensorSliced<T>::eiterator TensorSliced<T>::elem_end(TensorSliced<T> &ts) {
-        return typename TensorSliced<T>::eiterator{ts.data, ts.slice_group.end(), ts.shape, ts.size};
+        return typename TensorSliced<T>::eiterator{
+                ts.data, ts.slice_group.end(), ts.underlying_tensor_shape, ts.underlying_tensor_size
+        };
     }
 
 
     template<typename T>
     typename TensorSliced<T>::ceiterator TensorSliced<T>::const_elem_begin(const TensorSliced<T> &ts) {
-        return typename TensorSliced<T>::ceiterator{ts.data, ts.slice_group.begin(), ts.shape, ts.size};
+        return typename TensorSliced<T>::ceiterator{
+                ts.data, ts.slice_group.begin(), ts.underlying_tensor_shape, ts.underlying_tensor_size
+        };
     }
 
     template<typename T>
     typename TensorSliced<T>::ceiterator TensorSliced<T>::const_elem_end(const TensorSliced<T> &ts) {
-        return typename TensorSliced<T>::ceiterator{ts.data, ts.slice_group.end(), ts.shape, ts.size};
+        return typename TensorSliced<T>::ceiterator{
+                ts.data, ts.slice_group.end(), ts.underlying_tensor_shape, ts.underlying_tensor_size
+        };
     }
 
     template<typename T>
     TensorSliced<T>::TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group) :
-            Tensor<T>(), underlying_tensor_shape(shape), slice_group(slice_group) {
+            Tensor<T>(),
+            underlying_tensor_shape(shape), underlying_tensor_size(shape2size(shape)),
+            slice_group(slice_group) {
         Tensor<T>::data = data;
         shape_t slice_shape = slice_group.shape();
         Tensor<T>::shape = slice_shape;
@@ -585,7 +607,7 @@ namespace blas {
     template<typename T>
     T TensorSliced<T>::get(const TensorSliced<T> &ts, size_t true_idx) {
         index_t vec_idx = ts.slice_group.translate_true_idx(true_idx);
-        size_t data_relative_index = ravel_index(vec_idx, ts.underlying_tensor_shape, ts.size);
+        size_t data_relative_index = ravel_index(vec_idx, ts.underlying_tensor_shape);
         return ts.data[data_relative_index];
     }
 
@@ -701,24 +723,23 @@ namespace blas {
      * @param op
      * @return
      */
-    template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
-    void _apply_tensors(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op, Tensor <T> *out) {
+    template<template<typename> class TnsrSrc1,template<typename> class TnsrSrc2,template<typename> class TnsrDst, typename T>
+    void _apply_tensors(const TnsrSrc1<T> &src1, const TnsrSrc2<T> &src2, std::function<T(T, T)> op, TnsrDst<T> &dst) {
         if (src1.shape != src2.shape) {
             // Maybe broadcast will help.
-            _apply_broadcast(src1, src2, op, out);
+            _apply_broadcast(src1, src2, op, dst);
             return;
         }
-        Tensor<T>& dst = *out;
-        auto it_dst = Tensor<T>::elem_begin(dst);
-        auto [it_src1, it_src2] = tuple { Tensor1<T>::const_elem_begin(src1), Tensor2<T>::const_elem_begin(src2) };
-        while (it_dst != Tensor<T>::elem_end(dst))
+        auto it_dst = TnsrDst<T>::elem_begin(dst);
+        auto [it_src1, it_src2] = tuple { TnsrSrc1<T>::const_elem_begin(src1), TnsrSrc2<T>::const_elem_begin(src2) };
+        while (it_dst != TnsrDst<T>::elem_end(dst))
             *it_dst++ = op(*it_src1++, *it_src2++);
     }
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
     Tensor<T> _apply_tensors(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op) {
         Tensor<T> dst(broadcast_shapes(src1.shape, src2.shape));
-        _apply_tensors(src1, src2, op, &dst);
+        _apply_tensors(src1, src2, op, dst);
         return dst;
     }
 
@@ -767,33 +788,31 @@ namespace blas {
      * @param op
      * @return
      */
-    template<template<typename>class Tensor1, template<typename>class Tensor2, typename T>
-    void _apply_broadcast(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op, Tensor <T> *out) {
+    template<template<typename> class TnsrSrc1,template<typename> class TnsrSrc2,template<typename> class TnsrDst, typename T>
+    void _apply_broadcast(const TnsrSrc1<T> &src1, const TnsrSrc2<T> &src2, std::function<T(T, T)> op, TnsrDst<T> &dst) {
         shape_t broadcast_shape = broadcast_shapes(src1.shape, src2.shape);
-        Tensor<T>& dst = *out;
         if (dst.shape != broadcast_shape)
             throw broadcast_failure(dst.shape, broadcast_shape);
         // We would like the smaller size tensor to be iterated on.
         if (src1.size < src2.size){
             for (size_t src1_true_idx = 0; src1_true_idx < src1.size; ++src1_true_idx) {
-                T src1_x = Tensor1<T>::get(src1, src1_true_idx);
+                T src1_x = TnsrSrc1<T>::get(src1, src1_true_idx);
                 index_t src1_idx = unravel_index(src1_true_idx, src1.shape, src1.size);
                 auto [sg_src2, sg_dst] = broadcast_index(src1_idx, src1.shape, src2.shape, dst.shape);
                 const binary_op<T> rev_op = [op](T x, T y) -> T { return op(y, x); };
-                auto dst_slice = dst.unchecked_slice_group(sg_dst);
-                _apply_scalar(src2.unchecked_slice_group(sg_src2), src1_x, rev_op,
-                               OUT &dst_slice);
+                Tensor<T> src2_slice = src2.unchecked_slice_group(sg_src2);
+                TensorSliced<T> dst_slice = dst.unchecked_slice_group(sg_dst);
+                _apply_scalar(src2_slice, src1_x, rev_op, OUT dst_slice);
             }
         }
         // Unavoidable code duplication since this is a template.
         else {
             for (size_t src2_idx_true = 0; src2_idx_true < src2.size; ++src2_idx_true) {
-                T src2_x = Tensor2<T>::get(src2, src2_idx_true);
+                T src2_x = TnsrSrc2<T>::get(src2, src2_idx_true);
                 index_t src2_idx = unravel_index(src2_idx_true, src2.shape, src2.size);
                 auto [sg_src1, sg_dst] = broadcast_index(src2_idx, src2.shape, src1.shape, dst.shape);
                 auto dst_slice = dst.unchecked_slice_group(sg_dst);
-                _apply_scalar(src1.unchecked_slice_group(sg_src1), src2_x, op,
-                               OUT &dst_slice);
+                _apply_scalar(src1.unchecked_slice_group(sg_src1), src2_x, op,OUT dst_slice);
             }
         }
     }
@@ -807,43 +826,63 @@ namespace blas {
 
     template<template<typename>class Tnsr, typename T>
     Tnsr<T> &_apply_scalar_(Tnsr<T> &dst, T scalar, binary_op<T> op) {
-        for (auto it = Tnsr<T>::elem_begin(dst); it != Tnsr<T>::elem_end(dst); ++it)
-            *it = op(*it, scalar);
+        for (auto it = Tnsr<T>::elem_begin(dst); it != Tnsr<T>::elem_end(dst); ++it) {
+            auto x = *it;
+            auto y = op(x, scalar);
+            *it = y;
+        }
         return dst;
     }
 
-    template<template<typename> class Tnsr, typename T>
-    void _apply_unary(const Tnsr<T> &src, unary_op<T> op, Tensor<T> *out) {
-        Tensor<T>& dst = *out;
-        auto it_dst = Tensor<T>::elem_begin(dst);
-        if (src.is_sliced) {
-            auto it_src = TensorSliced<T>::const_elem_begin((const TensorSliced<T> &) src);
-            while (it_dst != Tensor<T>::elem_end(dst))
-                *it_dst++ = op(*it_src++);
-        }
-            // Code duplication because template :/
-        else {
-            auto it_src = Tnsr<T>::const_elem_begin(src);
-            while (it_dst != Tensor<T>::elem_end(dst))
-                *it_dst++ = op(*it_src++);
-        }
+    template<template<typename> class TnsrSrc,template<typename> class TnsrDst, typename T>
+    void _apply_unary(const TnsrSrc<T> &src, unary_op<T> op, TnsrDst<T> &dst) {
+        using src_it_t = typename TnsrSrc<T>::ceiterator;
+        using dst_it_t = typename TnsrDst<T>::eiterator;
+        src_it_t src_it = TnsrSrc<T>::const_elem_begin(src), src_it_end = TnsrSrc<T>::const_elem_end(src);
+        dst_it_t dst_it = TnsrDst<T>::elem_begin(dst);
+        while(src_it != src_it_end)
+            *dst_it++ = op(*src_it++);
     }
 
+    template<template<typename> class TnsrSrc,template<typename> class TnsrDst, typename T>
+    void _apply_scalar(const TnsrSrc<T> &src, T scalar, binary_op<T> op, TnsrDst<T> &dst) {
+        using src_it_t = typename TnsrSrc<T>::ceiterator;
+        using dst_it_t = typename TnsrDst<T>::eiterator;
+        src_it_t src_it = TnsrSrc<T>::const_elem_begin(src), src_it_end = TnsrSrc<T>::const_elem_end(src);
+        dst_it_t dst_it = TnsrDst<T>::elem_begin(dst);
+        while(src_it != src_it_end)
+            *dst_it++ = op(*src_it++, scalar);
+    }
+
+    /**
+     * Applies a unary operation.
+     * @tparam Tnsr
+     * @tparam T
+     * @param dst
+     * @param op
+     * @return
+     */
     template<template<typename> class Tnsr, typename T>
-    void _apply_scalar(const Tnsr<T> &src, T scalar, binary_op<T> op, Tensor <T> *out) {
-        Tensor<T>& dst = *out;
-        auto it_dst = Tensor<T>::elem_begin(dst);
-        if (src.is_sliced) {
-            auto it_src = TensorSliced<T>::const_elem_begin((const TensorSliced<T> &)src);
-            while (it_dst != Tensor<T>::elem_end(dst))
-                *it_dst++ = op(*it_src++, scalar);
-        }
-        // Code duplication because template :/
-        else {
-            auto it_src = Tnsr<T>::const_elem_begin(src);
-            while (it_dst != Tensor<T>::elem_end(dst))
-                *it_dst++ = op(*it_src++, scalar);
-        }
+    inline Tensor<T> _apply_unary(const Tnsr<T> &src, unary_op<T> op) {
+        Tensor<T> dst(src.shape);
+        _apply_unary(src, op, dst);
+        return dst;
+    }
+
+    /**
+     * Applies a binary operation with another constant operand.
+     * @tparam Tnsr
+     * @tparam T
+     * @param src
+     * @param scalar
+     * @param op
+     * @return
+     */
+    template<template<typename> class Tnsr, typename T>
+    inline Tensor<T> _apply_scalar(const Tnsr<T> &src, T scalar, binary_op<T> op) {
+        Tensor<T> dst(src.shape);
+        _apply_scalar(src, scalar, op, dst);
+        return dst;
     }
 
     std::pair<size_t, size_t> ravel_index_checked(const index_t &idx, const shape_t &shape, int size) {
@@ -870,8 +909,16 @@ namespace blas {
 
 #define TENSOR_UNARY_APPLY(Tnsr) \
     template<typename T>\
-    void Tnsr<T>::apply(unary_op<T> op, Tensor<T>* out) const {\
-        _apply_unary(*this, op, out); \
+    void Tnsr<T>::apply(unary_op<T> op, Tensor<T>&dst) const {\
+        _apply_unary(*this, op, dst); \
+    } \
+    template<typename T>\
+    void Tnsr<T>::apply(unary_op<T> op, TensorView<T>&dst) const {\
+        _apply_unary(*this, op, dst); \
+    } \
+    template<typename T>\
+    void Tnsr<T>::apply(unary_op<T> op, TensorSliced<T>&dst) const {\
+        _apply_unary(*this, op, dst); \
     } \
     template<typename T>\
     Tensor<T> Tnsr<T>::apply(unary_op<T> op) const {\
@@ -886,24 +933,40 @@ namespace blas {
 
 #define TENSOR_SCALAR_BINARY_APPLY(Tnsr) \
     template<typename T>\
-    void Tnsr<T>::apply(T scalar, binary_op<T> op, Tensor<T>* out) const {\
-        _apply_scalar(*this, scalar, op, out); \
+    void Tnsr<T>::apply(T scalar, binary_op<T> op, Tensor<T>&dst) const {\
+        _apply_scalar(*this, scalar, op, dst); \
+    } \
+    template<typename T>\
+    void Tnsr<T>::apply(T scalar, binary_op<T> op, TensorView<T>&dst) const {\
+        _apply_scalar(*this, scalar, op, dst); \
+    } \
+    template<typename T>\
+    void Tnsr<T>::apply(T scalar, binary_op<T> op, TensorSliced<T>&dst) const {\
+        _apply_scalar(*this, scalar, op, dst); \
     } \
     template<typename T>\
     Tensor<T> Tnsr<T>::apply(T scalar, binary_op<T> op) const {\
         return _apply_scalar(*this, scalar, op); \
     }
 
-#define TENSOR_TENSOR_BINARY_APPLY_(TensorT1, TensorT2) \
+#define TENSOR_TENSOR_BINARY_APPLY_(TensorT1, TensorT2, T) \
     template<typename T>\
     TensorT1<T>& TensorT1<T>::apply_tensors_(TensorT2<T> t, binary_op<T> op) {\
         return _apply_tensors_(*this, t, op); \
     }
 
-#define TENSOR_TENSOR_BINARY_APPLY(TensorT1, TensorT2) \
+#define TENSOR_TENSOR_BINARY_APPLY(TensorT1, TensorT2, T) \
     template<typename T>\
-    void TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op, Tensor<T>* out) const {\
-        _apply_tensors(*this, t, op, out); \
+    void TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op, Tensor<T>&dst) const {\
+        _apply_tensors(*this, t, op, dst); \
+    } \
+    template<typename T>\
+    void TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op, TensorView<T>&dst) const {\
+        _apply_tensors(*this, t, op, dst); \
+    } \
+    template<typename T>\
+    void TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op, TensorSliced<T>&dst) const {\
+        _apply_tensors(*this, t, op, dst); \
     } \
     template<typename T>\
     Tensor<T> TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op) const {\
@@ -916,25 +979,34 @@ namespace blas {
     TENSOR_SCALAR_BINARY_APPLY_(Tnsr) \
     TENSOR_SCALAR_BINARY_APPLY(Tnsr)
 
-#define APPLY_TENSOR_INTERACTABLE(TensorT1, TensorT2) \
-    TENSOR_TENSOR_BINARY_APPLY_(TensorT1, TensorT2) \
-    TENSOR_TENSOR_BINARY_APPLY(TensorT1, TensorT2)
+#define APPLY_TENSOR_INTERACTABLE(TensorT1, TensorT2, T) \
+    TENSOR_TENSOR_BINARY_APPLY_(TensorT1, TensorT2, T) \
+    TENSOR_TENSOR_BINARY_APPLY(TensorT1, TensorT2, T)
 
 #define DEF_APPLY_TENSOR(Tnsr) \
-    MACRO_INTERACTABLE_TENSORTYPES(APPLY_TENSOR_INTERACTABLE, Tnsr) \
+    MACRO_INTERACTABLE_TENSORTYPES(APPLY_TENSOR_INTERACTABLE, Tnsr, T) \
     APPLY_UNIQUE_INTERACTABLE(Tnsr)
 
     DEF_APPLY_TENSOR(Tensor)
     APPLY_UNIQUE_INTERACTABLE(TensorView) // We only need this because the others are inherited no problem.
     DEF_APPLY_TENSOR(TensorSliced)
 
+#define MACRO_COPY_(TensorDst, TensorSrc, T) \
+    template TensorDst<T>& copy_(TensorDst<T>&, const TensorSrc<T>&);
 
+#define INSTANTIATE_COPY_(T) \
+    MACRO_INTERACTABLE_TENSORTYPES(MACRO_COPY_, Tensor, T) \
+    MACRO_INTERACTABLE_TENSORTYPES(MACRO_COPY_, TensorView, T) \
+    MACRO_INTERACTABLE_TENSORTYPES(MACRO_COPY_, TensorSliced, T)
 
-#define INSTANTIATE_TEMPLATE_TENSOR(dtype) \
-    template class Tensor<dtype>; \
-    template class TensorView<dtype>; \
-    template class TensorSliced<dtype>; \
-    template TensorSliced<dtype>& fill_(TensorSliced<dtype>&, dtype);
+#define INSTANTIATE_TEMPLATE_TENSOR(T) \
+    template class Tensor<T>; \
+    template class TensorView<T>; \
+    template class TensorSliced<T>; \
+    template Tensor<T>& fill_(Tensor<T>&, T); \
+    template TensorView<T>& fill_(TensorView<T>&, T); \
+    template TensorSliced<T>& fill_(TensorSliced<T>&, T); \
+    INSTANTIATE_COPY_(T)
 
     INSTANTIATE_TEMPLATE_TENSOR(double)
 }
