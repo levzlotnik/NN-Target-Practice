@@ -5,6 +5,7 @@
 #include "../BLAS/BLAS.h"
 #include "iostream"
 using namespace std;
+using namespace blas;
 
 int main(){
     Tensor<double> t (
@@ -13,7 +14,10 @@ int main(){
     );
     cout << t << endl;
     auto t1 = t({1, 2});
-    t1 = 900;
-    cout << t << endl;
+    t1 = 900.0;
+    auto t2 = t.apply_tensors(t1, [](double x, double y){ return x*y; });
+    cout << "t = " << t << endl;
+    cout << "t1 = " << t1 << endl;
+    cout << "t2 = " << t2 << endl;
     return 0;
 }

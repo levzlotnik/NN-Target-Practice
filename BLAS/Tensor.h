@@ -64,7 +64,7 @@ namespace blas {
      * @param size : see ravel_index_checked
      * @return unraveled index for the current tensor
      */
-    std::vector<size_t> unravel_index(size_t true_idx, const shape_t &shape, int size = -1);
+    index_t unravel_index(size_t true_idx, const shape_t &shape, int size = -1);
 
     std::string shape2str(const shape_t &shape);
 
@@ -86,14 +86,6 @@ namespace blas {
                 ) {}
     };
 
-#define DEF_COPY_FILL_TEMPLATES(Tensor1) \
-    template<class Tensor2> \
-    inline Tensor1& copy_(const Tensor2& other) { return copy_(*this, other); } \
-    template<typename scalar_t> \
-    inline Tensor1& fill_(scalar_t scalar) { return fill_(*this, scalar); } \
-    template<class Tensor2> \
-    inline Tensor1& operator=(const Tensor2& other) { if (this != &other) this->copy_(other); return *this; }
-
     /**
      * Fill a tensor with a single value inplace, generically.
      * @tparam Tens destination tensor type
@@ -102,8 +94,8 @@ namespace blas {
      * @param scalar
      * @return destination tensor.
      */
-    template<class Tens, typename T>
-    Tens &fill_(Tens &dst, T scalar);
+    template<template<typename>class Tens, typename T>
+    Tens<T> &fill_(Tens<T> &dst, T scalar);
 
     /**
      * Copy data inplace into a destination tensor, generically.
@@ -117,6 +109,83 @@ namespace blas {
     Tensor1 &copy_(Tensor1 &dst, const Tensor2 &src);
 
     /**
+     * Applies a unary operation in place.
+     * @tparam Tnsr
+     * @tparam T
+     * @param dst
+     * @param op
+     * @return
+     */
+    template<class Tnsr, typename T>
+    Tnsr& _apply_unary_(Tnsr& dst, unary_op<T> op);
+
+    /**
+     * Applies inplace a binary operation with another constant operand.
+     * @tparam Tnsr
+     * @tparam T
+     * @param dst
+     * @param scalar
+     * @param op
+     * @return
+     */
+    template<template<typename> class Tnsr, typename T>
+    Tnsr<T>& _apply_scalar_(Tnsr<T>& dst, T scalar, binary_op<T> op);
+
+    /**
+     * Applies a unary operation.
+     * @tparam Tnsr
+     * @tparam T
+     * @param dst
+     * @param op
+     * @return
+     */
+    template<template<typename> class Tnsr, typename T>
+    void _apply_unary(const Tnsr<T> &src, unary_op<T> op, Tensor <T> *out);
+
+    /**
+     * Applies a unary operation.
+     * @tparam Tnsr
+     * @tparam T
+     * @param dst
+     * @param op
+     * @return
+     */
+    template<template<typename> class Tnsr, typename T>
+    inline Tensor<T> _apply_unary(const Tnsr<T> &src, unary_op<T> op) {
+        Tensor<T> dst(src.shape);
+        _apply_unary(src, op, &dst);
+        return dst;
+    }
+
+    /**
+     * Applies a binary operation with another constant operand.
+     * @tparam Tnsr
+     * @tparam T
+     * @param src
+     * @param scalar
+     * @param op
+     * @return
+     */
+    template<template<typename> class Tnsr, typename T>
+    void _apply_scalar(const Tnsr<T> &src, T scalar, binary_op<T> op, Tensor <T> *out);
+
+    /**
+     * Applies a binary operation with another constant operand.
+     * @tparam Tnsr
+     * @tparam T
+     * @param src
+     * @param scalar
+     * @param op
+     * @return
+     */
+    template<template<typename> class Tnsr, typename T>
+    inline Tensor<T> _apply_scalar(const Tnsr<T> &src, T scalar, binary_op<T> op) {
+        Tensor<T> dst(src.shape);
+        _apply_scalar(src, scalar, op, &dst);
+        return dst;
+    }
+
+    /**
      * Applies an element-wise function on all elements and stores into destination.
      * @tparam Tensor1
      * @tparam Tensor2
@@ -126,8 +195,8 @@ namespace blas {
      * @param op
      * @return
      */
-    template<class Tensor1, class Tensor2, typename T>
-    Tensor1& apply_(Tensor1& dst, const Tensor2 &src, std::function<T(T, T)> op);
+    template<template<typename> class Tensor1, template<typename> class Tensor2, typename T>
+    Tensor1<T>& _apply_tensors_(Tensor1<T>& dst, const Tensor2<T> &src, std::function<T(T, T)> op);
 
     /**
      * Applies an element-wise function on all elements and stores into destination, using broadcast mechanics.
@@ -139,8 +208,8 @@ namespace blas {
      * @param op
      * @return
      */
-    template<class Tensor1, class Tensor2, typename T>
-    Tensor1& apply_broadcast_(Tensor1& dst, const Tensor2 &src, std::function<T(T, T)> op);
+    template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
+    Tensor1<T>& _apply_broadcast_(Tensor1<T>& dst, const Tensor2<T> &src, std::function<T(T, T)> op);
 
     /**
      * Applies an element-wise function on all elements and stores into a new tensor..
@@ -152,8 +221,22 @@ namespace blas {
      * @param op
      * @return
      */
-    template<class Tensor1, class Tensor2, typename T>
-    Tensor<T> apply(const Tensor1& src1, const Tensor2 &src2, std::function<T(T, T)> op);
+    template<template<typename> class Tensor1, template<typename> class Tensor2, typename T>
+    void _apply_tensors(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op,
+                              Tensor <T> *out);
+
+    /**
+     * Applies an element-wise function on all elements and stores into a new tensor..
+     * @tparam Tensor1
+     * @tparam Tensor2
+     * @tparam T
+     * @param dst
+     * @param src
+     * @param op
+     * @return
+     */
+    template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
+    Tensor<T> _apply_tensors(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op);
 
     /**
      * Applies an element-wise function on all elements and stores into a new tensor, using broadcast mechanics.
@@ -165,34 +248,65 @@ namespace blas {
      * @param op
      * @return
      */
-    template<class Tensor1, class Tensor2, typename T>
-    Tensor<T> apply_broadcast(const Tensor1& src1, const Tensor2 &src2, std::function<T(T, T)> op);
+    template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
+    void _apply_broadcast(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op,
+                                Tensor <T> *out= nullptr);
 
-#define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2, T) \
-    virtual TensorT1& apply_(TensorT2<T> other, binary_op<T> op); \
-    virtual TensorT1& apply_broadcast_(TensorT2<T> other, binary_op<T> op); \
-    virtual Tensor<T> apply(TensorT2<T> other, binary_op<T> op) const; \
-    virtual Tensor<T> apply_broadcast(TensorT2<T> other, binary_op<T> op) const;
+#define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_BASE(TensorT1) \
+    virtual TensorT1& apply_(T scalar, binary_op<T> op); \
+    virtual TensorT1& apply_(unary_op<T>); \
+    virtual void apply(T scalar, binary_op<T> op, Tensor<T>* out) const; \
+    virtual Tensor<T> apply(T scalar, binary_op<T> op) const; \
+    virtual void apply(unary_op<T>, Tensor<T>* out) const; \
+    virtual Tensor<T> apply(unary_op<T>) const;
 
-#define DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE(TensorT1, TensorT2, T) \
-    TensorT1& apply_(TensorT2<T> other, binary_op<T> op) override; \
-    TensorT1& apply_broadcast_(TensorT2<T> other, binary_op<T> op) override; \
-    Tensor<T> apply(TensorT2<T> other, binary_op<T> op) const override; \
-    Tensor<T> apply_broadcast(TensorT2<T> other, binary_op<T> op) const override;
+#define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorT1) \
+    TensorT1& apply_(T scalar, binary_op<T> op) override; \
+    TensorT1& apply_(unary_op<T>) override; \
+    void apply(T scalar, binary_op<T> op, Tensor<T>* out) const override; \
+    Tensor<T> apply(T scalar, binary_op<T> op) const override; \
+    void apply(unary_op<T>, Tensor<T>* out) const override; \
+    Tensor<T> apply(unary_op<T>) const override;
 
-#define MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTDst, T) \
-    macro(TensorTDst, Tensor, T) \
-    macro(TensorTDst, TensorView, T) \
-    macro(TensorTDst, TensorSliced, T)
+
+#define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2) \
+    virtual TensorT1& apply_tensors_(TensorT2<T> other, binary_op<T> op); \
+    virtual void apply_tensors(TensorT2<T> other, binary_op<T> op, Tensor<T>* out) const; \
+    virtual Tensor<T> apply_tensors(TensorT2<T> other, binary_op<T> op) const;
+
+#define DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE(TensorT1, TensorT2) \
+    TensorT1& apply_tensors_(TensorT2<T> other, binary_op<T> op)override; \
+    void apply_tensors(TensorT2<T> other, binary_op<T> op, Tensor<T>* out) const override; \
+    Tensor<T> apply_tensors(TensorT2<T> other, binary_op<T> op) const override;
+
+#define MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTDst) \
+    macro(TensorTDst, Tensor) \
+    macro(TensorTDst, TensorView) \
+    macro(TensorTDst, TensorSliced)
     // macro(TensorTDst, TensorSparse, T) - it deserves special treatment.
+
+#define DEF_ASSIGNMENT_TEMPLATE(TensorT1, TensorT2) \
+    inline TensorT1& copy_(const TensorT2<T>& other) { return blas::copy_(*this, other); } \
+    inline TensorT1& operator=(const TensorT2<T>& other) { \
+        if (static_cast<const void*>(this) != static_cast<const void*>(&other)) this->copy_(other); \
+        return *this; \
+    }
+
+
+#define DEF_COPY_FILL_TEMPLATES(Tensor1) \
+    template<typename scalar_t> \
+    inline Tensor1& fill_(scalar_t scalar) { return blas::fill_(*this, scalar); } \
+    template<typename scalar_t> \
+    inline Tensor1& operator=(scalar_t scalar) { this->fill_(scalar); return *this;} \
+    MACRO_INTERACTABLE_TENSORTYPES(DEF_ASSIGNMENT_TEMPLATE, Tensor1)
 
 
     class Slice {
     private:
         class const_iterator {
-            using index_t = int;
+            using index_t = long;
             index_t pos;
-            int stride;
+            index_t stride;
         public:
             using difference_type = long; // unused
             using value_type = index_t;
@@ -200,14 +314,14 @@ namespace blas {
             using reference = const index_t &;
             using iterator_category = std::input_iterator_tag;
 
-            const_iterator(index_t pos, int stride) : pos(pos), stride(stride) {}
+            const_iterator(index_t pos, index_t stride) : pos(pos), stride(stride) {}
 
             inline const_iterator &operator++() {
                 pos += stride;
                 return *this;
             }
 
-            inline const_iterator operator++(int) { const_iterator temp(*this); ++*this; return temp;}
+            inline const const_iterator operator++(int) { const_iterator temp(*this); ++*this; return temp;}
 
             inline const_iterator& operator+=(difference_type x) {
                 pos += x*stride;
@@ -220,21 +334,21 @@ namespace blas {
 
             inline bool operator!=(const const_iterator &other) const { return !(*this == other); }
 
-            inline reference operator*() { return pos; }
+            inline reference operator*() const { return pos; }
         };
 
         /* why isn't abs constexpr -_- */
-        static inline constexpr size_t abs(int x) { return x < 0 ? -x: x;}
+        static inline constexpr size_t abs(long x) { return x < 0 ? -x: x;}
 
     public:
-        int b, e, stride;
-
-        Slice(int b, int e, int stride = 1);
+        long b, e, stride;
+        Slice() : b(0), e(0), stride(0) {}
+        Slice(long b, long e, long stride = 1);
 
         explicit Slice(const tuple<int, int, int> &tup) :
                 b(std::get<0>(tup)), e(std::get<1>(tup)), stride(std::get<2>(tup)) {}
 
-        constexpr Slice(initializer_list<int> lst);
+        constexpr Slice(initializer_list<long> lst);
 
         constexpr void check_stride() const;
 
@@ -250,13 +364,11 @@ namespace blas {
      */
     class SliceGroup {
     public:
-        explicit SliceGroup(const vector<tuple<int, int, int>> &slices);
-
-        SliceGroup(initializer_list<initializer_list<int>> lst);
-
-        inline size_t size() const;
-
         vector<Slice> slices;
+        SliceGroup() = default;
+        explicit SliceGroup(const vector<tuple<int, int, int>> &slices);
+        explicit SliceGroup(const vector<Slice>& slices) : slices(slices) {}
+        SliceGroup(initializer_list<initializer_list<long>> lst);
 
         class const_iterator {
             vector<Slice> slices;
@@ -272,9 +384,7 @@ namespace blas {
             const_iterator(index_t pos, vector<Slice> slices, size_t elems_passed = 0);
 
             const_iterator &operator++();
-            inline const_iterator operator ++(int) { const_iterator temp(*this); ++*this; return temp; }
-            const_iterator& operator+=(difference_type x);
-
+            inline const_iterator operator ++(int) { const_iterator temp(*this); ++*this; return temp; }\
 
             inline bool operator==(const const_iterator &other) const { return elems_passed == other.elems_passed; }
 
@@ -282,9 +392,7 @@ namespace blas {
 
             inline reference operator*() { return pos; }
         };
-
         inline const_iterator begin() const { return const_iterator(get_init_pos(), slices, 0); }
-
         inline const_iterator end() const { return const_iterator(get_init_pos(), slices, size()); }
 
         inline index_t translate_true_idx(size_t true_index) const {
@@ -298,7 +406,6 @@ namespace blas {
             }
             return ret;
         }
-
         inline size_t translate_vector_idx(index_t vec_index) const {
             size_t true_index = 0;
             size_t tot_stride = 1;
@@ -313,6 +420,13 @@ namespace blas {
             }
             return true_index;
         }
+        inline shape_t shape() const {
+            shape_t ret(slices.size());
+            for (int i=0; i < ret.size(); ++i)
+                ret[i] = slices[i].size();
+            return ret;
+        }
+        inline size_t size() const;
 
     private:
         inline vector<long> get_init_pos() const {
@@ -326,23 +440,17 @@ namespace blas {
     class Tensor {
     public:
         shape_t shape;
+        bool is_sliced = false;
 
         Tensor();
 
         explicit Tensor(T scalar);
-
         explicit Tensor(const shape_t &shape);
-
         Tensor(std::vector<T> data, const shape_t &shape);
-
         Tensor(T *data, const shape_t &shape);
-
         Tensor(const Tensor &other);
-
         Tensor(Tensor &&other) noexcept;
-
         virtual ~Tensor();
-
         template<typename T_>
         friend void swap(Tensor<T_> &t1, Tensor<T_> &t2) {
             using std::swap;
@@ -351,13 +459,14 @@ namespace blas {
             swap(t1.shape, t2.shape);
             swap(t1.strides, t2.strides);
             swap(t1.requires_deletion, t2.requires_deletion);
+            swap(t1.is_sliced, t2.is_sliced);
         }
 
         DEF_COPY_FILL_TEMPLATES(Tensor)
 
-        virtual Tensor &operator=(Tensor &&other) noexcept;
+        Tensor &operator=(Tensor &&other) noexcept;
 
-        inline Tensor &operator=(T scalar);
+        inline Tensor &operator=(T scalar) { fill_(scalar); return *this;}
 
         template<typename Tnsr>
         class subtensor_iterator {
@@ -469,7 +578,6 @@ namespace blas {
         Tensor operator()(const SliceGroup &slice) const;
         TensorSliced<T> operator()(const SliceGroup &slice);
 
-    protected:
         virtual Tensor unchecked_subscript(int idx) const; // Gets subtensor rvalue
         virtual TensorView<T> unchecked_subscript(int idx); // Gets subtensor lvalue
         virtual Tensor unchecked_subscript(const index_t &index) const; // Gets subtensor rvalue
@@ -482,8 +590,7 @@ namespace blas {
         TensorView<T> optimized_unchecked_subscript(int idx) const;
         TensorView<T> optimized_unchecked_subscript(const index_t &index) const;
 
-    public:
-
+        virtual Tensor contiguous() { return *this; }
         static T& get(Tensor<T>& t, size_t true_idx) { return t.data[true_idx]; }
         static T get(const Tensor<T>& t, size_t true_idx) { return t.data[true_idx]; }
 
@@ -509,17 +616,11 @@ namespace blas {
 
         inline size_t dim() const { return shape.size(); }
 
-        /*Elementwise Operations*/
-        Tensor &apply_(unary_op<T> op);
-        Tensor &apply_(T scalar, binary_op<T> op);
-
-        /* Out of place operations */
-        Tensor apply(unary_op<T> op) const;
-        Tensor apply(T scalar, binary_op<T> op) const;
+        // Declares all unary self interactions and binary interactions with a constant scalar.
+        DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_BASE(Tensor)
 
         // Declares all interactions between the different tensor types.
-        MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_BASE, Tensor, T)
-        // TODO - Define implementation in Tensor.cpp.
+        MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_BASE, Tensor)
 
         Tensor operator-() const;
 
@@ -535,21 +636,24 @@ namespace blas {
         }
 
         T *get_data_ptr();
+        T *get_data_ptr() const;
+
+        size_t size;
+        virtual ostream &print_to_os(ostream &os, bool rec_start) const;
+
 
     protected:
         static_assert(std::is_arithmetic_v<T>, "Must be an arithmetic type.");
         T *data;
         shape_t strides;
-        size_t size;
         bool requires_deletion = true;
-
-        ostream &print_to_os(ostream &os, bool rec_start) const;
 
         shape_t slice2shape(const Slice &slice) const;
 
         Slice normalize_slice(const Slice &slice, int max_size = -1) const;
 
         SliceGroup normalize_slice_group(const SliceGroup &group) const;
+
     };
 
     /**
@@ -572,10 +676,16 @@ namespace blas {
         static T& get(TensorView<T>& tv, size_t true_idx) { return tv.data[true_idx]; }
         static T get(const TensorView<T>& tv, size_t true_idx) { return tv.data[true_idx]; }
 
+        inline Tensor<T> contiguous() override {
+            Tensor<T> t(this->shape);
+            t.copy_(*this);
+            return t;
+        }
+
         // We don't need this here because it operates the same exact way as for Tensor.
         // // Declares all interactions between the different tensor types.
         // MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE, TensorView, T)
-
+        DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorView)
         DEF_COPY_FILL_TEMPLATES(TensorView)
     };
 
@@ -587,16 +697,20 @@ namespace blas {
     class TensorSliced : public Tensor<T> {
     private:
         friend class Tensor<T>;
-
+        shape_t underlying_tensor_shape;
         const SliceGroup slice_group;
 
         TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group);
 
-        TensorSliced(Tensor<T> t, const SliceGroup &slice_group);
+        TensorSliced(Tensor<T>& t, const SliceGroup &slice_group);
+        static TensorSliced _from_const(const Tensor<T>& t, const SliceGroup &slice_group);
 
     public:
         ~TensorSliced() override = default;
+        TensorSliced(const TensorSliced& other);
+        TensorSliced(TensorSliced&& other) = default;
 
+        DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorSliced)
         DEF_COPY_FILL_TEMPLATES(TensorSliced)
 
         template<typename T_>
@@ -635,17 +749,22 @@ namespace blas {
         };
         using eiterator = eliterator<T>;
         using ceiterator = eliterator<const T>;
-        static inline ceiterator elem_begin(TensorSliced &ts);
-        static inline ceiterator elem_end(TensorSliced &ts);
+        static inline eiterator elem_begin(TensorSliced &ts);
+        static inline eiterator elem_end(TensorSliced &ts);
         static inline ceiterator const_elem_begin(const TensorSliced &ts);
         static inline ceiterator const_elem_end(const TensorSliced &ts);
+
+    protected:
+        ostream &print_to_os(ostream &os, bool rec_start) const override;
+
+    public:
 
         static T& get(TensorSliced<T>& ts, size_t true_idx);
         static T get(const TensorSliced<T>& ts, size_t true_idx);
 
-        MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE, TensorSliced, T)
-        // TODO - Define implementation in Tensor.cpp.
+        MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE, TensorSliced)
 
+        Tensor<T> contiguous() const;
     };
 
     template<>
