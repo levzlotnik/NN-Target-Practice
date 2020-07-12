@@ -5,28 +5,16 @@ set(CMAKE_CXX_STANDARD 20)
 #set (CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
 add_subdirectory(utils)
 
-set(
-        SOURCE_FILES_PROJECT_GLOBALS
-        common.h
-        common.cpp common_math.h)
+set(SOURCE_FILES_PROJECT_GLOBALS
+    common.h
+    common.cpp common_math.h)
 
-set(
-        SOURCE_FILES_BLAS ${SOURCE_FILES_PROJECT_GLOBALS}
-        BLAS/MatrixMath.h BLAS/MatrixMath.cpp
-        BLAS/VectorMath.cpp BLAS/VectorMath.h
-        BLAS/BLAS.h
-        BLAS/Matrix.cpp BLAS/Matrix.h
-        BLAS/Vector.cpp BLAS/Vector.h
-        BLAS/common_blas.h
-        BLAS/Tensor.h BLAS/Tensor.cpp BLAS/TensorMath.h)
+add_subdirectory(BLAS)
 
-add_library(BLAS SHARED ${SOURCE_FILES_BLAS})
+file(GLOB
+     SOURCE_FILES_DISTRIBUTIONS ${SOURCE_FILES_PROJECT_GLOBALS}
+     distributions/*.h distributions/*.cpp)
 
-file(
-        GLOB
-        SOURCE_FILES_DISTRIBUTIONS ${SOURCE_FILES_PROJECT_GLOBALS}
-        distributions/*.h distributions/*.cpp
-)
 add_library(distributions SHARED ${SOURCE_FILES_DISTRIBUTIONS})
 target_link_libraries(distributions BLAS)
 
