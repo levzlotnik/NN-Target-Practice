@@ -215,20 +215,22 @@ namespace blas {
 
         /* why isn't abs constexpr -_- */
         static inline constexpr size_t abs(long x) { return x < 0 ? -x: x;}
-
+        size_t size_;
+        static inline constexpr size_t get_size(long b, long e, long stride) { return (abs(e-b)-1) / stride + 1; }
     public:
         long b, e, stride;
-        Slice() : b(0), e(0), stride(0) {}
+
+        Slice() : Slice(0, 0, 1) {}
         Slice(long b, long e, long stride = 1);
 
-        explicit Slice(const tuple<int, int, int> &tup) :
-                b(std::get<0>(tup)), e(std::get<1>(tup)), stride(std::get<2>(tup)) {}
+        explicit Slice(const tuple<long, long, long> &tup) :
+                Slice(std::get<0>(tup),std::get<1>(tup), std::get<2>(tup)) {}
 
         Slice(initializer_list<long> lst);
 
         constexpr void check_stride() const;
 
-        inline constexpr size_t size() const { return (abs(e - b) - 1) / abs(stride) + 1; }
+        inline size_t size() const { return size_; }
 
         inline const_iterator begin() const { return const_iterator(b, stride); }
 
@@ -625,7 +627,7 @@ namespace blas {
             using iterator_category = std::forward_iterator_tag;
 
             inline reference operator*() {
-                auto idx = *sg_iterator;
+                const auto& idx = *sg_iterator;
                 auto true_idx = ravel_index(idx, shape, size);
                 return data[true_idx];
             }

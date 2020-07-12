@@ -30,9 +30,4 @@ static int normalize_index(int i, int n, bool inclusive=false){
 }
 
 
-using UnaryOperation = std::function<float(float&)>;
-using BinaryOperation = std::function<float(float&, float&)>;
-
-
-
 #endif //TARGETPRACTICE_COMMON_BLAS_H

@@ -102,9 +102,11 @@ namespace blas {
         if (dst.shape != src.shape)
             throw shape_mismatch(dst.shape, src.shape, "copy_");
         sceiterator src_it = Tensor2::const_elem_begin(src);
-        deiterator dst_it = Tensor1::elem_begin(dst);
-        while (dst_it != Tensor1::elem_end(dst))
-            *dst_it++ = *src_it++;
+        deiterator dst_it = Tensor1::elem_begin(dst), dst_it_end = Tensor1::elem_end(dst);
+        while (dst_it != dst_it_end) {
+            *dst_it = *src_it;
+            ++dst_it; ++src_it;
+        }
         return dst;
     }
 
@@ -214,7 +216,8 @@ namespace blas {
         size_t stride = size > 0 ? size :
                         std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>{});
         int curr_index;
-        for (int i = 0; i < idx.size(); ++i) {
+        size_t size_idx = idx.size();
+        for (int i = 0; i < size_idx; ++i) {
             stride /= shape[i];
             curr_index = idx[i];
             index += stride * curr_index;
@@ -249,7 +252,8 @@ namespace blas {
 
     template<template<typename>class Tens, typename T>
     Tens<T> &fill_(Tens<T> &dst, T scalar) {
-        for (auto it = Tens<T>::elem_begin(dst); it != Tens<T>::elem_end(dst); ++it)
+        auto it = Tens<T>::elem_begin(dst), it_end = Tens<T>::elem_end(dst);
+        for (; it != it_end; ++it)
             *it = scalar;
         return dst;
     }
@@ -409,6 +413,7 @@ namespace blas {
     template<typename T>
     Tensor<T> Tensor<T>::unchecked_slice(const Slice &slice) const {
         SliceGroup sg;
+        sg.slices.reserve(shape.size());
         sg.slices.emplace_back(slice);
         for (int i = 1; i < shape.size(); ++i)
             sg.slices.emplace_back(0, shape[i], 1);
@@ -418,6 +423,7 @@ namespace blas {
     template<typename T>
     TensorSliced<T> Tensor<T>::unchecked_slice(const Slice &slice) {
         SliceGroup sg;
+        sg.slices.reserve(shape.size());
         sg.slices.emplace_back(slice);
         for (int i = 1; i < shape.size(); ++i)
             sg.slices.emplace_back(0, shape[i], 1);
@@ -450,16 +456,16 @@ namespace blas {
         return data;
     }
 
-    Slice::Slice(long b, long e, long stride) : b(b), e(e), stride(stride) {
+    Slice::Slice(long b, long e, long stride) : b(b), e(e), stride(stride), size_(get_size(b, e, stride)) {
         check_stride();
     }
 
-    Slice::Slice(initializer_list<long> lst) : b(0), e(0), stride(0) {
+    Slice::Slice(initializer_list<long> lst) : b(0), e(0), stride(1) {
         using std::tuple;
         switch (lst.size()) {
             case 1: {
                 long b_ = *lst.begin();
-                std::tie(b, e, stride) = tuple{b_, b_ + 1, 1};
+                std::tie(b, e) = tuple{b_, b_ + 1};
                 break;
             }
             case 2: {
@@ -477,6 +483,7 @@ namespace blas {
             default:
                 throw std::invalid_argument("Slice takes 1 to 3 arguments.");
         }
+        size_ = get_size(b, e, stride);
         check_stride();
     }
 
@@ -668,9 +675,9 @@ namespace blas {
         if (dst.shape != src.shape)
             // Maybe broadcasting will work.
             return _apply_broadcast_(dst, src, op);
-        auto it_dst = Tensor1<T>::elem_begin(dst);
+        auto it_dst = Tensor1<T>::elem_begin(dst), it_dst_end=Tensor1<T>::elem_end(dst);
         auto it_src = Tensor2<T>::const_elem_begin(src);
-        while (it_dst != Tensor1<T>::elem_end(dst))
+        while (it_dst != it_dst_end)
             *it_dst++ = *it_src++;
         return dst;
     }
@@ -732,9 +739,9 @@ namespace blas {
             _apply_broadcast(src1, src2, op, dst);
             return;
         }
-        auto it_dst = TnsrDst<T>::elem_begin(dst);
+        auto it_dst = TnsrDst<T>::elem_begin(dst), it_dst_end = TnsrDst<T>::elem_end(dst);
         auto [it_src1, it_src2] = tuple { TnsrSrc1<T>::const_elem_begin(src1), TnsrSrc2<T>::const_elem_begin(src2) };
-        while (it_dst != TnsrDst<T>::elem_end(dst))
+        while (it_dst != it_dst_end)
             *it_dst++ = op(*it_src1++, *it_src2++);
     }
 
@@ -802,7 +809,7 @@ namespace blas {
                 index_t src1_idx = unravel_index(src1_true_idx, src1.shape, src1.size);
                 auto [sg_src2, sg_dst] = broadcast_index(src1_idx, src1.shape, src2.shape, dst.shape);
                 const binary_op<T> rev_op = [op](T x, T y) -> T { return op(y, x); };
-                Tensor<T> src2_slice = src2.unchecked_slice_group(sg_src2);
+                const Tensor<T>& src2_slice = src2.unchecked_slice_group(sg_src2);
                 TensorSliced<T> dst_slice = dst.unchecked_slice_group(sg_dst);
                 _apply_scalar(src2_slice, src1_x, rev_op, OUT dst_slice);
             }
@@ -821,17 +828,20 @@ namespace blas {
 
     template<template<typename>class Tnsr, typename T>
     Tnsr<T> &_apply_unary_(Tnsr<T> &dst, const unary_op<T>& op) {
-        for (auto it = Tnsr<T>::elem_begin(dst); it != Tnsr<T>::elem_end(dst); ++it)
-            *it = op(*it);
+        auto it = Tnsr<T>::elem_begin(dst), it_end = Tnsr<T>::elem_end(dst);
+        for (; it != it_end; ++it) {
+            auto &x = *it;
+            x = op(x);
+        }
         return dst;
     }
 
     template<template<typename>class Tnsr, typename T>
     Tnsr<T> &_apply_scalar_(Tnsr<T> &dst, T scalar, const binary_op<T>& op) {
-        for (auto it = Tnsr<T>::elem_begin(dst); it != Tnsr<T>::elem_end(dst); ++it) {
-            auto x = *it;
-            auto y = op(x, scalar);
-            *it = y;
+        auto it = Tnsr<T>::elem_begin(dst), it_end = Tnsr<T>::elem_end(dst);
+        for (; it != it_end; ++it) {
+            auto& x = *it;
+            x = op(x, scalar);
         }
         return dst;
     }
@@ -842,8 +852,10 @@ namespace blas {
         using dst_it_t = typename TnsrDst<T>::eiterator;
         src_it_t src_it = TnsrSrc<T>::const_elem_begin(src), src_it_end = TnsrSrc<T>::const_elem_end(src);
         dst_it_t dst_it = TnsrDst<T>::elem_begin(dst);
-        while(src_it != src_it_end)
-            *dst_it++ = op(*src_it++);
+        while(src_it != src_it_end) {
+            *dst_it = op(*src_it);
+            ++dst_it; ++src_it;
+        }
     }
 
     template<template<typename> class TnsrSrc,template<typename> class TnsrDst, typename T>
@@ -852,8 +864,10 @@ namespace blas {
         using dst_it_t = typename TnsrDst<T>::eiterator;
         src_it_t src_it = TnsrSrc<T>::const_elem_begin(src), src_it_end = TnsrSrc<T>::const_elem_end(src);
         dst_it_t dst_it = TnsrDst<T>::elem_begin(dst);
-        while(src_it != src_it_end)
-            *dst_it++ = op(*src_it++, scalar);
+        while(src_it != src_it_end){
+            *dst_it = op(*src_it, scalar);
+            ++dst_it; ++src_it;
+        }
     }
 
     /**
