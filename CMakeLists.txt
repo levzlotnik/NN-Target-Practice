@@ -18,29 +18,27 @@ file(GLOB
 add_library(distributions SHARED ${SOURCE_FILES_DISTRIBUTIONS})
 target_link_libraries(distributions BLAS)
 
-set(
-        SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
-        autograd/autograd.h
-        autograd/variable/AutogradVariable.cpp autograd/variable/AutogradVariable.h
-        autograd/variable/VariableBase.h autograd/variable/VariableBase.cpp
-        autograd/Functor.cpp autograd/Functor.h
-        autograd/variable/RandomVariable.cpp autograd/variable/RandomVariable.h
-        autograd/variable/Parameter.cpp autograd/variable/Parameter.h
-        autograd/variable/InputBuffer.cpp autograd/variable/InputBuffer.h
-        autograd/Loss.cpp autograd/Loss.h autograd/variable/Constant.h autograd/VariableMath.cpp autograd/VariableMath.h)
+set(SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
+    autograd/autograd.h
+    autograd/variable/AutogradVariable.cpp autograd/variable/AutogradVariable.h
+    autograd/variable/VariableBase.h autograd/variable/VariableBase.cpp
+    autograd/Functor.cpp autograd/Functor.h
+    autograd/variable/RandomVariable.cpp autograd/variable/RandomVariable.h
+    autograd/variable/Parameter.cpp autograd/variable/Parameter.h
+    autograd/variable/InputBuffer.cpp autograd/variable/InputBuffer.h
+    autograd/Loss.cpp autograd/Loss.h autograd/variable/Constant.h autograd/VariableMath.cpp autograd/VariableMath.h)
 
 add_library(autograd SHARED ${SOURCE_FILES_AUTOGRAD})
 target_link_libraries(autograd distributions graph2dot)
 
-set(
-        SOURCE_FILES_NN ${SOURCE_FILES_PROJECT_GLOBAL}
-        nn/Module.cpp nn/Module.h
-)
+set(SOURCE_FILES_NN ${SOURCE_FILES_PROJECT_GLOBAL}
+    nn/Module.cpp nn/Module.h)
+
 add_library(nn SHARED ${SOURCE_FILES_NN})
 target_link_libraries(nn autograd)
 
 # Tests
-add_executable(test_BLAS tests/test_tensor.cpp)
+add_executable(test_BLAS tests/test_BLAS.cpp)
 target_link_libraries(test_BLAS BLAS)
 
 add_executable(test_distributions tests/test_distributions.cpp)

@@ -313,8 +313,9 @@ namespace blas {
 
     private:
         inline vector<long> get_init_pos() const {
-            vector<long> res;
-            for (auto s: slices) res.push_back(s.b);
+            vector<long> res(slices.size());
+            for (int i=0; i < res.size(); ++i)
+                res[i] = slices[i].b;
             return res;
         }
     };
@@ -605,7 +606,7 @@ namespace blas {
     public:
         ~TensorSliced() override = default;
         TensorSliced(const TensorSliced& other);
-        TensorSliced(TensorSliced&& other) = default;
+        TensorSliced(TensorSliced&& other)  noexcept = default;
 
         DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorSliced)
         DEF_COPY_FILL_TEMPLATES(TensorSliced, T)
