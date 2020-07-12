@@ -8,6 +8,7 @@ using namespace std;
 using namespace blas;
 
 int main(){
+    Tensor<double>::precision = 3;
     Tensor<double> t (
             {1, 2, 3,
                   4, 5, 6},
@@ -35,5 +36,8 @@ int main(){
     cout << "t4.log1p_() = " << t4.log1p_() << endl;
     cout << "t1.log10_() = " << t1.log10_() << endl;
     cout << "t = " << t << endl;
+    cout << "t[0] = " << t[0] << endl;
+    cout << "t[0,0,2] = " << t[{0,0,2}] << endl;
+
     return 0;
 }

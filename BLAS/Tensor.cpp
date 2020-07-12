@@ -6,6 +6,7 @@
 #include <numeric>
 #include <algorithm>
 #include "Tensor.h"
+#include <iomanip>
 
 #define MAX_ROW_STRING_SIZE 50
 #define MAX_EXPANSION_STRING_SIZE 3
@@ -64,18 +65,14 @@ namespace blas {
     template<typename T>
     Tensor<T> Tensor<T>::at(const index_t &index) const {
         auto[idx, elements] = ravel_index_checked(index, shape, size);
-        std::vector<size_t> remaining_shape = elements == 1 ?
-                                              std::vector<size_t>{1, 1} :
-                                              std::vector<size_t>{shape.begin() + index.size(), shape.end()};
+        std::vector<size_t> remaining_shape = std::vector<size_t>{shape.begin() + index.size(), shape.end()};
         return Tensor(&data[idx], remaining_shape);
     }
 
     template<typename T>
     TensorView<T> Tensor<T>::at(const index_t &index) {
         auto[idx, elements] = ravel_index_checked(index, shape, size);
-        std::vector<size_t> remaining_shape = elements == 1 ?
-                                              std::vector<size_t>{1, 1} :
-                                              std::vector<size_t>{shape.begin() + index.size(), shape.end()};
+        std::vector<size_t> remaining_shape = std::vector<size_t>{shape.begin() + index.size(), shape.end()};
         return TensorView(&data[idx], remaining_shape);
     }
 
@@ -262,8 +259,12 @@ namespace blas {
     ostream &Tensor<T>::print_to_os(ostream &os, bool rec_start) const {
         using std::to_string;
         using std::endl;
-        os << (rec_start ? "Tensor" : "");
-        os << "[";
+        if (rec_start) {
+            os << std::scientific;
+            os << std::setprecision(precision);
+        }
+        os << (rec_start ? "Tensor(" : "");
+        os << (dim() > 0 ? "[" : "") ;
         if (dim() <= 1) {
             size_t expected_string_size = sizeof(", ") * (size - 1) + to_string(data[0]).size() * size;
             if (expected_string_size < MAX_ROW_STRING_SIZE)
@@ -280,7 +281,7 @@ namespace blas {
                 int i = 0;
                 for (const auto &sub: *this) {
                     sub.print_to_os(os, false);
-                    if (++i < shape[0]) os << "," << endl << "      ";
+                    if (++i < shape[0]) os << "," << endl << "       ";
                 }
             } else {
                 this->operator[](0).print_to_os(os, false);
@@ -288,7 +289,8 @@ namespace blas {
                 this->operator[](-1).print_to_os(os, false);
             }
         }
-        os << "]";
+        os << (dim() > 0 ? "]" : "") ;
+        if (rec_start) os << ")";
         return os;
     }
 
@@ -662,7 +664,7 @@ namespace blas {
      * @return
      */
     template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
-    Tensor1<T> &_apply_tensors_(Tensor1<T> &dst, const Tensor2<T> &src, std::function<T(T, T)> op) {
+    Tensor1<T> &_apply_tensors_(Tensor1<T> &dst, const Tensor2<T> &src, const binary_op<T>& op) {
         if (dst.shape != src.shape)
             // Maybe broadcasting will work.
             return _apply_broadcast_(dst, src, op);
@@ -698,7 +700,7 @@ namespace blas {
      * @return
      */
     template<template<typename> class  Tensor1, template<typename> class  Tensor2, typename T>
-    Tensor1<T> &_apply_broadcast_(Tensor1<T> &dst, const Tensor2<T> &src, std::function<T(T, T)> op) {
+    Tensor1<T> &_apply_broadcast_(Tensor1<T> &dst, const Tensor2<T> &src, const binary_op<T>& op) {
         shape_t broadcasted_shape = broadcast_shapes(dst.shape, src.shape);
         if (broadcasted_shape != dst.shape)
             throw broadcast_failure(dst.shape, broadcasted_shape);
@@ -724,7 +726,7 @@ namespace blas {
      * @return
      */
     template<template<typename> class TnsrSrc1,template<typename> class TnsrSrc2,template<typename> class TnsrDst, typename T>
-    void _apply_tensors(const TnsrSrc1<T> &src1, const TnsrSrc2<T> &src2, std::function<T(T, T)> op, TnsrDst<T> &dst) {
+    void _apply_tensors(const TnsrSrc1<T> &src1, const TnsrSrc2<T> &src2, const binary_op<T>& op, TnsrDst<T> &dst) {
         if (src1.shape != src2.shape) {
             // Maybe broadcast will help.
             _apply_broadcast(src1, src2, op, dst);
@@ -737,7 +739,7 @@ namespace blas {
     }
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
-    Tensor<T> _apply_tensors(const Tensor1<T> &src1, const Tensor2<T> &src2, std::function<T(T, T)> op) {
+    Tensor<T> _apply_tensors(const Tensor1<T> &src1, const Tensor2<T> &src2, const binary_op<T>& op) {
         Tensor<T> dst(broadcast_shapes(src1.shape, src2.shape));
         _apply_tensors(src1, src2, op, dst);
         return dst;
@@ -789,7 +791,7 @@ namespace blas {
      * @return
      */
     template<template<typename> class TnsrSrc1,template<typename> class TnsrSrc2,template<typename> class TnsrDst, typename T>
-    void _apply_broadcast(const TnsrSrc1<T> &src1, const TnsrSrc2<T> &src2, std::function<T(T, T)> op, TnsrDst<T> &dst) {
+    void _apply_broadcast(const TnsrSrc1<T> &src1, const TnsrSrc2<T> &src2, const binary_op<T>& op, TnsrDst<T> &dst) {
         shape_t broadcast_shape = broadcast_shapes(src1.shape, src2.shape);
         if (dst.shape != broadcast_shape)
             throw broadcast_failure(dst.shape, broadcast_shape);
@@ -818,14 +820,14 @@ namespace blas {
     }
 
     template<template<typename>class Tnsr, typename T>
-    Tnsr<T> &_apply_unary_(Tnsr<T> &dst, unary_op<T> op) {
+    Tnsr<T> &_apply_unary_(Tnsr<T> &dst, const unary_op<T>& op) {
         for (auto it = Tnsr<T>::elem_begin(dst); it != Tnsr<T>::elem_end(dst); ++it)
             *it = op(*it);
         return dst;
     }
 
     template<template<typename>class Tnsr, typename T>
-    Tnsr<T> &_apply_scalar_(Tnsr<T> &dst, T scalar, binary_op<T> op) {
+    Tnsr<T> &_apply_scalar_(Tnsr<T> &dst, T scalar, const binary_op<T>& op) {
         for (auto it = Tnsr<T>::elem_begin(dst); it != Tnsr<T>::elem_end(dst); ++it) {
             auto x = *it;
             auto y = op(x, scalar);
@@ -835,7 +837,7 @@ namespace blas {
     }
 
     template<template<typename> class TnsrSrc,template<typename> class TnsrDst, typename T>
-    void _apply_unary(const TnsrSrc<T> &src, unary_op<T> op, TnsrDst<T> &dst) {
+    void _apply_unary(const TnsrSrc<T> &src, const unary_op<T>& op, TnsrDst<T> &dst) {
         using src_it_t = typename TnsrSrc<T>::ceiterator;
         using dst_it_t = typename TnsrDst<T>::eiterator;
         src_it_t src_it = TnsrSrc<T>::const_elem_begin(src), src_it_end = TnsrSrc<T>::const_elem_end(src);
@@ -845,7 +847,7 @@ namespace blas {
     }
 
     template<template<typename> class TnsrSrc,template<typename> class TnsrDst, typename T>
-    void _apply_scalar(const TnsrSrc<T> &src, T scalar, binary_op<T> op, TnsrDst<T> &dst) {
+    void _apply_scalar(const TnsrSrc<T> &src, T scalar, const binary_op<T>& op, TnsrDst<T> &dst) {
         using src_it_t = typename TnsrSrc<T>::ceiterator;
         using dst_it_t = typename TnsrDst<T>::eiterator;
         src_it_t src_it = TnsrSrc<T>::const_elem_begin(src), src_it_end = TnsrSrc<T>::const_elem_end(src);
@@ -863,7 +865,7 @@ namespace blas {
      * @return
      */
     template<template<typename> class Tnsr, typename T>
-    inline Tensor<T> _apply_unary(const Tnsr<T> &src, unary_op<T> op) {
+    inline Tensor<T> _apply_unary(const Tnsr<T> &src, const unary_op<T>& op) {
         Tensor<T> dst(src.shape);
         _apply_unary(src, op, dst);
         return dst;
@@ -879,7 +881,7 @@ namespace blas {
      * @return
      */
     template<template<typename> class Tnsr, typename T>
-    inline Tensor<T> _apply_scalar(const Tnsr<T> &src, T scalar, binary_op<T> op) {
+    inline Tensor<T> _apply_scalar(const Tnsr<T> &src, T scalar, const binary_op<T>& op) {
         Tensor<T> dst(src.shape);
         _apply_scalar(src, scalar, op, dst);
         return dst;
@@ -903,73 +905,73 @@ namespace blas {
 
 #define TENSOR_UNARY_APPLY_(Tnsr) \
     template<typename T>\
-    Tnsr<T>& Tnsr<T>::apply_(unary_op<T> op) {\
+    Tnsr<T>& Tnsr<T>::apply_(const unary_op<T>& op) {\
         return _apply_unary_(*this, op); \
     }
 
 #define TENSOR_UNARY_APPLY(Tnsr) \
     template<typename T>\
-    void Tnsr<T>::apply(unary_op<T> op, Tensor<T>&dst) const {\
+    void Tnsr<T>::apply(const unary_op<T>& op, Tensor<T>&dst) const {\
         _apply_unary(*this, op, dst); \
     } \
     template<typename T>\
-    void Tnsr<T>::apply(unary_op<T> op, TensorView<T>&dst) const {\
+    void Tnsr<T>::apply(const unary_op<T>& op, TensorView<T>&dst) const {\
         _apply_unary(*this, op, dst); \
     } \
     template<typename T>\
-    void Tnsr<T>::apply(unary_op<T> op, TensorSliced<T>&dst) const {\
+    void Tnsr<T>::apply(const unary_op<T>& op, TensorSliced<T>&dst) const {\
         _apply_unary(*this, op, dst); \
     } \
     template<typename T>\
-    Tensor<T> Tnsr<T>::apply(unary_op<T> op) const {\
+    Tensor<T> Tnsr<T>::apply(const unary_op<T>& op) const {\
         return _apply_unary(*this, op); \
     }
 
 #define TENSOR_SCALAR_BINARY_APPLY_(Tnsr) \
     template<typename T>\
-    Tnsr<T>& Tnsr<T>::apply_(T scalar, binary_op<T> op) {\
+    Tnsr<T>& Tnsr<T>::apply_(T scalar, const binary_op<T>& op) {\
         return _apply_scalar_(*this, scalar, op); \
     }
 
 #define TENSOR_SCALAR_BINARY_APPLY(Tnsr) \
     template<typename T>\
-    void Tnsr<T>::apply(T scalar, binary_op<T> op, Tensor<T>&dst) const {\
+    void Tnsr<T>::apply(T scalar, const binary_op<T>& op, Tensor<T>&dst) const {\
         _apply_scalar(*this, scalar, op, dst); \
     } \
     template<typename T>\
-    void Tnsr<T>::apply(T scalar, binary_op<T> op, TensorView<T>&dst) const {\
+    void Tnsr<T>::apply(T scalar, const binary_op<T>& op, TensorView<T>&dst) const {\
         _apply_scalar(*this, scalar, op, dst); \
     } \
     template<typename T>\
-    void Tnsr<T>::apply(T scalar, binary_op<T> op, TensorSliced<T>&dst) const {\
+    void Tnsr<T>::apply(T scalar, const binary_op<T>& op, TensorSliced<T>&dst) const {\
         _apply_scalar(*this, scalar, op, dst); \
     } \
     template<typename T>\
-    Tensor<T> Tnsr<T>::apply(T scalar, binary_op<T> op) const {\
+    Tensor<T> Tnsr<T>::apply(T scalar, const binary_op<T>& op) const {\
         return _apply_scalar(*this, scalar, op); \
     }
 
 #define TENSOR_TENSOR_BINARY_APPLY_(TensorT1, TensorT2, T) \
     template<typename T>\
-    TensorT1<T>& TensorT1<T>::apply_tensors_(TensorT2<T> t, binary_op<T> op) {\
+    TensorT1<T>& TensorT1<T>::apply_tensors_(TensorT2<T> t, const binary_op<T>& op) {\
         return _apply_tensors_(*this, t, op); \
     }
 
 #define TENSOR_TENSOR_BINARY_APPLY(TensorT1, TensorT2, T) \
     template<typename T>\
-    void TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op, Tensor<T>&dst) const {\
+    void TensorT1<T>::apply_tensors(TensorT2<T> t, const binary_op<T>& op, Tensor<T>&dst) const {\
         _apply_tensors(*this, t, op, dst); \
     } \
     template<typename T>\
-    void TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op, TensorView<T>&dst) const {\
+    void TensorT1<T>::apply_tensors(TensorT2<T> t, const binary_op<T>& op, TensorView<T>&dst) const {\
         _apply_tensors(*this, t, op, dst); \
     } \
     template<typename T>\
-    void TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op, TensorSliced<T>&dst) const {\
+    void TensorT1<T>::apply_tensors(TensorT2<T> t, const binary_op<T>& op, TensorSliced<T>&dst) const {\
         _apply_tensors(*this, t, op, dst); \
     } \
     template<typename T>\
-    Tensor<T> TensorT1<T>::apply_tensors(TensorT2<T> t, binary_op<T> op) const {\
+    Tensor<T> TensorT1<T>::apply_tensors(TensorT2<T> t, const binary_op<T>& op) const {\
         return _apply_tensors(*this, t, op); \
     }
 

@@ -112,43 +112,43 @@ namespace blas {
 
 
 #define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_BASE(TensorT1) \
-    virtual TensorT1& apply_(T scalar, binary_op<T> op); \
-    virtual TensorT1& apply_(unary_op<T>); \
-    virtual void apply(T scalar, binary_op<T> op, Tensor<T>& out) const; \
-    virtual void apply(T scalar, binary_op<T> op, TensorView<T>& out) const; \
-    virtual void apply(T scalar, binary_op<T> op, TensorSliced<T>& out) const; \
-    virtual Tensor<T> apply(T scalar, binary_op<T> op) const; \
-    virtual void apply(unary_op<T>, Tensor<T>& out) const; \
-    virtual void apply(unary_op<T>, TensorView<T>& out) const; \
-    virtual void apply(unary_op<T>, TensorSliced<T>& out) const; \
-    virtual Tensor<T> apply(unary_op<T>) const;
+    virtual TensorT1& apply_(T scalar, const binary_op<T>& op); \
+    virtual TensorT1& apply_(const unary_op<T>&); \
+    virtual void apply(T scalar, const binary_op<T>& op, Tensor<T>& out) const; \
+    virtual void apply(T scalar, const binary_op<T>& op, TensorView<T>& out) const; \
+    virtual void apply(T scalar, const binary_op<T>& op, TensorSliced<T>& out) const; \
+    virtual Tensor<T> apply(T scalar, const binary_op<T>& op) const; \
+    virtual void apply(const unary_op<T>&, Tensor<T>& out) const; \
+    virtual void apply(const unary_op<T>&, TensorView<T>& out) const; \
+    virtual void apply(const unary_op<T>&, TensorSliced<T>& out) const; \
+    virtual Tensor<T> apply(const unary_op<T>&) const;
 
 #define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorT1) \
-    TensorT1& apply_(T scalar, binary_op<T> op) override; \
-    TensorT1& apply_(unary_op<T>) override; \
-    void apply(T scalar, binary_op<T> op, Tensor<T>& out) const override; \
-    void apply(T scalar, binary_op<T> op, TensorView<T>& out) const override; \
-    void apply(T scalar, binary_op<T> op, TensorSliced<T>& out) const override; \
-    Tensor<T> apply(T scalar, binary_op<T> op) const override; \
-    void apply(unary_op<T>, Tensor<T>& out) const override; \
-    void apply(unary_op<T>, TensorView<T>& out) const override; \
-    void apply(unary_op<T>, TensorSliced<T>& out) const override; \
-    Tensor<T> apply(unary_op<T>) const override;
+    TensorT1& apply_(T scalar, const binary_op<T>& op) override; \
+    TensorT1& apply_(const unary_op<T>&) override; \
+    void apply(T scalar, const binary_op<T>& op, Tensor<T>& out) const override; \
+    void apply(T scalar, const binary_op<T>& op, TensorView<T>& out) const override; \
+    void apply(T scalar, const binary_op<T>& op, TensorSliced<T>& out) const override; \
+    Tensor<T> apply(T scalar, const binary_op<T>& op) const override; \
+    void apply(const unary_op<T>&, Tensor<T>& out) const override; \
+    void apply(const unary_op<T>&, TensorView<T>& out) const override; \
+    void apply(const unary_op<T>&, TensorSliced<T>& out) const override; \
+    Tensor<T> apply(const unary_op<T>&) const override;
 
 
 #define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2, T) \
-    virtual TensorT1& apply_tensors_(TensorT2<T> other, binary_op<T> op); \
-    virtual void apply_tensors(TensorT2<T> other, binary_op<T> op, Tensor<T>& out) const; \
-    virtual void apply_tensors(TensorT2<T> other, binary_op<T> op, TensorView<T>& out) const; \
-    virtual void apply_tensors(TensorT2<T> other, binary_op<T> op, TensorSliced<T>& out) const; \
-    virtual Tensor<T> apply_tensors(TensorT2<T> other, binary_op<T> op) const;
+    virtual TensorT1& apply_tensors_(TensorT2<T> other, const binary_op<T>& op); \
+    virtual void apply_tensors(TensorT2<T> other, const binary_op<T>& op, Tensor<T>& out) const; \
+    virtual void apply_tensors(TensorT2<T> other, const binary_op<T>& op, TensorView<T>& out) const; \
+    virtual void apply_tensors(TensorT2<T> other, const binary_op<T>& op, TensorSliced<T>& out) const; \
+    virtual Tensor<T> apply_tensors(TensorT2<T> other, const binary_op<T>& op) const;
 
 #define DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE(TensorT1, TensorT2, T) \
-    TensorT1& apply_tensors_(TensorT2<T> other, binary_op<T> op)override; \
-    void apply_tensors(TensorT2<T> other, binary_op<T> op, Tensor<T>& out) const override; \
-    void apply_tensors(TensorT2<T> other, binary_op<T> op, TensorView<T>& out) const override; \
-    void apply_tensors(TensorT2<T> other, binary_op<T> op, TensorSliced<T>& out) const override; \
-    Tensor<T> apply_tensors(TensorT2<T> other, binary_op<T> op) const override;
+    TensorT1& apply_tensors_(TensorT2<T> other, const binary_op<T>& op)override; \
+    void apply_tensors(TensorT2<T> other, const binary_op<T>& op, Tensor<T>& out) const override; \
+    void apply_tensors(TensorT2<T> other, const binary_op<T>& op, TensorView<T>& out) const override; \
+    void apply_tensors(TensorT2<T> other, const binary_op<T>& op, TensorSliced<T>& out) const override; \
+    Tensor<T> apply_tensors(TensorT2<T> other, const binary_op<T>& op) const override;
 
 #define MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTDst, T) \
     macro(TensorTDst, Tensor, T) \
@@ -322,6 +322,7 @@ namespace blas {
     template<typename T>
     class Tensor {
     public:
+        static size_t precision;
         shape_t shape;
         bool is_sliced = false;
 
@@ -548,6 +549,8 @@ namespace blas {
 
     };
 
+    template <typename T>
+    size_t Tensor<T>::precision = 2;
     /**
      * A view of a tensor - doesn't copy data from original tensor.
      * @tparam T : stored data type.
