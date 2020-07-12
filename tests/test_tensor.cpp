@@ -16,11 +16,11 @@ int main(){
     cout << t << endl;
     auto t1 = t({1, 2});
     t1 = 900.0;
-    auto t2 = t.apply_tensors(t1, [](double x, double y){ return x*y; });
+    auto t2 = t * t1;
     cout << "t = " << t << endl;
     cout << "t1 = " << t1 << endl;
     cout << "t2 = " << t2 << endl;
-    auto t2_ = t2.apply(100, [](double x, double y){return x/y;});
+    auto t2_ = t2 / 100.;
     cout << "t2 / 100 = " << t2_ << endl;
     Tensor<double> t3 (
             {3.14, 42,
@@ -29,6 +29,11 @@ int main(){
             {1, 2, 3}
     );
     cout << "t3 = " << t3 << endl;
-    cout << "t2 / 100 + t3 = " << t2_.apply_tensors(t3, [](double x, double y){return x+y;});
+    auto t4 = t2_ + t3;
+    cout << "t4 = t2 / 100 + t3 = " << t4 << endl;
+    cout << "log(t4) = " << log(t4) << endl;
+    cout << "t4.log1p_() = " << t4.log1p_() << endl;
+    cout << "t1.log10_() = " << t1.log10_() << endl;
+    cout << "t = " << t << endl;
     return 0;
 }

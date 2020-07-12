@@ -452,7 +452,7 @@ namespace blas {
         check_stride();
     }
 
-    constexpr Slice::Slice(initializer_list<long> lst) : b(0), e(0), stride(0) {
+    Slice::Slice(initializer_list<long> lst) : b(0), e(0), stride(0) {
         using std::tuple;
         switch (lst.size()) {
             case 1: {

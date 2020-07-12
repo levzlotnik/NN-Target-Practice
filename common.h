@@ -25,6 +25,9 @@ public:
 #endif
     }
 
+#define NOT_IMPLEMENTED { throw std::logic_error("Not Implemented."); }
+#define MARK_FORBIDDEN(expr) expr { throw std::logic_error("Forbidden: '" #expr "'"); }
+
 private:
     std::string msg;
 };

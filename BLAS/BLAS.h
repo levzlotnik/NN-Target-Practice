@@ -6,6 +6,7 @@
 #define TARGETPRACTICE_BLAS_H
 
 #include "Tensor.h"
+#include "TensorMath.h"
 #include "VectorMath.h"
 #include "MatrixMath.h"
 

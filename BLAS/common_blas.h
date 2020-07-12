@@ -8,6 +8,7 @@
 #include <functional>
 #include <cmath>
 #include "../common.h"
+#include "../common_math.h"
 
 #define MACRO_BASIC_ARITHMETIC_OPERATORS(macro) \
     macro(+) \
@@ -32,8 +33,6 @@ static int normalize_index(int i, int n, bool inclusive=false){
 using UnaryOperation = std::function<float(float&)>;
 using BinaryOperation = std::function<float(float&, float&)>;
 
-template <typename T> using unary_op = std::function<T(T)>;
-template <typename T> using binary_op = std::function<T(T, T)>;
 
 
 #endif //TARGETPRACTICE_COMMON_BLAS_H

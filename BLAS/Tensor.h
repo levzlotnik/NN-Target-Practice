@@ -12,6 +12,8 @@
 #include <stdexcept>
 #include "common_blas.h"
 
+using namespace common_math;
+
 namespace blas {
     using std::vector;
     using std::tuple;
@@ -154,6 +156,11 @@ namespace blas {
     macro(TensorTDst, TensorSliced, T)
     // macro(TensorTDst, TensorSparse, T) - it deserves special treatment.
 
+#define MACRO_INTERACT_TENSORS(macro, T) \
+    MACRO_INTERACTABLE_TENSORTYPES(macro, Tensor, T)\
+    MACRO_INTERACTABLE_TENSORTYPES(macro, TensorView, T)\
+    MACRO_INTERACTABLE_TENSORTYPES(macro, TensorSlice, T)\
+
 #define DEF_ASSIGNMENT_TEMPLATE(TensorT1, TensorT2, T) \
     inline TensorT1& copy_(const TensorT2<T>& other) { return blas::copy_(*this, other); } \
     inline TensorT1& operator=(const TensorT2<T>& other) { \
@@ -217,7 +224,7 @@ namespace blas {
         explicit Slice(const tuple<int, int, int> &tup) :
                 b(std::get<0>(tup)), e(std::get<1>(tup)), stride(std::get<2>(tup)) {}
 
-        constexpr Slice(initializer_list<long> lst);
+        Slice(initializer_list<long> lst);
 
         constexpr void check_stride() const;
 
@@ -301,7 +308,7 @@ namespace blas {
                 ret[i] = slices[i].size();
             return ret;
         }
-        inline size_t size() const;
+        size_t size() const;
         string to_str() const;
 
     private:
@@ -500,7 +507,16 @@ namespace blas {
 
         Tensor operator-() const;
 
-        // TODO - Declare all math operators in TensorMath.h
+#define DEF_TENSOR_MATH_FUNC(func) \
+        inline Tensor func() const { return this->apply(unary_func_data<T>::func); }
+
+#define DEF_TENSOR_MATH_FUNC_INPLACE(func) \
+        inline Tensor& func ##_() { return this->apply_(unary_func_data<T>::func); }
+
+        MACRO_MATH_FUNCTIONS(DEF_TENSOR_MATH_FUNC)
+        MACRO_MATH_FUNCTIONS(DEF_TENSOR_MATH_FUNC_INPLACE)
+
+
 
         inline friend ostream &operator<<(ostream &os, const Tensor &t) {
             return t.print_to_os(os, true);
@@ -631,6 +647,17 @@ namespace blas {
         static inline eiterator elem_end(TensorSliced &ts);
         static inline ceiterator const_elem_begin(const TensorSliced &ts);
         static inline ceiterator const_elem_end(const TensorSliced &ts);
+
+        // We delete these because they make no sense for this container.
+        // Creating a slice/view out of a slice is possible using a single slice.
+        MARK_FORBIDDEN(Tensor<T> unchecked_subscript(int idx) const override)
+        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(int idx) override)
+        MARK_FORBIDDEN(Tensor<T> unchecked_subscript(const index_t &index) const override)
+        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(const index_t &index) override)
+        MARK_FORBIDDEN(Tensor<T> unchecked_slice(const Slice &slice) const override)
+        MARK_FORBIDDEN(TensorSliced<T> unchecked_slice(const Slice &slice) override )
+        MARK_FORBIDDEN(Tensor<T> unchecked_slice_group(const SliceGroup &slice_group) const override )
+        MARK_FORBIDDEN(TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) override )
 
     protected:
         ostream &print_to_os(ostream &os, bool rec_start) const override;

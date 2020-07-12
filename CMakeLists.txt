@@ -18,7 +18,7 @@ set(
         BLAS/Matrix.cpp BLAS/Matrix.h
         BLAS/Vector.cpp BLAS/Vector.h
         BLAS/common_blas.h
-        BLAS/Tensor.h BLAS/Tensor.cpp)
+        BLAS/Tensor.h BLAS/Tensor.cpp BLAS/TensorMath.h)
 
 add_library(BLAS SHARED ${SOURCE_FILES_BLAS})
 
