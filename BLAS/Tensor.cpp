@@ -25,7 +25,6 @@ namespace blas {
     Tensor<T>::Tensor(T scalar) : data(new T(scalar)), size(1) {
     }
 
-
     inline size_t shape2size(std::vector<size_t> shape) {
         return std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>{});
     }
@@ -34,7 +33,6 @@ namespace blas {
     Tensor<T>::Tensor(std::vector<T> data, const std::vector<size_t> &shape) : Tensor(data.data(), shape) {
 
     }
-
 
     template<typename T>
     Tensor<T>::Tensor(const Tensor &other) :
@@ -55,25 +53,34 @@ namespace blas {
             delete[] data;
     }
 
-
     template<typename T>
     Tensor<T> &Tensor<T>::operator=(Tensor &&other) noexcept {
         swap(*this, other);
         return *this;
     }
 
+    index_t check_index(const index_t& index, const shape_t& shape) {
+        using std::to_string;
+        if (index.size() > shape.size())
+            throw std::out_of_range(
+                    "Index has " + to_string(index.size()) + " > " + to_string(shape.size()) + " dimensions."
+            );
+        index_t ret(index);
+        for (int i=0; i < index.size(); ++i)
+            ret[i] = normalize_index(index[i], shape[i]);
+        return ret;
+    }
+
     template<typename T>
     Tensor<T> Tensor<T>::at(const index_t &index) const {
-        auto[idx, elements] = ravel_index_checked(index, shape, size);
-        std::vector<size_t> remaining_shape = std::vector<size_t>{shape.begin() + index.size(), shape.end()};
-        return Tensor(&data[idx], remaining_shape);
+        index_t index_checked = check_index(index, shape);
+        return unchecked_subscript(index_checked);
     }
 
     template<typename T>
     TensorView<T> Tensor<T>::at(const index_t &index) {
-        auto[idx, elements] = ravel_index_checked(index, shape, size);
-        std::vector<size_t> remaining_shape = std::vector<size_t>{shape.begin() + index.size(), shape.end()};
-        return TensorView(&data[idx], remaining_shape);
+        index_t index_checked = check_index(index, shape);
+        return unchecked_subscript(index_checked);
     }
 
     shape_t shape2strides(const shape_t &shape) {
@@ -86,7 +93,6 @@ namespace blas {
         }
         return res;
     }
-
 
     template<typename T>
     Tensor<T>::Tensor(T *data, const std::vector<size_t> &shape) :
@@ -150,19 +156,40 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> Tensor<T>::reshape(shape_t new_shape) {
-        if (shape2size(new_shape) != size)
-            throw shape_mismatch(shape, new_shape, "reshape");
-        return Tensor(data, new_shape);
+    Tensor<T> Tensor<T>::reshape(const vector<long> &new_shape) const {
+        return ((Tensor<T> &) *this).view(new_shape).contiguous();
+    }
+
+    shape_t normalize_shape(const vector<long>& s, const shape_t& old_shape) {
+        bool found_neg_one = false;
+        int neg_one_idx = -1;
+        size_t accumulated_size = 1, total_size = shape2size(old_shape);
+        shape_t ret(s.begin(), s.end());
+        for (int i=0; i < s.size(); ++i) {
+            long s_i = s[i];
+            if (s_i > 0)
+                accumulated_size *= s_i;
+            else if (s_i == -1) {
+                if (found_neg_one)
+                    throw std::out_of_range("Shape can only have a single (-1) element.");
+                found_neg_one = true;
+                neg_one_idx = i;
+            }
+            else
+                throw std::out_of_range("Shape must have positive elements except a single (-1).");
+        }
+        if (found_neg_one)
+            ret[neg_one_idx] = total_size / accumulated_size;
+        else if (accumulated_size != total_size)
+            throw shape_mismatch(s, old_shape, "normalize_shape");
+        return ret;
     }
 
     template<typename T>
-    TensorView<T> Tensor<T>::view(shape_t new_shape) {
-        if (shape2size(new_shape) != size)
-            throw shape_mismatch(shape, new_shape, "reshape");
-        return TensorView<T>(data, new_shape);
+    TensorView<T> Tensor<T>::view(const vector<long> &new_shape) {
+        shape_t normalized = normalize_shape(new_shape, shape);
+        return TensorView<T>(data, normalized);
     }
-
 
     std::pair<size_t, size_t>
     ravel_index_checked(const std::vector<int> &idx, const std::vector<size_t> &shape, int size) {
@@ -186,7 +213,6 @@ namespace blas {
         return {index, stride};
     }
 
-
     template<typename T>
     TensorView<T>::TensorView(T *data, const std::vector<size_t> &shape) : Tensor<T>() {
         Tensor<T>::data = data;
@@ -196,12 +222,10 @@ namespace blas {
         Tensor<T>::requires_deletion = false;
     }
 
-
     template<typename T>
     TensorView<T>::TensorView(Tensor<T> t) : TensorView<T>(t.get_data_ptr(), t.shape) {
 
     }
-
 
     template<typename T>
     template<typename Tnsr>
@@ -224,7 +248,6 @@ namespace blas {
         }
         return index;
     }
-
 
     index_t unravel_index(size_t true_idx, const shape_t &shape, int size) {
         int stride = size > 0 ?
@@ -249,6 +272,16 @@ namespace blas {
         ret += ")";
         return ret;
     }
+    std::string shape2str(const vector<long> &shape) {
+        std::string ret = "(";
+        for (int i = 0; i < shape.size(); ++i) {
+            ret += std::to_string(shape[i]);
+            if (i < shape.size() - 1)
+                ret += ", ";
+        }
+        ret += ")";
+        return ret;
+    }
 
     template<template<typename>class Tens, typename T>
     Tens<T> &fill_(Tens<T> &dst, T scalar) {
@@ -257,7 +290,6 @@ namespace blas {
             *it = scalar;
         return dst;
     }
-
 
     template<typename T>
     ostream &Tensor<T>::print_to_os(ostream &os, bool rec_start) const {
@@ -299,15 +331,15 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> Tensor<T>::operator[](int idx) const {
+    Tensor<T> Tensor<T>::operator[](long idx) const {
         idx = normalize_index(idx, shape[0]);
-        return *(begin() + idx);
+        return unchecked_subscript(idx);
     }
 
     template<typename T>
-    TensorView<T> Tensor<T>::operator[](int idx) {
+    TensorView<T> Tensor<T>::operator[](long idx) {
         idx = normalize_index(idx, shape[0]);
-        return begin()[idx];
+        return unchecked_subscript(idx);
     }
 
     template<typename T>
@@ -350,12 +382,13 @@ namespace blas {
     }
 
     template<typename T>
-    Slice Tensor<T>::normalize_slice(const Slice &slice, int max_size) const {
+    Slice Tensor<T>::normalize_slice(const Slice &slice, long max_size) const {
         max_size = max_size <= 0 ? shape[0] : max_size;
-        auto s = slice;
-        s.b = normalize_index(slice.b, max_size);
-        s.e = normalize_index(slice.e, max_size, true);
-        return slice;
+        long s_b = normalize_index(slice.b, max_size);
+        long s_e = (slice.e == slice.b) ?
+                    max_size :
+                    normalize_index(slice.e, max_size, true);
+        return Slice {s_b, s_e, slice.stride};
     }
 
     template<typename T>
@@ -379,23 +412,29 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> Tensor<T>::unchecked_subscript(int idx) const {
-        return Tensor();
+    Tensor<T> Tensor<T>::unchecked_subscript(long idx) const {
+        Tensor::const_iterator it = begin();
+        return *(it + idx);
     }
 
     template<typename T>
-    TensorView<T> Tensor<T>::unchecked_subscript(int idx) {
-        return TensorView(*this);
+    TensorView<T> Tensor<T>::unchecked_subscript(long idx) {
+        Tensor::iterator it = begin();
+        return *(it + idx);
     }
 
     template<typename T>
     Tensor<T> Tensor<T>::unchecked_subscript(const index_t &index) const {
-        return Tensor();
+        long idx = ravel_index(index, shape, size);
+        std::vector<size_t> remaining_shape = std::vector<size_t>{shape.begin() + index.size(), shape.end()};
+        return Tensor(&data[idx], remaining_shape);
     }
 
     template<typename T>
     TensorView<T> Tensor<T>::unchecked_subscript(const index_t &index) {
-        return TensorView(*this);
+        long idx = ravel_index(index, shape, size);
+        std::vector<size_t> remaining_shape = std::vector<size_t>{shape.begin() + index.size(), shape.end()};
+        return TensorView(&data[idx], remaining_shape);
     }
 
     template<typename T>
@@ -494,6 +533,17 @@ namespace blas {
             throw std::out_of_range("Iteration cannot reach end with current stride.");
     }
 
+    Slice Slice::subslice(const Slice &rs) const {
+        long b_abs = rs.b >= 0 ?
+                     this->b + rs.b * this->stride:
+                     this->e - rs.b * this->stride;
+        long e_abs = rs.e >= 0 ?
+                     this->b + rs.e * this->stride:
+                     this->e - rs.e * this->stride;
+        long stride_abs = this->stride * rs.stride;
+        return {b_abs, e_abs, stride_abs};
+    }
+
     SliceGroup::SliceGroup(const vector<tuple<int, int, int>> &slices) {
         for (auto tup: slices)
             this->slices.emplace_back(tup);
@@ -518,6 +568,21 @@ namespace blas {
         }
         res += "]";
         return res;
+    }
+
+    SliceGroup SliceGroup::subslice(const SliceGroup &relative_slice) const {
+        SliceGroup ret;
+        size_t ret_size = std::max(this->slices.size(), relative_slice.slices.size());
+        ret.slices.reserve(ret_size);
+        for (int i=0; i < ret_size; ++i) {
+            if (i < relative_slice.slices.size() && i < this->slices.size())
+                ret.slices.emplace_back(this->slices[i].subslice(relative_slice.slices[i]));
+            else
+                ret.slices.emplace_back(i < this->slices.size() ?
+                                        this->slices[i] :
+                                        relative_slice.slices[i]);
+        }
+        return ret;
     }
 
     SliceGroup::const_iterator::const_iterator(index_t pos, vector<Slice> slices,
@@ -545,7 +610,6 @@ namespace blas {
         return *this;
     }
 
-
     template<typename T>
     typename TensorSliced<T>::eiterator TensorSliced<T>::elem_begin(TensorSliced<T> &ts) {
         return typename TensorSliced<T>::eiterator{
@@ -559,7 +623,6 @@ namespace blas {
                 ts.data, ts.slice_group.end(), ts.underlying_tensor_shape, ts.underlying_tensor_size
         };
     }
-
 
     template<typename T>
     typename TensorSliced<T>::ceiterator TensorSliced<T>::const_elem_begin(const TensorSliced<T> &ts) {
@@ -599,7 +662,6 @@ namespace blas {
         return TensorSliced(t.get_data_ptr(), t.shape, slice_group);
     }
 
-
     template<typename T>
     TensorSliced<T>::TensorSliced(const TensorSliced& other) :
         TensorSliced<T>(other.data, other.underlying_tensor_shape, other.slice_group) {
@@ -627,6 +689,78 @@ namespace blas {
         return t;
     }
 
+    Slice& select_elem(Slice& s, long idx) {
+        long new_b = s.b + idx * s.stride;
+        long new_e = s.b + (idx + 1) * s.stride;
+        s.b = new_b;
+        s.e = new_e;
+        return s;
+    }
+
+    template<typename T>
+    Tensor<T> TensorSliced<T>::unchecked_subscript(long idx) const {
+        SliceGroup sg{this->slice_group};
+        select_elem(sg.slices[0], idx);
+        TensorSliced ret(this->data, this->underlying_tensor_shape, std::move(sg));
+        return ret.contiguous();
+    }
+
+    template<typename T>
+    Tensor<T> TensorSliced<T>::unchecked_subscript(const index_t &index) const {
+        SliceGroup sg {this->slice_group};
+        for (int i=0; i < index.size(); ++i)
+            select_elem(sg.slices[i], index[i]);
+        TensorSliced ret(this->data, this->underlying_tensor_shape, std::move(sg));
+        return ret.contiguous();
+    }
+
+    template<typename T>
+    Tensor<T> TensorSliced<T>::unchecked_slice(const Slice &slice) const {
+        SliceGroup sg {this->slice_group};
+        sg.slices[0] = sg.slices[0].subslice(slice);
+        TensorSliced ret(this->data, this->underlying_tensor_shape, sg);
+        return ret.contiguous();
+    }
+
+    template<typename T>
+    TensorSliced<T> TensorSliced<T>::unchecked_slice(const Slice &slice) {
+        SliceGroup sg {this->slice_group};
+        sg.slices[0] = sg.slices[0].subslice(slice);
+        TensorSliced ret(this->data, this->underlying_tensor_shape, sg);
+        return ret;
+    }
+
+    template<typename T>
+    Tensor<T> TensorSliced<T>::unchecked_slice_group(const SliceGroup &rel_sg) const {
+        TensorSliced ret(this->data, this->underlying_tensor_shape, this->slice_group.subslice(rel_sg));
+        return ret.contiguous();
+    }
+
+    template<typename T>
+    TensorSliced<T> TensorSliced<T>::unchecked_slice_group(const SliceGroup &rel_sg) {
+        TensorSliced ret(this->data, this->underlying_tensor_shape, this->slice_group.subslice(rel_sg));
+        return ret;
+    }
+
+    template<typename T>
+    Tensor<T> TensorSliced<T>::contiguous() {
+        Tensor<T> ret(this->shape);
+        auto ret_it = Tensor<T>::elem_begin(ret), ret_end = Tensor<T>::elem_end(ret);
+        auto it = TensorSliced::const_elem_begin(*this);
+        for (; ret_it != ret_end ; ++ret_it, ++it)
+            *ret_it = *it;
+        return ret;
+    }
+
+    template<typename T>
+    Tensor<T> TensorSliced<T>::reshape(const vector<long> &new_shape) const {
+        shape_t normalized = normalize_shape(new_shape, this->shape);
+        Tensor<T> ret(normalized);
+        TensorView<T> buff = ret.view(this->shape);
+        buff.copy_(*this);
+        return ret;
+    }
+
 #define OUT
 
     /**
@@ -644,20 +778,6 @@ namespace blas {
                                       0 : brdcst_dst_idx[brdcst_dst_idx.size() - 1- i];
         }
         return res;
-    }
-
-    inline shape_t broadcast_shapes(const shape_t &s1, const shape_t &s2) {
-        if (s1.empty() || s2.empty())
-            return s1.empty() ? s2 : s1;
-        shape_t result(std::max(s1.size(), s2.size()));
-        for (int i=0; i < result.size(); ++i) {
-            size_t e1 = i >= s1.size() ? 1 : s1[s1.size() - 1 - i];
-            size_t e2 = i >= s2.size() ? 1 : s2[s2.size() - 1 - i];
-            if (e1 != e2 && e1 != 1 && e2 != 1)
-                throw broadcast_failure(s1, s2);
-            result[result.size()-1-i] = std::max(e1, e2);
-        }
-        return result;
     }
 
     /**

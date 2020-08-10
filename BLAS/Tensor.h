@@ -21,7 +21,6 @@ namespace blas {
     using std::ostream;
     using std::string;
 
-
     template<typename T>
     class Tensor;
 
@@ -69,10 +68,17 @@ namespace blas {
     index_t unravel_index(size_t true_idx, const shape_t &shape, int size = -1);
 
     std::string shape2str(const shape_t &shape);
+    std::string shape2str(const vector<long>& shape);
 
     class shape_mismatch : public std::out_of_range {
     public:
         shape_mismatch(const shape_t &s1, const shape_t &s2, const std::string &action = "") :
+                std::out_of_range(
+                        "Shape Mismatch: " + shape2str(s1) + ", " + shape2str(s2) +
+                        (action.empty() ? "" : " for action {" + action + "}") + "."
+                ) {}
+
+        shape_mismatch(const vector<long> &s1, const shape_t &s2, const std::string &action = "") :
                 std::out_of_range(
                         "Shape Mismatch: " + shape2str(s1) + ", " + shape2str(s2) +
                         (action.empty() ? "" : " for action {" + action + "}") + "."
@@ -135,7 +141,6 @@ namespace blas {
     void apply(const unary_op<T>&, TensorSliced<T>& out) const override; \
     Tensor<T> apply(const unary_op<T>&) const override;
 
-
 #define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2, T) \
     virtual TensorT1& apply_tensors_(TensorT2<T> other, const binary_op<T>& op); \
     virtual void apply_tensors(TensorT2<T> other, const binary_op<T>& op, Tensor<T>& out) const; \
@@ -167,7 +172,6 @@ namespace blas {
         if (static_cast<const void*>(this) != static_cast<const void*>(&other)) this->copy_(other); \
         return *this; \
     }
-
 
 #define DEF_COPY_FILL_TEMPLATES(Tensor1, T) \
     template<typename scalar_t> \
@@ -240,6 +244,8 @@ namespace blas {
             using std::to_string;
             return to_string(b) + ":" + to_string(e) + (stride == 1 ? "" : (":" + to_string(stride)));
         }
+
+        Slice subslice(const Slice& relative_slice) const;
     };
 
     /**
@@ -310,6 +316,7 @@ namespace blas {
                 ret[i] = slices[i].size();
             return ret;
         }
+        SliceGroup subslice(const SliceGroup& relative_slice) const;
         size_t size() const;
         string to_str() const;
 
@@ -456,8 +463,8 @@ namespace blas {
             return at({args...});
         }
 
-        Tensor operator[](int idx) const;
-        TensorView<T> operator[](int idx);
+        Tensor operator[](long idx) const;
+        TensorView<T> operator[](long idx);
         Tensor operator[](const index_t &index) const;
         TensorView<T> operator[](const index_t &index);
         Tensor operator()(const Slice &slice) const;
@@ -465,8 +472,8 @@ namespace blas {
         Tensor operator()(const SliceGroup &slice) const;
         TensorSliced<T> operator()(const SliceGroup &slice);
 
-        virtual Tensor unchecked_subscript(int idx) const; // Gets subtensor rvalue
-        virtual TensorView<T> unchecked_subscript(int idx); // Gets subtensor lvalue
+        virtual Tensor unchecked_subscript(long idx) const; // Gets subtensor rvalue
+        virtual TensorView<T> unchecked_subscript(long idx); // Gets subtensor lvalue
         virtual Tensor unchecked_subscript(const index_t &index) const; // Gets subtensor rvalue
         virtual TensorView<T> unchecked_subscript(const index_t &index); // Gets subtensor lvalue
         virtual Tensor unchecked_slice(const Slice &slice) const;   // Gets slice rvalue
@@ -498,8 +505,17 @@ namespace blas {
         static inline ceiterator const_elem_begin(const Tensor &t) { return t.data; }
         static inline ceiterator const_elem_end(const Tensor &t) { return t.data + t.size; }
 
-        Tensor reshape(shape_t new_shape);
-        TensorView<T> view(shape_t new_shape);
+        virtual Tensor reshape(const vector<long> &new_shape) const;
+        virtual TensorView<T> view(const vector<long> &new_shape);
+        inline TensorView<T> view(const shape_t& new_shape) {
+            return this->view(vector<long>(new_shape.begin(), new_shape.end()));
+        }
+        inline TensorView<T> unsqueeze(int dim) {
+            dim = normalize_index(dim, this->dim(), true);
+            shape_t new_shape(this->shape);
+            new_shape.insert(new_shape.begin() + dim, 1);
+            return this->view(new_shape);
+        }
 
         inline size_t dim() const { return shape.size(); }
 
@@ -519,7 +535,6 @@ namespace blas {
 
         MACRO_MATH_FUNCTIONS(DEF_TENSOR_MATH_FUNC)
         MACRO_MATH_FUNCTIONS(DEF_TENSOR_MATH_FUNC_INPLACE)
-
 
 
         inline friend ostream &operator<<(ostream &os, const Tensor &t) {
@@ -546,7 +561,7 @@ namespace blas {
 
         shape_t slice2shape(const Slice &slice) const;
 
-        Slice normalize_slice(const Slice &slice, int max_size = -1) const;
+        Slice normalize_slice(const Slice &slice, long max_size = -1) const;
 
         SliceGroup normalize_slice_group(const SliceGroup &group) const;
 
@@ -654,16 +669,21 @@ namespace blas {
         static inline ceiterator const_elem_begin(const TensorSliced &ts);
         static inline ceiterator const_elem_end(const TensorSliced &ts);
 
-        // We delete these because they make no sense for this container.
-        // Creating a slice/view out of a slice is possible using a single slice.
-        MARK_FORBIDDEN(Tensor<T> unchecked_subscript(int idx) const override)
-        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(int idx) override)
-        MARK_FORBIDDEN(Tensor<T> unchecked_subscript(const index_t &index) const override)
+        Tensor<T> unchecked_subscript(long idx) const override;
+        Tensor<T> unchecked_subscript(const index_t &index) const override;
+        /* We mark these as forbidden because we cannot create TensorView out of TensorSlice.*/
+
+        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(long idx) override)
         MARK_FORBIDDEN(TensorView<T> unchecked_subscript(const index_t &index) override)
-        MARK_FORBIDDEN(Tensor<T> unchecked_slice(const Slice &slice) const override)
-        MARK_FORBIDDEN(TensorSliced<T> unchecked_slice(const Slice &slice) override )
-        MARK_FORBIDDEN(Tensor<T> unchecked_slice_group(const SliceGroup &slice_group) const override )
-        MARK_FORBIDDEN(TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) override )
+        Tensor<T> unchecked_slice(const Slice &slice) const override;
+        TensorSliced<T> unchecked_slice(const Slice &slice) override;
+        Tensor<T> unchecked_slice_group(const SliceGroup &slice_group) const override;
+        TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) override;
+        MARK_FORBIDDEN(TensorView<T> view(const vector<long>& new_shape) override)
+
+        Tensor<T> reshape(const vector<long> &new_shape) const override;
+
+        Tensor<T> contiguous() override;
 
     protected:
         ostream &print_to_os(ostream &os, bool rec_start) const override;
@@ -690,6 +710,20 @@ namespace blas {
     };
 
     using DoubleTensor = Tensor<double>;
+
+    inline shape_t broadcast_shapes(const shape_t &s1, const shape_t &s2) {
+        if (s1.empty() || s2.empty())
+            return s1.empty() ? s2 : s1;
+        shape_t result(std::max(s1.size(), s2.size()));
+        for (int i=0; i < result.size(); ++i) {
+            size_t e1 = i >= s1.size() ? 1 : s1[s1.size() - 1 - i];
+            size_t e2 = i >= s2.size() ? 1 : s2[s2.size() - 1 - i];
+            if (e1 != e2 && e1 != 1 && e2 != 1)
+                throw broadcast_failure(s1, s2);
+            result[result.size()-1-i] = std::max(e1, e2);
+        }
+        return result;
+    }
 }
 
 

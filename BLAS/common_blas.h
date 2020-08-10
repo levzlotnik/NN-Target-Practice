@@ -22,7 +22,9 @@
     macro(*=) \
     macro(/=)
 
-static int normalize_index(int i, int n, bool inclusive=false){
+static int normalize_index(long i, int n, bool inclusive=false){
+    if (inclusive && i == n)
+        return n;
     if (i < -n || i >= (n + inclusive))
         throw std::out_of_range("index should be between " + std::to_string(-n) +
             " and " + std::to_string(n-1));

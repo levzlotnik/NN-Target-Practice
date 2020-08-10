@@ -85,10 +85,40 @@ namespace blas {
 
     MACRO_MATH_FUNCTIONS(MATH_FUNC_TENSOR_INLINE)
 
+    template<typename T>
+    Tensor<T> linspace(T s, T f, size_t num=50) {
+        T step_size = (f - s) / T(num -1);
+        shape_t shape = {num};
+        Tensor<T> ret(shape);
+        T v = s;
+        for (int i=0; i < num; ++i, v += step_size)
+            Tensor<T>::get(ret, i) = v;
+        return ret;
+    }
+
     // TODO - implement all of these.
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
-    Tensor<T> matmul(const Tensor1<T> t1, const Tensor2<T> t2);
+    Tensor<T> matmul(const Tensor1<T>& t1, const Tensor2<T>& t2);
+
+    template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
+    Tensor<T>& matmul(const Tensor1<T>& t1, const Tensor2<T>& t2, Tensor<T>& out);
+
+    template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
+    inline Tensor<T> mm(const Tensor1<T>& t1, const Tensor2<T>& t2){
+        return matmul(t1, t2);
+    }
+
+    template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
+    inline Tensor<T>& mm(const Tensor1<T>& t1, const Tensor2<T>& t2, Tensor<T>& out){
+        return matmul(t1, t2, out);
+    }
+
+    template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
+    Tensor<T> bmm(const Tensor1<T>& t1, const Tensor2<T>& t2);
+
+    template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
+    Tensor<T>& bmm(const Tensor1<T>& t1, const Tensor2<T>& t2, Tensor<T>& out);
 
     enum ConvMode {
         SAME,
@@ -96,13 +126,13 @@ namespace blas {
     };
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
-    Tensor<T> conv1d(const Tensor1<T> input, const Tensor2<T> kernels, ConvMode mode = ConvMode::VALID);
+    Tensor<T> conv1d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode = ConvMode::VALID);
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
-    Tensor<T> conv2d(const Tensor1<T> input, const Tensor2<T> kernels, ConvMode mode = ConvMode::VALID);
+    Tensor<T> conv2d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode = ConvMode::VALID);
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
-    Tensor<T> conv3d(const Tensor1<T> input, const Tensor2<T> kernels, ConvMode mode = ConvMode::VALID);
+    Tensor<T> conv3d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode = ConvMode::VALID);
 
 }
 

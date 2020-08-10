@@ -25,7 +25,7 @@ int main(){
     Tensor<double> t3 (
             {3.14, 42,
                   69,   420.0,
-                  57, 45},
+                  57,   45},
             {1, 2, 3}
     );
     PRINT_EXPR(t3);
@@ -37,6 +37,10 @@ int main(){
     PRINT_EXPR(t);
     PRINT_EXPR(t[0]);
     PRINT_EXPR((t[{0, 0, 2}]));
+    auto t5 = linspace(-0.5, 0.5, 100);
+    PRINT_EXPR((t5({0, 0, 5})));
+    PRINT_EXPR((t5({0, 0, 5})({0, 0, 5})));
+    PRINT_EXPR(t5({0, 0, 25}) - t5({0, 0, 5})({0, 0, 5}));
 
     // Stress testing for profiling:
     Tensor<double> big {
