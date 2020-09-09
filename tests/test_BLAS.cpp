@@ -54,5 +54,12 @@ int main(){
     auto big_sub = big_copy[420];
     big *= big_sub;
 
+    t = Tensor<double> {
+            {1, 2, 3, 4,
+                  5, 6, 7, 8},
+            {2, 4}
+    };
+    t1 = t1({{}, {2, 4}});
+    PRINT_EXPR(matmul(t1, t));
     return 0;
 }

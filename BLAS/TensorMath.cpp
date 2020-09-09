@@ -55,12 +55,51 @@ namespace blas {
     template<template<typename> class Tensor1,
              template<typename> class Tensor2,
              typename T>
+    inline void _unchecked_matmul(const Tensor1<T>& in1, const Tensor2<T>& in2, Tensor<T>& out) {
+        size_t n = in1.shape[0], m = in2.shape[1], k = in1.shape[1];
+        for(size_t i = 0; i < n; ++i) {
+            for(size_t j = 0; j < m; ++j) {
+                T accum = 0;
+                for (size_t l=0; l < k; ++l) {
+                    T a_il = Tensor1<T>::get(in1, i * m + l);
+                    T b_lj = Tensor2<T>::get(in2, l * m + j);
+                    accum += a_il * b_lj;
+                }
+                Tensor<T>::get(out, i * m + j) = accum;
+            }
+        }
+    }
+
+
+    template<template<typename> class Tensor1,
+             template<typename> class Tensor2,
+             typename T>
     inline void _unchecked_bmm(const Tensor1<T>& in1, const Tensor2<T>& in2, Tensor<T>& out) {
         shape_t in1_last_dims{in1.shape.end() - 2, in1.shape.end()};
         shape_t in2_last_dims{in2.shape.end() - 2, in2.shape.end()};
-        shape_t in1_batch_dims(in1.shape.begin(), in1.shape.end()-2);
-        shape_t in2_batch_dims(in2.shape.begin(), in2.shape.end()-2);
-        // TODO - continue implementing
+        shape_t out_last_dims{out.shape.end() - 2, out.shape.end()};
+
+        shape_t in1_batch_dims{in1.shape.begin(), in1.shape.end()-2};
+        shape_t in2_batch_dims{in2.shape.begin(), in2.shape.end()-2};
+        shape_t out_batch_dims{out.shape.begin(), out.shape.end()-2};
+        // We know that in1_last_dims and in2_last_dims are compatible for matmul-ing each other
+        // so since this is the requirement for calling this function.
+        // Hence we iterate over the inJ_batch_dims.
+
+        Tensor<T> out_result({in1_last_dims[0], in2_last_dims[1]});
+        // TODO - optimize this shit
+        SliceGroup sg_in1 = SliceGroup::cover_shape(in1_batch_dims);
+        for (const auto& in1_idx: sg_in1) {
+            TensorSliced<T> in1_matrix = in1.unchecked_subscript_slice(in1_idx);
+            auto [sg_in2, sg_out] = broadcast_index(in1_idx, in1_batch_dims, in2_batch_dims, out_batch_dims);
+            for (const auto& in2_idx: sg_in2) {
+                TensorSliced<T> in2_matrix = in1.unchecked_subscript_slice(in2_idx);
+                _unchecked_matmul(in1_matrix, in2_matrix, out_result);
+                // Inject into the output.
+                for (const auto& out_idx : sg_out)
+                    out.unchecked_subscript_slice(out_idx).copy_(out_result);
+            }
+        }
     }
 
 
@@ -80,8 +119,8 @@ namespace blas {
         shape_t out_shape_unsqueezed = check_shapes_bmm(in1.shape, in2.shape);
         shape_t out_shape(out_shape_unsqueezed);
         if (should_squeeze_result) {
-            int squeeze_at = out_shape.size() - 1 - (t1.dim() == 1 ? 1 : 0);
-            out_shape.erase(out_shape.begin() + squeeze_at);
+            int squeeze_at = t1.dim() == 1 ? -2 : -1;
+            out_shape.erase(out_shape.end() + squeeze_at);
         }
         Tensor<T> ret(out_shape);
         _unchecked_bmm(in1, in2, ret.view(out_shape_unsqueezed));
@@ -100,10 +139,81 @@ namespace blas {
         auto in1 = promote_to_matrix(t1, 0);
         auto in2 = promote_to_matrix(t2, 1);
         shape_t out_shape_unsqueezed = check_shapes_bmm(in1.shape, in2.shape);
-        if (out.shape != out_shape_unsqueezed)
-            throw shape_mismatch(out.shape, out_shape_unsqueezed);
+        shape_t out_shape_squeezed(out_shape_unsqueezed);
+        bool should_squeeze_result = std::min(t1.dim(), t2.dim()) == 1;
+        if (should_squeeze_result) {
+            int squeeze_at = t1.dim() == 1 ? -2 : -1;
+            out_shape_squeezed.erase(out_shape_squeezed.end() + squeeze_at);
+        }
+        if (out.shape != out_shape_squeezed)
+            throw shape_mismatch(out.shape, out_shape_squeezed);
         _unchecked_bmm(in1, in2, out.view(out_shape_unsqueezed));
         return out;
     }
 
+    template<template<typename> class Tensor1,
+             template<typename> class Tensor2,
+             typename T>
+    Tensor<T> matmul(const Tensor1<T> &t1, const Tensor2<T> &t2) {
+        if (t1.shape.size() > 2 || t2.shape.size() > 2)
+            throw std::runtime_error("'blas::matmul' requires at least the tensors to be of <=2 dimensions.\n\t"
+                                     "For a batch version of matrix multiplication use 'blas::bmm'.");
+        // TODO - fix compilation error.
+        auto in1 = promote_to_matrix(t1, 0);
+        auto in2 = promote_to_matrix(t2, 1);
+        shape_t out_shape = check_matrix_matrix_mm(in1.shape, in2.shape);
+        Tensor<T> out(out_shape);
+        bool should_squeeze_result = std::min(t1.dim(), t2.dim()) == 1;
+        _unchecked_matmul(in1, in2, out);
+        if (should_squeeze_result) {
+            int squeeze_at = t1.dim() == 1 ? -2 : -1;
+            out.shape.erase(out.shape.end() + squeeze_at);
+        }
+        return out;
+    }
+
+    template<template<typename> class Tensor1,
+            template<typename> class Tensor2,
+            typename T>
+    Tensor<T> &matmul(const Tensor1<T> &t1, const Tensor2<T> &t2, Tensor<T> &out) {
+        if (t1.shape.size() > 2 || t2.shape.size() > 2)
+            throw std::runtime_error("'blas::matmul' requires at least the tensors to be of <=2 dimensions.\n\t"
+                                     "For a batch version of matrix multiplication use 'blas::bmm'.");
+        auto in1 = promote_to_matrix(t1, 0);
+        auto in2 = promote_to_matrix(t2, 1);
+        shape_t out_shape_unsqueezed = check_matrix_matrix_mm(in1.shape, in2.shape);
+        shape_t out_shape_squeezed(out_shape_unsqueezed);
+        bool should_squeeze_result = std::min(t1.dim(), t2.dim()) == 1;
+        if (should_squeeze_result) {
+            int squeeze_at = t1.dim() == 1 ? -2 : -1;
+            out_shape_squeezed.erase(out_shape_squeezed.end() + squeeze_at);
+        }
+        if (out.shape != out_shape_squeezed)
+            throw shape_mismatch(out.shape, out_shape_squeezed);
+        _unchecked_matmul(in1, in2, out.view(out_shape_unsqueezed));
+        return out;
+    }
+
+    template<template<typename> class Tensor1,
+            template<typename> class Tensor2,
+            typename T>
+    Tensor<T> conv1d(const Tensor1<T> &input, const Tensor2<T> &kernels, ConvMode mode) NOT_IMPLEMENTED
+
+    template<template<typename> class Tensor1,
+            template<typename> class Tensor2,
+            typename T>
+    Tensor<T> conv2d(const Tensor1<T> &input, const Tensor2<T> &kernels, ConvMode mode) NOT_IMPLEMENTED
+
+
+    template<template<typename> class Tensor1,
+            template<typename> class Tensor2,
+            typename T>
+    Tensor<T>& conv1d(const Tensor1<T> &input, const Tensor2<T> &kernels, Tensor<T>& out, ConvMode mode) NOT_IMPLEMENTED
+
+    template<template<typename> class Tensor1,
+            template<typename> class Tensor2,
+            typename T>
+    Tensor<T>& conv2d(const Tensor1<T> &input, const Tensor2<T> &kernels, Tensor<T>& out, ConvMode mode) NOT_IMPLEMENTED
+
 }
+

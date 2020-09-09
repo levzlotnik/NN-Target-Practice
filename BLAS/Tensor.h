@@ -33,9 +33,6 @@ namespace blas {
     template<typename T>
     class TensorSparse;
 
-    using shape_t = std::vector<size_t>;
-    using index_t = std::vector<long>;
-
     shape_t shape2strides(const shape_t &shape);
 
     /**
@@ -69,6 +66,7 @@ namespace blas {
 
     std::string shape2str(const shape_t &shape);
     std::string shape2str(const vector<long>& shape);
+    size_t shape2size(const shape_t& shape);
 
     class shape_mismatch : public std::out_of_range {
     public:
@@ -258,6 +256,34 @@ namespace blas {
         explicit SliceGroup(const vector<tuple<int, int, int>> &slices);
         explicit SliceGroup(const vector<Slice>& slices) : slices(slices) {}
         SliceGroup(initializer_list<initializer_list<long>> lst);
+
+        static inline SliceGroup cover_shape(const shape_t& shape) {
+            SliceGroup ret;
+            ret.slices.resize(shape.size());
+            for (int i=0; i < shape.size(); ++i)
+                ret.slices[i].e = shape[i];
+            return ret;
+        }
+        static inline SliceGroup cover_index(const index_t& index) {
+            SliceGroup ret;
+            ret.slices.resize(index.size());
+            for (int i=0; i < index.size(); ++i) {
+                ret.slices[i].b = index[i];
+                ret.slices[i].e = index[i] + 1;
+            }
+            return ret;
+        }
+
+        inline SliceGroup fill_to_shape(const shape_t& cover_shape) const {
+            SliceGroup ret(*this);
+            return ret.fill_to_shape_(cover_shape);
+        }
+        inline SliceGroup& fill_to_shape_(const shape_t& cover_shape) {
+            slices.resize(cover_shape.size());
+            for (size_t i = this->slices.size(); i < cover_shape.size(); ++i)
+                slices[i].e = cover_shape[i];
+            return *this;
+        }
 
         class const_iterator {
             vector<Slice> slices;
@@ -449,19 +475,6 @@ namespace blas {
         using const_iterator = subtensor_iterator<Tensor<T>>;
 
         // Checked indexing
-        Tensor at(const index_t &index) const;
-
-        template<typename ... Args>
-        inline Tensor at(Args... args) const {
-            return at({args...});
-        }
-
-        TensorView<T> at(const index_t &index);
-
-        template<typename ... Args>
-        inline TensorView<T> at(Args... args) {
-            return at({args...});
-        }
 
         Tensor operator[](long idx) const;
         TensorView<T> operator[](long idx);
@@ -480,6 +493,17 @@ namespace blas {
         virtual TensorSliced<T> unchecked_slice(const Slice &slice); // Gets slice lvalue
         virtual Tensor unchecked_slice_group(const SliceGroup &slice_group) const;  // Gets slice rvalue
         virtual TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group); // Gets slice lvalue
+
+        // Returns a slice for the index.
+        inline TensorSliced<T> unchecked_subscript_slice(const index_t& index) {
+            SliceGroup sg = SliceGroup::cover_index(index).fill_to_shape_(this->shape);
+            TensorSliced ret = unchecked_slice_group(sg);
+            // It's safe to just remove all the trailing shapes because
+            // this slice is contiguous
+            shape_t ret_new_shape{ret.shape.begin() + index.size(), ret.shape.end()};
+            ret.shape = ret_new_shape;
+            return ret;
+        }
         // ONLY FOR INTENRAL USE
         TensorView<T> optimized_unchecked_subscript(int idx) const;
         TensorView<T> optimized_unchecked_subscript(const index_t &index) const;
@@ -697,6 +721,10 @@ namespace blas {
 
         Tensor<T> contiguous() const;
     };
+
+    SliceGroup broadcast_index(index_t src_idx, const shape_t &src_shape, const shape_t &dst_shape);
+    tuple<SliceGroup /*src2*/, SliceGroup /*dst*/>
+    broadcast_index(index_t src1_idx, const shape_t& src1_shape, const shape_t& src2_shape, const shape_t& dst_shape);
 
     template<>
     class Tensor<bool> {

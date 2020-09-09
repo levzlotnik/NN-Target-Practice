@@ -129,11 +129,56 @@ namespace blas {
     Tensor<T> conv1d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode = ConvMode::VALID);
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
+    Tensor<T>& conv1d(const Tensor1<T>& input, const Tensor2<T>& kernels, Tensor<T>& out, ConvMode mode = ConvMode::VALID);
+
+    template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
     Tensor<T> conv2d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode = ConvMode::VALID);
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
-    Tensor<T> conv3d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode = ConvMode::VALID);
+    Tensor<T>& conv2d(const Tensor1<T>& input, const Tensor2<T>& kernels, Tensor<T>& out, ConvMode mode = ConvMode::VALID);
 
+//    template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
+//    Tensor<T> conv3d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode = ConvMode::VALID);
+
+#define INSTANTIATE_MATRIX_OPS(dtype) \
+    INSTANTIATE_MATMUL(dtype)         \
+    INSTANTIATE_BMM(dtype)            \
+    INSTANTIATE_CONV1D(dtype)         \
+    INSTANTIATE_CONV2D(dtype)
+
+#define TWO_ARG_FUNCTION(Tnsr1, Tnsr2, T, func) \
+    template Tensor<T> func<Tnsr1, Tnsr2, T>(const Tnsr1<T>& t1, const Tnsr2<T>& t2); \
+    template Tensor<T>& func<Tnsr1, Tnsr2, T>(const Tnsr1<T>& t1, const Tnsr2<T>& t2, Tensor<T>& out);
+
+#define CONV_FUNCTION(Tnsr1, Tnsr2, T, func) \
+    template Tensor<T> func<Tnsr1, Tnsr2, T>(const Tnsr1<T>& t1, const Tnsr2<T>& t2, ConvMode mode); \
+    template Tensor<T>& func<Tnsr1, Tnsr2, T>(const Tnsr1<T>& t1, const Tnsr2<T>& t2, Tensor<T>& out, ConvMode mode);
+
+#define APPLY_FUNCTION(T, func, macro) \
+    macro(Tensor, Tensor, T, func) \
+    macro(Tensor, TensorView, T, func) \
+    macro(Tensor, TensorSliced, T, func) \
+    macro(TensorView, Tensor, T, func) \
+    macro(TensorView, TensorView, T, func) \
+    macro(TensorView, TensorSliced, T, func) \
+    macro(TensorSliced, Tensor, T, func) \
+    macro(TensorSliced, TensorView, T, func) \
+    macro(TensorSliced, TensorSliced, T, func)
+
+#define INSTANTIATE_MATMUL(dtype) \
+    APPLY_FUNCTION(dtype, matmul, TWO_ARG_FUNCTION)
+
+#define INSTANTIATE_BMM(dtype) \
+    APPLY_FUNCTION(dtype, bmm, TWO_ARG_FUNCTION)
+
+#define INSTANTIATE_CONV1D(dtype) \
+    APPLY_FUNCTION(dtype, conv1d, CONV_FUNCTION)
+
+#define INSTANTIATE_CONV2D(dtype) \
+    APPLY_FUNCTION(dtype, conv2d, CONV_FUNCTION)
+
+
+    INSTANTIATE_MATRIX_OPS(double)
 }
 
 #endif //TARGETPRACTICE_TENSORMATH_H

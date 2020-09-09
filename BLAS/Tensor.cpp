@@ -25,7 +25,7 @@ namespace blas {
     Tensor<T>::Tensor(T scalar) : data(new T(scalar)), size(1) {
     }
 
-    inline size_t shape2size(std::vector<size_t> shape) {
+    inline size_t shape2size(const std::vector<size_t>& shape) {
         return std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>{});
     }
 
@@ -69,18 +69,6 @@ namespace blas {
         for (int i=0; i < index.size(); ++i)
             ret[i] = normalize_index(index[i], shape[i]);
         return ret;
-    }
-
-    template<typename T>
-    Tensor<T> Tensor<T>::at(const index_t &index) const {
-        index_t index_checked = check_index(index, shape);
-        return unchecked_subscript(index_checked);
-    }
-
-    template<typename T>
-    TensorView<T> Tensor<T>::at(const index_t &index) {
-        index_t index_checked = check_index(index, shape);
-        return unchecked_subscript(index_checked);
     }
 
     shape_t shape2strides(const shape_t &shape) {
@@ -344,12 +332,14 @@ namespace blas {
 
     template<typename T>
     Tensor<T> Tensor<T>::operator[](const index_t &index) const {
-        return at(index);
+        index_t idx = normalize_index(index, shape);
+        return unchecked_subscript(idx);
     }
 
     template<typename T>
     TensorView<T> Tensor<T>::operator[](const index_t &index) {
-        return at(index);
+        index_t idx = normalize_index(index, shape);
+        return unchecked_subscript(idx);
     }
 
     template<typename T>
@@ -642,9 +632,9 @@ namespace blas {
     TensorSliced<T>::TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group) :
             Tensor<T>(),
             underlying_tensor_shape(shape), underlying_tensor_size(shape2size(shape)),
-            slice_group(slice_group) {
+            slice_group(slice_group.fill_to_shape(shape)) {
         Tensor<T>::data = data;
-        shape_t slice_shape = slice_group.shape();
+        shape_t slice_shape = this->slice_group.shape();
         Tensor<T>::shape = slice_shape;
         Tensor<T>::strides = shape2strides(slice_shape);
         Tensor<T>::size = shape2size(slice_shape);
@@ -800,20 +790,6 @@ namespace blas {
         while (it_dst != it_dst_end)
             *it_dst++ = *it_src++;
         return dst;
-    }
-
-    SliceGroup broadcast_index(index_t src_idx, const shape_t& src_shape, const shape_t& dst_shape){
-        SliceGroup res;
-        res.slices.resize(dst_shape.size());
-        for (int i = 0; i < dst_shape.size() ; ++i){
-            size_t dsts_idx = dst_shape.size() - 1 - i;
-            size_t srcs_idx = src_shape.size() - 1 - i;
-            if (i >= src_shape.size() || src_shape[srcs_idx] == 1)
-                res.slices[dsts_idx] = Slice(0, dst_shape[dsts_idx], 1);
-            else
-                res.slices[dsts_idx] = Slice(src_idx[srcs_idx], src_idx[srcs_idx] + 1, 1);
-        }
-        return res;
     }
 
     /**
@@ -1034,6 +1010,20 @@ namespace blas {
         }
         size_t true_idx = ravel_index(idx_, shape, size);
         return {true_idx, elems};
+    }
+
+    SliceGroup broadcast_index(index_t src_idx, const shape_t &src_shape, const shape_t &dst_shape) {
+        SliceGroup res;
+        res.slices.resize(dst_shape.size());
+        for (int i = 0; i < dst_shape.size() ; ++i){
+            size_t dsts_idx = dst_shape.size() - 1 - i;
+            size_t srcs_idx = src_shape.size() - 1 - i;
+            if (i >= src_shape.size() || src_shape[srcs_idx] == 1)
+                res.slices[dsts_idx] = Slice(0, dst_shape[dsts_idx], 1);
+            else
+                res.slices[dsts_idx] = Slice(src_idx[srcs_idx], src_idx[srcs_idx] + 1, 1);
+        }
+        return res;
     }
 
 
