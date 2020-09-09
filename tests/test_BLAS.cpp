@@ -59,7 +59,10 @@ int main(){
                   5, 6, 7, 8},
             {2, 4}
     };
-    t1 = t1({{}, {2, 4}});
-    PRINT_EXPR(matmul(t1, t));
+    auto t10 = t({{}, {2, 4}});
+    PRINT_EXPR(matmul(t10, t));
+
+    auto t11 = arange<double>(0, 1 * 2 * 1* 2).reshape({1, 2, 1, 2});
+    PRINT_EXPR(bmm(t11, t.unsqueeze(0)));
     return 0;
 }

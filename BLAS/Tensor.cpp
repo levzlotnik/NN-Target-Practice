@@ -492,6 +492,8 @@ namespace blas {
     Slice::Slice(initializer_list<long> lst) : b(0), e(0), stride(1) {
         using std::tuple;
         switch (lst.size()) {
+            case 0:
+                break;
             case 1: {
                 long b_ = *lst.begin();
                 std::tie(b, e) = tuple{b_, b_ + 1};
@@ -510,7 +512,7 @@ namespace blas {
                 break;
             }
             default:
-                throw std::invalid_argument("Slice takes 1 to 3 arguments.");
+                throw std::invalid_argument("Slice takes 0 to 3 arguments.");
         }
         size_ = get_size(b, e, stride);
         check_stride();
@@ -1024,6 +1026,13 @@ namespace blas {
                 res.slices[dsts_idx] = Slice(src_idx[srcs_idx], src_idx[srcs_idx] + 1, 1);
         }
         return res;
+    }
+
+
+    template<typename T>
+    TensorView<T> Tensor<T>::const_view(const vector<long> &new_shape) const {
+        shape_t normalized = normalize_shape(new_shape, shape);
+        return TensorView<T>(data, normalized);
     }
 
 

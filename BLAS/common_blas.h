@@ -35,11 +35,11 @@ static long normalize_index(long i, long n, bool inclusive= false){
 using shape_t = std::vector<size_t>;
 using index_t = std::vector<long>;
 
-static index_t normalize_index(const index_t& index, const shape_t& shape) {
+static index_t normalize_index(const index_t& index, const shape_t& shape, bool inclusive= false) {
     index_t idx{index};
     int i = 0;
     for (auto& x : idx)
-        x = normalize_index(x, shape[i++]);
+        x = normalize_index(x, shape[i++], inclusive);
     return idx;
 }
 

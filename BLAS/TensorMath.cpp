@@ -26,7 +26,7 @@ namespace blas {
     shape_t check_shapes_bmm(const shape_t &s1, const shape_t &s2) {
         shape_t out_shape;
         shape_t s1_b, s2_b;
-        out_shape.reserve(std::max(s1.size(), s2.size()));
+        out_shape.resize(std::max(s1.size(), s2.size()));
         shape_t s1_last_dims(s1.end() - 2, s1.end());
         shape_t s2_last_dims(s2.end() - 2, s2.end());
         shape_t out_last_dims = check_matrix_matrix_mm(s1_last_dims, s2_last_dims);
@@ -39,17 +39,17 @@ namespace blas {
     }
 
     template<template<typename> class Tensor1, typename T>
-    inline TensorView<T> promote_to_matrix(Tensor1<T>& t, int pos) {
-        return t.dim() == 1 ? t.unsqueeze(pos) : t.view(t.shape);
+    inline TensorView<T> promote_to_matrix(const Tensor1<T>& t, int pos) {
+        return t.dim() == 1 ? t.const_unsqueeze(pos) : t.const_view(t.shape);
     }
 
     template<typename T>
-    inline Tensor<T> promote_to_matrix(TensorSliced<T>& t, int pos){
+    inline Tensor<T> promote_to_matrix(const TensorSliced<T>& t, int pos){
         if (t.dim() > 1)
             return t.contiguous();
         return pos == 0 ?
-               t.reshape({1, t.shape[0]}):
-               t.reshape({t.shape[0], 1});
+               t.reshape({1, static_cast<long>(t.size)}):
+               t.reshape({static_cast<long>(t.size), 1});
     }
 
     template<template<typename> class Tensor1,
@@ -61,7 +61,7 @@ namespace blas {
             for(size_t j = 0; j < m; ++j) {
                 T accum = 0;
                 for (size_t l=0; l < k; ++l) {
-                    T a_il = Tensor1<T>::get(in1, i * m + l);
+                    T a_il = Tensor1<T>::get(in1, i * k + l);
                     T b_lj = Tensor2<T>::get(in2, l * m + j);
                     accum += a_il * b_lj;
                 }
@@ -69,7 +69,6 @@ namespace blas {
             }
         }
     }
-
 
     template<template<typename> class Tensor1,
              template<typename> class Tensor2,
@@ -85,7 +84,7 @@ namespace blas {
         // We know that in1_last_dims and in2_last_dims are compatible for matmul-ing each other
         // so since this is the requirement for calling this function.
         // Hence we iterate over the inJ_batch_dims.
-
+        // TODO - debug
         Tensor<T> out_result({in1_last_dims[0], in2_last_dims[1]});
         // TODO - optimize this shit
         SliceGroup sg_in1 = SliceGroup::cover_shape(in1_batch_dims);
@@ -101,7 +100,6 @@ namespace blas {
             }
         }
     }
-
 
     template<template<typename> class Tensor1,
             template<typename> class Tensor2, typename T>
@@ -122,14 +120,15 @@ namespace blas {
             int squeeze_at = t1.dim() == 1 ? -2 : -1;
             out_shape.erase(out_shape.end() + squeeze_at);
         }
-        Tensor<T> ret(out_shape);
-        _unchecked_bmm(in1, in2, ret.view(out_shape_unsqueezed));
-        return ret;
+        Tensor<T> out(out_shape);
+        TensorView<T> out_view = out.view(out_shape_unsqueezed);
+        _unchecked_bmm(in1, in2, out_view);
+        return out;
     }
 
     template<template<typename> class Tensor1,
             template<typename> class Tensor2, typename T>
-    Tensor<T> bmm(const Tensor1<T> &t1, const Tensor2<T> &t2, Tensor<T> &out) {
+    Tensor<T>& bmm(const Tensor1<T> &t1, const Tensor2<T> &t2, Tensor<T> &out) {
         static_assert(std::is_base_of_v<Tensor<T>, Tensor1<T>> &&
                       std::is_base_of_v<Tensor<T>, Tensor2<T>>,
                       "No.");
@@ -147,7 +146,8 @@ namespace blas {
         }
         if (out.shape != out_shape_squeezed)
             throw shape_mismatch(out.shape, out_shape_squeezed);
-        _unchecked_bmm(in1, in2, out.view(out_shape_unsqueezed));
+        TensorView<T> out_view = out.view(out_shape_unsqueezed);
+        _unchecked_bmm(in1, in2, out_view);
         return out;
     }
 
@@ -158,7 +158,6 @@ namespace blas {
         if (t1.shape.size() > 2 || t2.shape.size() > 2)
             throw std::runtime_error("'blas::matmul' requires at least the tensors to be of <=2 dimensions.\n\t"
                                      "For a batch version of matrix multiplication use 'blas::bmm'.");
-        // TODO - fix compilation error.
         auto in1 = promote_to_matrix(t1, 0);
         auto in2 = promote_to_matrix(t2, 1);
         shape_t out_shape = check_matrix_matrix_mm(in1.shape, in2.shape);
@@ -190,7 +189,8 @@ namespace blas {
         }
         if (out.shape != out_shape_squeezed)
             throw shape_mismatch(out.shape, out_shape_squeezed);
-        _unchecked_matmul(in1, in2, out.view(out_shape_unsqueezed));
+        TensorView<T> out_view = out.view(out_shape_unsqueezed);
+        _unchecked_matmul(in1, in2, out_view);
         return out;
     }
 
@@ -215,5 +215,44 @@ namespace blas {
             typename T>
     Tensor<T>& conv2d(const Tensor1<T> &input, const Tensor2<T> &kernels, Tensor<T>& out, ConvMode mode) NOT_IMPLEMENTED
 
+
+#define INSTANTIATE_MATRIX_OPS(dtype) \
+    INSTANTIATE_MATMUL(dtype)         \
+    INSTANTIATE_BMM(dtype)            \
+    INSTANTIATE_CONV1D(dtype)         \
+    INSTANTIATE_CONV2D(dtype)
+
+#define TWO_ARG_FUNCTION(Tnsr1, Tnsr2, T, func) \
+    template Tensor<T> func<Tnsr1, Tnsr2, T>(const Tnsr1<T>& t1, const Tnsr2<T>& t2); \
+    template Tensor<T>& func<Tnsr1, Tnsr2, T>(const Tnsr1<T>& t1, const Tnsr2<T>& t2, Tensor<T>& out);
+
+#define CONV_FUNCTION(Tnsr1, Tnsr2, T, func) \
+    template Tensor<T> func<Tnsr1, Tnsr2, T>(const Tnsr1<T>& t1, const Tnsr2<T>& t2, ConvMode mode); \
+    template Tensor<T>& func<Tnsr1, Tnsr2, T>(const Tnsr1<T>& t1, const Tnsr2<T>& t2, Tensor<T>& out, ConvMode mode);
+
+#define APPLY_FUNCTION(T, func, macro) \
+    macro(Tensor, Tensor, T, func) \
+    macro(Tensor, TensorView, T, func) \
+    macro(Tensor, TensorSliced, T, func) \
+    macro(TensorView, Tensor, T, func) \
+    macro(TensorView, TensorView, T, func) \
+    macro(TensorView, TensorSliced, T, func) \
+    macro(TensorSliced, Tensor, T, func) \
+    macro(TensorSliced, TensorView, T, func) \
+    macro(TensorSliced, TensorSliced, T, func)
+
+#define INSTANTIATE_MATMUL(dtype) \
+    APPLY_FUNCTION(dtype, matmul, TWO_ARG_FUNCTION)
+
+#define INSTANTIATE_BMM(dtype) \
+    APPLY_FUNCTION(dtype, bmm, TWO_ARG_FUNCTION)
+
+#define INSTANTIATE_CONV1D(dtype) \
+    APPLY_FUNCTION(dtype, conv1d, CONV_FUNCTION)
+
+#define INSTANTIATE_CONV2D(dtype) \
+    APPLY_FUNCTION(dtype, conv2d, CONV_FUNCTION)
+
+    INSTANTIATE_MATRIX_OPS(double)
 }
 

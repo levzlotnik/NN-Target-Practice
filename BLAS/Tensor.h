@@ -218,7 +218,7 @@ namespace blas {
         /* why isn't abs constexpr -_- */
         static inline constexpr size_t abs(long x) { return x < 0 ? -x: x;}
         size_t size_;
-        static inline constexpr size_t get_size(long b, long e, long stride) { return (abs(e-b)-1) / stride + 1; }
+        static inline constexpr size_t get_size(long b, long e, long stride) { return (abs(e-b)-1) / abs(stride) + 1; }
     public:
         long b, e, stride;
 
@@ -504,6 +504,16 @@ namespace blas {
             ret.shape = ret_new_shape;
             return ret;
         }
+        // Returns a slice for the index.
+        inline TensorSliced<T> unchecked_subscript_slice(const index_t& index) const {
+            SliceGroup sg = SliceGroup::cover_index(index).fill_to_shape_(this->shape);
+            TensorSliced ret = const_cast<Tensor&>(*this).unchecked_slice_group(sg);
+            // It's safe to just remove all the trailing shapes because
+            // this slice is contiguous
+            shape_t ret_new_shape{ret.shape.begin() + index.size(), ret.shape.end()};
+            ret.shape = ret_new_shape;
+            return ret;
+        }
         // ONLY FOR INTENRAL USE
         TensorView<T> optimized_unchecked_subscript(int idx) const;
         TensorView<T> optimized_unchecked_subscript(const index_t &index) const;
@@ -531,14 +541,24 @@ namespace blas {
 
         virtual Tensor reshape(const vector<long> &new_shape) const;
         virtual TensorView<T> view(const vector<long> &new_shape);
+        virtual TensorView<T> const_view(const vector<long>& new_shape) const;
         inline TensorView<T> view(const shape_t& new_shape) {
             return this->view(vector<long>(new_shape.begin(), new_shape.end()));
+        }
+        inline TensorView<T> const_view(const shape_t& new_shape) const {
+            return this->const_view(vector<long>(new_shape.begin(), new_shape.end()));
         }
         inline TensorView<T> unsqueeze(int dim) {
             dim = normalize_index(dim, this->dim(), true);
             shape_t new_shape(this->shape);
             new_shape.insert(new_shape.begin() + dim, 1);
             return this->view(new_shape);
+        }
+        inline TensorView<T> const_unsqueeze(int dim) const{
+            dim = normalize_index(dim, this->dim(), true);
+            shape_t new_shape(this->shape);
+            new_shape.insert(new_shape.begin() + dim, 1);
+            return this->const_view(new_shape);
         }
 
         inline size_t dim() const { return shape.size(); }

@@ -255,7 +255,7 @@ const float *Vector::rend() const {
 
 
 Vector Vector::arange(float a, float b, float step) {
-    int n_steps = floor((b - a) / step);
+    int n_steps = floor((b - a) / step + 1);
     if (n_steps < 1)
         throw runtime_error("Invalid step - can't get to " + to_string(b) + " from " + to_string(a) + ".");
     Vector res(n_steps);
