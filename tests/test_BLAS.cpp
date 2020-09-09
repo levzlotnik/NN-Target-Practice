@@ -9,7 +9,6 @@ using namespace std;
 using namespace blas;
 
 int main(){
-    Tensor<double>::precision = 3;
     Tensor<double> t (
             {1, 2, 3,
                   4, 5, 6},

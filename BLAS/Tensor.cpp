@@ -283,9 +283,9 @@ namespace blas {
     ostream &Tensor<T>::print_to_os(ostream &os, bool rec_start) const {
         using std::to_string;
         using std::endl;
-        if (rec_start) {
+        if (rec_start && print_precision != 0) {
             os << std::scientific;
-            os << std::setprecision(precision);
+            os << std::setprecision(print_precision);
         }
         os << (rec_start ? "Tensor(" : "");
         os << (dim() > 0 ? "[" : "") ;
@@ -860,27 +860,35 @@ namespace blas {
             size_t dsts_idx = dst_shape.size() - 1 - i;
             size_t src1s_idx = src1_shape.size() - 1 - i;
             size_t src2s_idx = src2_shape.size() - 1 - i;
+            Slice &src2_s = sg_src2.slices[src2s_idx], &dst_s = sg_dst.slices[dsts_idx];
             if (src1s_idx < 0){ // this shape has finished, which means that other two shapes are definitely not
                 size_t s2 = src2_shape[src2s_idx], d = dst_shape[dsts_idx];
-                sg_src2.slices[src2s_idx] = Slice(0, s2, 1);
-                sg_dst.slices[dsts_idx] = Slice(0, d, 1);
+                src2_s.e = s2;
+                dst_s.e = d;
             }
             else if (src1_shape[src1s_idx] == 1){
                 size_t d = dst_shape[dsts_idx];
-                sg_dst.slices[dsts_idx] = Slice(0, d, 1);
+                dst_s.e = d; dst_s.update();
                 if (src2s_idx >= 0){
                     size_t s2 = src2_shape[src2s_idx];
-                    sg_src2.slices[src2s_idx] = Slice(0, s2, 1);
+                    src2_s.e = s2;
                 }
             }
             else {
                 long s1 = src1_idx[src1s_idx];
-                sg_dst.slices[dsts_idx] = Slice(s1, s1+1, 1);
+                dst_s.b =s1; dst_s.e = s1 + 1;
                 if (src2s_idx >= 0){
                     size_t s2 = src2_shape[src2s_idx];
-                    sg_src2.slices[src2s_idx] = s2 == 1 ? Slice{0, 1, 1} : Slice(s1, s1+1, 1);
+                    if (s2 != 1) {
+                        src2_s.b = s1;
+                        src2_s.e = s1+1;
+                    } else {
+                        src2_s.e = 1;
+                    }
                 }
             }
+            src2_s.update();
+            dst_s.update();
         }
         return {sg_src2, sg_dst};
     }

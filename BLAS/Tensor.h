@@ -238,6 +238,8 @@ namespace blas {
 
         inline const_iterator end() const { return const_iterator(e, stride); }
 
+        inline void update() { size_ = get_size(b, e, stride); }
+
         string to_str() const {
             using std::to_string;
             return to_string(b) + ":" + to_string(e) + (stride == 1 ? "" : (":" + to_string(stride)));
@@ -260,16 +262,22 @@ namespace blas {
         static inline SliceGroup cover_shape(const shape_t& shape) {
             SliceGroup ret;
             ret.slices.resize(shape.size());
-            for (int i=0; i < shape.size(); ++i)
-                ret.slices[i].e = shape[i];
+            int i=0;
+            for (auto& slice: ret.slices) {
+                slice.e = shape[i++];
+                slice.update();
+            }
             return ret;
         }
         static inline SliceGroup cover_index(const index_t& index) {
             SliceGroup ret;
             ret.slices.resize(index.size());
-            for (int i=0; i < index.size(); ++i) {
-                ret.slices[i].b = index[i];
-                ret.slices[i].e = index[i] + 1;
+            int i = 0;
+            for (auto& slice : ret.slices) {
+                long x = index[i];
+                slice.b = x;
+                slice.e = x + 1;
+                slice.update();
             }
             return ret;
         }
@@ -279,9 +287,12 @@ namespace blas {
             return ret.fill_to_shape_(cover_shape);
         }
         inline SliceGroup& fill_to_shape_(const shape_t& cover_shape) {
+            size_t old_size = slices.size();
             slices.resize(cover_shape.size());
-            for (size_t i = this->slices.size(); i < cover_shape.size(); ++i)
+            for (size_t i = old_size; i < cover_shape.size(); ++i) {
                 slices[i].e = cover_shape[i];
+                slices[i].update();
+            }
             return *this;
         }
 
@@ -358,7 +369,7 @@ namespace blas {
     template<typename T>
     class Tensor {
     public:
-        static size_t precision;
+        static size_t print_precision;
         shape_t shape;
         bool is_sliced = false;
 
@@ -612,7 +623,7 @@ namespace blas {
     };
 
     template <typename T>
-    size_t Tensor<T>::precision = 2;
+    size_t Tensor<T>::print_precision = 0;
     /**
      * A view of a tensor - doesn't copy data from original tensor.
      * @tparam T : stored data type.

@@ -85,7 +85,7 @@ namespace blas {
         // so since this is the requirement for calling this function.
         // Hence we iterate over the inJ_batch_dims.
         // TODO - debug
-        Tensor<T> out_result({in1_last_dims[0], in2_last_dims[1]});
+        Tensor<T> out_result(out_last_dims);
         // TODO - optimize this shit
         SliceGroup sg_in1 = SliceGroup::cover_shape(in1_batch_dims);
         for (const auto& in1_idx: sg_in1) {
