@@ -39,17 +39,38 @@ namespace blas {
     }
 
     template<template<typename> class Tensor1, typename T>
-    inline TensorView<T> promote_to_matrix(const Tensor1<T>& t, int pos) {
-        return t.dim() == 1 ? t.const_unsqueeze(pos) : t.const_view(t.shape);
+    inline TensorView<T> promote(const Tensor1<T>& t, int pos, bool to_batched=false) {
+        switch (t.dim()) {
+            case 0:
+                throw broadcast_failure("Cannot accept scalars for matmul of any kind.");
+            case 1: {
+                auto t_ = t.const_unsqueeze(pos);
+                return to_batched ? t_.unsqueeze(0) : t_;
+            }
+            case 2: {
+                auto t_ = t.const_view(t.shape);
+                return to_batched ? t_.unsqueeze(0) : t_;
+            }
+            default:
+                return t.const_view(t.shape);
+        }
     }
 
     template<typename T>
-    inline Tensor<T> promote_to_matrix(const TensorSliced<T>& t, int pos){
-        if (t.dim() > 1)
-            return t.contiguous();
-        return pos == 0 ?
-               t.reshape({1, static_cast<long>(t.size)}):
-               t.reshape({static_cast<long>(t.size), 1});
+    inline TensorSliced<T> promote(const TensorSliced<T>& t, int pos, bool to_batched=false){
+        switch (t.dim()) {
+            case 0:
+                throw broadcast_failure("Cannot accept scalars for matmul of any kind.");
+            case 1: {
+                auto t_ = t.const_slice_unsqueeze(pos);
+                return to_batched ? t_.slice_unsqueeze(0) : t_;
+            }
+            case 2: {
+                return to_batched ? t.const_slice_unsqueeze(0) : t;
+            }
+            default:
+                return t;
+        }
     }
 
     template<template<typename> class Tensor1,
@@ -84,7 +105,6 @@ namespace blas {
         // We know that in1_last_dims and in2_last_dims are compatible for matmul-ing each other
         // so since this is the requirement for calling this function.
         // Hence we iterate over the inJ_batch_dims.
-        // TODO - debug
         Tensor<T> out_result(out_last_dims);
         // TODO - optimize this shit
         SliceGroup sg_in1 = SliceGroup::cover_shape(in1_batch_dims);
@@ -92,7 +112,7 @@ namespace blas {
             TensorSliced<T> in1_matrix = in1.unchecked_subscript_slice(in1_idx);
             auto [sg_in2, sg_out] = broadcast_index(in1_idx, in1_batch_dims, in2_batch_dims, out_batch_dims);
             for (const auto& in2_idx: sg_in2) {
-                TensorSliced<T> in2_matrix = in1.unchecked_subscript_slice(in2_idx);
+                TensorSliced<T> in2_matrix = in2.unchecked_subscript_slice(in2_idx);
                 _unchecked_matmul(in1_matrix, in2_matrix, out_result);
                 // Inject into the output.
                 for (const auto& out_idx : sg_out)
@@ -112,8 +132,8 @@ namespace blas {
             throw std::runtime_error("'blas::bmm' requires at least one tensor of >2 dimensions.\n\t"
                                      "For a non-batch version of matrix multiplication use 'blas::mm'.");
         bool should_squeeze_result = std::min(t1.dim(), t2.dim()) == 1;
-        auto in1 = promote_to_matrix(t1, 0);
-        auto in2 = promote_to_matrix(t2, 1);
+        auto in1 = promote(t1, 0, true);
+        auto in2 = promote(t2, 1, true);
         shape_t out_shape_unsqueezed = check_shapes_bmm(in1.shape, in2.shape);
         shape_t out_shape(out_shape_unsqueezed);
         if (should_squeeze_result) {
@@ -135,8 +155,8 @@ namespace blas {
         if (t1.shape.size() < 3 && t2.shape.size() < 3)
             throw std::runtime_error("'blas::bmm' requires at least one tensor of >2 dimensions.\n\t"
                                      "For a non-batch version of matrix multiplication use 'blas::mm'.");
-        auto in1 = promote_to_matrix(t1, 0);
-        auto in2 = promote_to_matrix(t2, 1);
+        auto in1 = promote(t1, 0, true);
+        auto in2 = promote(t2, 1, true);
         shape_t out_shape_unsqueezed = check_shapes_bmm(in1.shape, in2.shape);
         shape_t out_shape_squeezed(out_shape_unsqueezed);
         bool should_squeeze_result = std::min(t1.dim(), t2.dim()) == 1;
@@ -158,8 +178,8 @@ namespace blas {
         if (t1.shape.size() > 2 || t2.shape.size() > 2)
             throw std::runtime_error("'blas::matmul' requires at least the tensors to be of <=2 dimensions.\n\t"
                                      "For a batch version of matrix multiplication use 'blas::bmm'.");
-        auto in1 = promote_to_matrix(t1, 0);
-        auto in2 = promote_to_matrix(t2, 1);
+        auto in1 = promote(t1, 0);
+        auto in2 = promote(t2, 1);
         shape_t out_shape = check_matrix_matrix_mm(in1.shape, in2.shape);
         Tensor<T> out(out_shape);
         bool should_squeeze_result = std::min(t1.dim(), t2.dim()) == 1;
@@ -178,8 +198,8 @@ namespace blas {
         if (t1.shape.size() > 2 || t2.shape.size() > 2)
             throw std::runtime_error("'blas::matmul' requires at least the tensors to be of <=2 dimensions.\n\t"
                                      "For a batch version of matrix multiplication use 'blas::bmm'.");
-        auto in1 = promote_to_matrix(t1, 0);
-        auto in2 = promote_to_matrix(t2, 1);
+        auto in1 = promote(t1, 0);
+        auto in2 = promote(t2, 1);
         shape_t out_shape_unsqueezed = check_matrix_matrix_mm(in1.shape, in2.shape);
         shape_t out_shape_squeezed(out_shape_unsqueezed);
         bool should_squeeze_result = std::min(t1.dim(), t2.dim()) == 1;

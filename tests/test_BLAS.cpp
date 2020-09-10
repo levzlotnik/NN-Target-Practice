@@ -62,6 +62,8 @@ int main(){
     PRINT_EXPR(matmul(t10, t));
 
     auto t11 = arange<double>(0, 1 * 2 * 1* 2).reshape({1, 2, 1, 2});
-    PRINT_EXPR(bmm(t11, t.unsqueeze(0)));
+    PRINT_EXPR(bmm(t11, t));
+    auto t12 = arange<double>(0, 2*1*2*1).reshape({2,1,2,1});
+    PRINT_EXPR(bmm(t11, t12)); // TODO - this doesn't comply with numpy for some reason. debug it.
     return 0;
 }

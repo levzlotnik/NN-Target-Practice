@@ -577,6 +577,7 @@ namespace blas {
         return ret;
     }
 
+
     SliceGroup::const_iterator::const_iterator(index_t pos, vector<Slice> slices,
                                                size_t elems_passed) :
             pos(std::move(pos)), slices(std::move(slices)), elems_passed(elems_passed) {
@@ -1044,6 +1045,31 @@ namespace blas {
     }
 
 
+    template<typename T>
+    TensorSliced<T> TensorSliced<T>::slice_unsqueeze(int i) {
+        long norm_i = normalize_index(i, this->shape.size(), true);
+        TensorSliced ret(*this);
+        auto& ret_slices = ret.slice_group.slices;
+        ret_slices.emplace(ret_slices.begin() + norm_i, 0, 1);
+        ret.slice_group.update();
+        auto& ret_shape = ret.shape;
+        ret_shape.emplace(ret_shape.begin() + norm_i, 1);
+        return ret;
+    }
+
+    template<typename T>
+    TensorSliced<T> TensorSliced<T>::const_slice_unsqueeze(int i) const {
+        long norm_i = normalize_index(i, this->shape.size(), true);
+        TensorSliced ret(*this);
+        auto& ret_slices = ret.slice_group.slices;
+        ret_slices.emplace(ret_slices.begin() + norm_i, 0, 1);
+        ret.slice_group.update();
+        auto& ret_shape = ret.shape;
+        ret_shape.emplace(ret_shape.begin() + norm_i, 1);
+        return ret;
+    }
+
+
 #define TENSOR_UNARY_APPLY_(Tnsr) \
     template<typename T>\
     Tnsr<T>& Tnsr<T>::apply_(const unary_op<T>& op) {\
@@ -1133,6 +1159,7 @@ namespace blas {
     DEF_APPLY_TENSOR(Tensor)
     APPLY_UNIQUE_INTERACTABLE(TensorView) // We only need this because the others are inherited no problem.
     DEF_APPLY_TENSOR(TensorSliced)
+
 
 #define MACRO_COPY_(TensorDst, TensorSrc, T) \
     template TensorDst<T>& copy_(TensorDst<T>&, const TensorSrc<T>&);

@@ -85,6 +85,7 @@ namespace blas {
 
     class broadcast_failure : public std::out_of_range {
     public:
+        using std::out_of_range::out_of_range;
         broadcast_failure(const shape_t &s1, const shape_t &s2, const std::string &action = "") :
                 std::out_of_range(
                         "Cannot Broadcast shapes: " + shape2str(s1) + ", " + shape2str(s2) +
@@ -274,7 +275,7 @@ namespace blas {
             ret.slices.resize(index.size());
             int i = 0;
             for (auto& slice : ret.slices) {
-                long x = index[i];
+                long x = index[i++];
                 slice.b = x;
                 slice.e = x + 1;
                 slice.update();
@@ -356,6 +357,8 @@ namespace blas {
         SliceGroup subslice(const SliceGroup& relative_slice) const;
         size_t size() const;
         string to_str() const;
+
+        inline void update() { }
 
     private:
         inline vector<long> get_init_pos() const {
@@ -668,7 +671,7 @@ namespace blas {
         friend class Tensor<T>;
         shape_t underlying_tensor_shape;
         const size_t underlying_tensor_size;
-        const SliceGroup slice_group;
+        SliceGroup slice_group;
 
         TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group);
 
@@ -751,6 +754,9 @@ namespace blas {
         MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE, TensorSliced, T)
 
         Tensor<T> contiguous() const;
+
+        TensorSliced slice_unsqueeze(int i);
+        TensorSliced<T> const_slice_unsqueeze(int i) const;
     };
 
     SliceGroup broadcast_index(index_t src_idx, const shape_t &src_shape, const shape_t &dst_shape);
