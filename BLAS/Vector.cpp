@@ -4,6 +4,7 @@
 
 #include "Vector.h"
 #include <algorithm>
+#include <numeric>
 
 Vector::Vector() : n(0), data(nullptr){
 
@@ -254,7 +255,7 @@ const float *Vector::rend() const {
 
 
 Vector Vector::arange(float a, float b, float step) {
-    int n_steps = floor((b - a) / step);
+    int n_steps = floor((b - a) / step + 1);
     if (n_steps < 1)
         throw runtime_error("Invalid step - can't get to " + to_string(b) + " from " + to_string(a) + ".");
     Vector res(n_steps);
@@ -292,9 +293,9 @@ Vector Vector::slice(int beg, int end, int step) const {
     end = normalize_index(end, n);
     int size = (end - beg) / step;
     if (size == 0)
-        throw runtime_error("The slice size cannot be 0.");
+        throw runtime_error("The Slice size cannot be 0.");
     if (size < 0)
-        throw runtime_error("The slice and step directions contradict each other: slice direction =" +
+        throw runtime_error("The Slice and step directions contradict each other: Slice direction =" +
             to_string(end-beg) + ", step = " + to_string(step));
     Vector res(size);
     for (int i=0; i < size; ++i)
@@ -309,9 +310,9 @@ void Vector::sliced_set(Vector v, int beg, int end, int step) {
     end = normalize_index(end, n);
     int size = (end - beg) / step;
     if (size == 0)
-        throw runtime_error("The slice size cannot be 0.");
+        throw runtime_error("The Slice size cannot be 0.");
     if (size < 0)
-        throw runtime_error("The slice and step directions contradict each other: slice direction =" +
+        throw runtime_error("The Slice and step directions contradict each other: Slice direction =" +
                             to_string(end-beg) + ", step = " + to_string(step));
     for (int i = 0; i < v.n; ++i)
         data[beg + i*step] = v.data[i];

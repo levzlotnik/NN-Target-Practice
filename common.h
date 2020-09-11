@@ -17,13 +17,16 @@ public:
     const char* what() { return msg.c_str(); }
 
     static void warn(const std::string& msg) {
-#ifdef DEBUG
+#ifndef NDEBUG
       throw warning(msg);
 #else
       if (warning::history.count(msg) == 0)
           std::cerr << warning(msg).what() << std::endl;
 #endif
     }
+
+#define NOT_IMPLEMENTED { throw std::logic_error("Not Implemented."); }
+#define MARK_FORBIDDEN(expr) expr { throw std::logic_error("Forbidden: '" #expr "'"); }
 
 private:
     std::string msg;

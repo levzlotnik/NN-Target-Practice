@@ -5,8 +5,8 @@
 #ifndef TARGETPRACTICE_BLAS_H
 #define TARGETPRACTICE_BLAS_H
 
-#include "VectorMath.h"
-#include "MatrixMath.h"
+#include "Tensor.h"
+#include "TensorMath.h"
 
 #define PI M_PI
 
