@@ -40,6 +40,9 @@ int main(){
     PRINT_EXPR((t5({0, 0, 5})));
     PRINT_EXPR((t5({0, 0, 5})({0, 0, 5})));
     PRINT_EXPR(t5({0, 0, 25}) - t5({0, 0, 5})({0, 0, 5}));
+    auto t6 = arange<double>(1, 4).reshape({3, 1});
+    auto t7 = arange<double>(3, 6).reshape({1, 3});
+    PRINT_EXPR(t6 + t7);
 
     // Stress testing for profiling:
     Tensor<double> big {
@@ -61,9 +64,9 @@ int main(){
     auto t10 = t({{}, {2, 4}});
     PRINT_EXPR(matmul(t10, t));
 
-    auto t11 = arange<double>(0, 1 * 2 * 1* 2).reshape({1, 2, 1, 2});
+    auto t11 = arange<double>(0, 1 * 2 * 1 * 2).reshape({1, 2, 1, 2});
     PRINT_EXPR(bmm(t11, t));
-    auto t12 = arange<double>(0, 2*1*2*1).reshape({2,1,2,1});
+    auto t12 = arange<double>(0, 2 * 1 * 2 * 1).reshape({2, 1, 2, 1});
     PRINT_EXPR(bmm(t11, t12)); // TODO - this doesn't comply with numpy for some reason. debug it.
     return 0;
 }

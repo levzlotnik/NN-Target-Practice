@@ -47,7 +47,6 @@ namespace blas {
     MACRO_BASIC_ARITHMETIC_OPERATORS(DEF_TENSOR_TENSOR_INTERACTIVE_OPS)
     MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(DEF_TENSOR_TENSOR_INTERACTIVE_OPS_INPLACE)
 
-
 #define DEF_TENSOR_SCALAR_OP(Tnsr, op) \
     template<typename T> \
     inline Tensor<T> operator op(const Tnsr<T>& t1, T x) { \
@@ -67,14 +66,12 @@ namespace blas {
 #define DEF_TENSOR_SCALAR_INTERACTIVE_OPS(op) \
     DEF_TENSOR_SCALAR_OP(Tensor, op) \
     DEF_TENSOR_SCALAR_OP(TensorView, op) \
-    DEF_TENSOR_SCALAR_OP(TensorSliced, op) \
-
+    DEF_TENSOR_SCALAR_OP(TensorSliced, op)
 
 #define DEF_TENSOR_SCALAR_INTERACTIVE_OPS_INPLACE(op) \
     DEF_TENSOR_SCALAR_OP_INPLACE(Tensor, op) \
     DEF_TENSOR_SCALAR_OP_INPLACE(TensorView, op) \
-    DEF_TENSOR_SCALAR_OP_INPLACE(TensorSliced, op) \
-
+    DEF_TENSOR_SCALAR_OP_INPLACE(TensorSliced, op)
 
     MACRO_BASIC_ARITHMETIC_OPERATORS(DEF_TENSOR_SCALAR_INTERACTIVE_OPS)
     MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(DEF_TENSOR_SCALAR_INTERACTIVE_OPS_INPLACE)
@@ -136,7 +133,6 @@ namespace blas {
         SAME,
         VALID
     };
-
     // TODO - implement all of these.
 
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
@@ -153,7 +149,6 @@ namespace blas {
 
 //    template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
 //    Tensor<T> conv3d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode = ConvMode::VALID);
-
 
 }
 

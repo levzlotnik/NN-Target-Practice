@@ -256,6 +256,7 @@ namespace blas {
     public:
         vector<Slice> slices;
         SliceGroup() = default;
+        SliceGroup(size_t dims) : slices(dims) {}
         explicit SliceGroup(const vector<tuple<int, int, int>> &slices);
         explicit SliceGroup(const vector<Slice>& slices) : slices(slices) {}
         SliceGroup(initializer_list<initializer_list<long>> lst);
@@ -759,7 +760,17 @@ namespace blas {
         TensorSliced<T> const_slice_unsqueeze(int i) const;
     };
 
-    SliceGroup broadcast_index(index_t src_idx, const shape_t &src_shape, const shape_t &dst_shape);
+    SliceGroup broadcast_index(const index_t &src_idx, const shape_t &src_shape, const shape_t &dst_shape);
+
+    /**
+     * Broadcasts an index of element in tensor towards an output shape, and retrieves the broadcasted
+     * second source.
+     * @param src1_idx the broadcasted index.
+     * @param src1_shape the shape of the first input.
+     * @param src2_shape the shape of the other input.
+     * @param dst_shape the shape of output.
+     * @return tuple of (bc_slicegroup_src2, bc_slicegroup_dst)
+     */
     tuple<SliceGroup /*src2*/, SliceGroup /*dst*/>
     broadcast_index(index_t src1_idx, const shape_t& src1_shape, const shape_t& src2_shape, const shape_t& dst_shape);
 
@@ -776,14 +787,21 @@ namespace blas {
 
     using DoubleTensor = Tensor<double>;
 
-    inline shape_t broadcast_shapes(const shape_t &s1, const shape_t &s2) {
+    /**
+     * Broadcasts shapes to a new output shape.
+     * @param s1 first input shape
+     * @param s2 second input shape
+     * @param safe indicator of whether or not to validate shapes.
+     * @return output shape.
+     */
+    inline shape_t broadcast_shapes(const shape_t &s1, const shape_t &s2, bool safe=false) {
         if (s1.empty() || s2.empty())
             return s1.empty() ? s2 : s1;
         shape_t result(std::max(s1.size(), s2.size()));
         for (int i=0; i < result.size(); ++i) {
             size_t e1 = i >= s1.size() ? 1 : s1[s1.size() - 1 - i];
             size_t e2 = i >= s2.size() ? 1 : s2[s2.size() - 1 - i];
-            if (e1 != e2 && e1 != 1 && e2 != 1)
+            if (!safe && (e1 != e2 && e1 != 1 && e2 != 1))
                 throw broadcast_failure(s1, s2);
             result[result.size()-1-i] = std::max(e1, e2);
         }

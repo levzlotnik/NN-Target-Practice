@@ -9,7 +9,7 @@
 #include <iomanip>
 
 #define MAX_ROW_STRING_SIZE 50
-#define MAX_EXPANSION_STRING_SIZE 3
+#define MAX_EXPANSION_STRING_SIZE 5
 
 using std::cout;
 using std::endl;
@@ -301,7 +301,7 @@ namespace blas {
                 os << data[0] << ",..., " << data[size - 1];
 
         } else {
-            if (shape[0] < MAX_EXPANSION_STRING_SIZE) {
+            if (shape[0] <= MAX_EXPANSION_STRING_SIZE) {
                 int i = 0;
                 for (const auto &sub: *this) {
                     sub.print_to_os(os, false);
@@ -854,9 +854,7 @@ namespace blas {
     tuple<SliceGroup /*src2*/, SliceGroup /*dst*/>
     broadcast_index(index_t src1_idx, const shape_t& src1_shape, const shape_t& src2_shape, const shape_t& dst_shape){
         // TODO - optimize this mechanic.
-        SliceGroup sg_src2, sg_dst;
-        sg_src2.slices.resize(src2_shape.size());
-        sg_dst.slices.resize(dst_shape.size());
+        SliceGroup sg_src2(src2_shape.size()), sg_dst(dst_shape.size());
         for (int i = 0; i < dst_shape.size() ; ++i){
             size_t dsts_idx = dst_shape.size() - 1 - i;
             size_t src1s_idx = src1_shape.size() - 1 - i;
@@ -893,6 +891,7 @@ namespace blas {
         }
         return {sg_src2, sg_dst};
     }
+
 
     /**
      * Applies an element-wise function on all elements and stores into a new tensor, using broadcast mechanics.
@@ -1023,16 +1022,21 @@ namespace blas {
         return {true_idx, elems};
     }
 
-    SliceGroup broadcast_index(index_t src_idx, const shape_t &src_shape, const shape_t &dst_shape) {
-        SliceGroup res;
-        res.slices.resize(dst_shape.size());
-        for (int i = 0; i < dst_shape.size() ; ++i){
-            size_t dsts_idx = dst_shape.size() - 1 - i;
-            size_t srcs_idx = src_shape.size() - 1 - i;
-            if (i >= src_shape.size() || src_shape[srcs_idx] == 1)
-                res.slices[dsts_idx] = Slice(0, dst_shape[dsts_idx], 1);
-            else
-                res.slices[dsts_idx] = Slice(src_idx[srcs_idx], src_idx[srcs_idx] + 1, 1);
+    SliceGroup broadcast_index(const index_t &src_idx, const shape_t &src_shape, const shape_t &dst_shape) {
+        size_t dst_size = dst_shape.size(), src_size = src_shape.size();
+        SliceGroup res = SliceGroup::cover_shape(dst_shape);
+        for (int i = 0; i < dst_size ; ++i){
+            size_t dsts_idx = dst_size - 1 - i;
+            size_t srcs_idx = src_size - 1 - i;
+            Slice& slice = res.slices[dsts_idx];
+            if (i >= src_size || src_shape[srcs_idx] == 1)
+                slice.e = dst_shape[dsts_idx];
+            else if (dst_shape[dsts_idx] > 1){
+                auto s1 = src_idx[srcs_idx];
+                slice.b = s1;
+                slice.e = s1 + 1;
+            }
+            slice.update();
         }
         return res;
     }

@@ -91,6 +91,41 @@ namespace blas {
         }
     }
 
+    inline void validate_indexes_compatibility(const index_t& idx1, const shape_t& shape1,
+                                               const index_t& idx2, const shape_t& shape2) {
+        using std::to_string;
+        size_t idx1_size = idx1.size(), idx2_size = idx2.size();
+        size_t size = std::min(idx1_size, idx2_size);
+        for (int i = 0; i < size; ++i) {
+            long i1 = idx1[idx1_size - 1 - i], i2 = idx2[idx2_size - 1 - i];
+            size_t s1 = shape1[idx1_size - 1 - i], s2 = shape2[idx2_size - 1 - i];
+            bool i1_is_b = (s1 == 1), i2_is_b = (s2 == 1);
+            if (!(i1_is_b || i2_is_b) && i1 != i2)
+                throw std::runtime_error("Index mismatch: " +
+                                         to_string(i1) + ", " + to_string(i2));
+        }
+    }
+
+    inline index_t push_broadcast_index(const index_t &src1_idx, const shape_t &src1_shape,
+                                 const index_t &src2_idx, const shape_t &src2_shape,
+                                 const shape_t& dst_shape, bool safe) {
+        if (!safe)
+            validate_indexes_compatibility(src1_idx, src1_shape, src2_idx, src2_shape);
+        size_t src1_size = src1_shape.size(), src2_size = src2_shape.size();
+        size_t dst_size = dst_shape.size();
+        size_t min_size = (src1_size < src2_size) ? src1_size : src2_size;
+        const index_t& larger_dims_index = (src1_size < src2_size) ? src2_idx : src1_idx;
+        index_t ret(dst_size);
+        for (int j = 0; j < min_size; ++j) {
+            long i1 = src1_idx[src1_size - 1 - j], i2 = src2_idx[src2_size - 1 - j];
+            size_t s1 = src1_shape[src1_size - 1 - j];
+            ret[dst_size - 1 - j] = (s1 == 1 ? i2 : i1);
+        }
+        for (int i = 0; i < dst_size - min_size; ++i)
+            ret[i] = larger_dims_index[i];
+        return ret;
+    }
+
     template<template<typename> class Tensor1,
              template<typename> class Tensor2,
              typename T>
@@ -102,21 +137,25 @@ namespace blas {
         shape_t in1_batch_dims{in1.shape.begin(), in1.shape.end()-2};
         shape_t in2_batch_dims{in2.shape.begin(), in2.shape.end()-2};
         shape_t out_batch_dims{out.shape.begin(), out.shape.end()-2};
+        // Intermediate buffers for matrices to increase performance.
+        Tensor<T> out_matrix(out_last_dims);
+        Tensor<T> in1_matrix(in1_last_dims);
+        Tensor<T> in2_matrix(in2_last_dims);
         // We know that in1_last_dims and in2_last_dims are compatible for matmul-ing each other
         // so since this is the requirement for calling this function.
         // Hence we iterate over the inJ_batch_dims.
-        Tensor<T> out_result(out_last_dims);
-        // TODO - optimize this shit
         SliceGroup sg_in1 = SliceGroup::cover_shape(in1_batch_dims);
         for (const auto& in1_idx: sg_in1) {
-            TensorSliced<T> in1_matrix = in1.unchecked_subscript_slice(in1_idx);
-            auto [sg_in2, sg_out] = broadcast_index(in1_idx, in1_batch_dims, in2_batch_dims, out_batch_dims);
+            in1_matrix.copy_(in1.unchecked_subscript_slice(in1_idx));
+            SliceGroup sg_in2 = broadcast_index(in1_idx, in1_batch_dims, in2_batch_dims);
             for (const auto& in2_idx: sg_in2) {
-                TensorSliced<T> in2_matrix = in2.unchecked_subscript_slice(in2_idx);
-                _unchecked_matmul(in1_matrix, in2_matrix, out_result);
-                // Inject into the output.
-                for (const auto& out_idx : sg_out)
-                    out.unchecked_subscript_slice(out_idx).copy_(out_result);
+                in2_matrix.copy_(in2.unchecked_subscript_slice(in2_idx));
+                _unchecked_matmul(in1_matrix, in2_matrix, out_matrix);
+                index_t out_idx = push_broadcast_index(in1_idx, in1_batch_dims,
+                                                       in2_idx, in2_batch_dims,
+                                                       out_batch_dims, true);
+                // Inject into the output
+                out.unchecked_subscript_slice(out_idx).copy_(out_matrix);
             }
         }
     }
@@ -223,7 +262,6 @@ namespace blas {
             template<typename> class Tensor2,
             typename T>
     Tensor<T> conv2d(const Tensor1<T> &input, const Tensor2<T> &kernels, ConvMode mode) NOT_IMPLEMENTED
-
 
     template<template<typename> class Tensor1,
             template<typename> class Tensor2,
