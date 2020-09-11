@@ -44,7 +44,7 @@ int main(){
     auto t7 = arange<double>(3, 6).reshape({1, 3});
     PRINT_EXPR(t6 + t7);
 
-    // Stress testing for profiling:
+    // Stress testing elemwise ops for profiling:
     Tensor<double> big {
             {1000, 1000}
     };
@@ -56,17 +56,5 @@ int main(){
     auto big_sub = big_copy[420];
     big *= big_sub;
 
-    t = Tensor<double> {
-            {1, 2, 3, 4,
-                  5, 6, 7, 8},
-            {2, 4}
-    };
-    auto t10 = t({{}, {2, 4}});
-    PRINT_EXPR(matmul(t10, t));
-
-    auto t11 = arange<double>(0, 1 * 2 * 1 * 2).reshape({1, 2, 1, 2});
-    PRINT_EXPR(bmm(t11, t));
-    auto t12 = arange<double>(0, 2 * 1 * 2 * 1).reshape({2, 1, 2, 1});
-    PRINT_EXPR(bmm(t11, t12)); // TODO - this doesn't comply with numpy for some reason. debug it.
     return 0;
 }

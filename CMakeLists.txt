@@ -38,8 +38,7 @@ add_library(nn SHARED ${SOURCE_FILES_NN})
 target_link_libraries(nn autograd)
 
 # Tests
-add_executable(test_BLAS tests/test_BLAS.cpp)
-target_link_libraries(test_BLAS BLAS)
+add_subdirectory(tests)
 
 add_executable(test_distributions tests/test_distributions.cpp)
 target_link_libraries(test_distributions distributions)
