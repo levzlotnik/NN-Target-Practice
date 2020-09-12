@@ -8,33 +8,34 @@
 
 #include "VariableBase.h"
 
-template<typename T>
-class Constant : public VariableBase<T> {
-public:
-    Constant(const string& name, const Tensor<T>& data) : VariableBase<T>(name, data, false) {}
+namespace autograd {
+    template<typename T>
+    class Constant : public VariableBase<T> {
+    public:
+        Constant(const string &name, const Tensor<T> &data) : VariableBase<T>(name, data, false) {}
 
-    Tensor<T> forward() override {
-        return VariableBase<T>::_data;
-    }
+        Tensor<T> forward() override {
+            return VariableBase<T>::_data;
+        }
 
-    void add_dependency(const Variable<T> &dep) override {
-        throw runtime_error("A constant cannot be a dependent variable.");
-    }
+        void add_dependency(const Variable <T> &dep) override {
+            throw runtime_error("A constant cannot be a dependent variable.");
+        }
 
-    static Variable<T> make(const string& name, const Tensor<T>& data) {
-        return Variable<T>{new Constant{name, data}};
-    }
+        static Variable <T> make(const string &name, const Tensor<T> &data) {
+            return Variable<T>{new Constant{name, data}};
+        }
 
-private:
-    string node_style_graphviz() override {
-        return "shape=box style=\"filled\"";
-    }
+    private:
+        string node_style_graphviz() override {
+            return "shape=box style=\"filled\"";
+        }
 
-protected:
-    void backward(VariableBase<T> *dependee, bool recursive) override {
-        // Do nothing - this is a constant.
-    }
-};
+    protected:
+        void backward(VariableBase <T> *dependee, bool recursive) override {
+            // Do nothing - this is a constant.
+        }
+    };
 
-
+}
 #endif //TARGETPRACTICE_CONSTANT_H

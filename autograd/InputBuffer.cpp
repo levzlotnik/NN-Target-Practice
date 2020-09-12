@@ -6,18 +6,24 @@
 
 #include <utility>
 
-Vector InputBuffer::forward() {
-    return _data;
-}
+namespace autograd {
+    template<typename T>
+    Vector InputBuffer<T>::forward() {
+        return _data;
+    }
 
-void InputBuffer::backward(VariableBase *dependee, bool recursive) {
-    // Do nothing - leaf variable.
-}
+    template<typename T>
+    void InputBuffer<T>::backward(VariableBase<T> *dependee, bool recursive) {
+        // Do nothing - leaf variable.
+    }
 
-void InputBuffer::add_dependency(const Variable &dep) {
-    throw runtime_error("InputBuffer is an independent variable, adding dependencies to it will have no effect.");
-}
+    template<typename T>
+    void InputBuffer<T>::add_dependency(const Variable<T> &dep) {
+        throw runtime_error("InputBuffer is an independent variable, adding dependencies to it will have no effect.");
+    }
 
-string InputBuffer::node_style_graphviz() {
-    return "shape=box style=\"rounded, filled\"";
+    template<typename T>
+    string InputBuffer<T>::node_style_graphviz() {
+        return "shape=box style=\"rounded, filled\"";
+    }
 }

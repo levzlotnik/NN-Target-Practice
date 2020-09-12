@@ -75,5 +75,6 @@ namespace autograd {
 
 }
 
+// TODO - create, inherit and implement various basic Functors.
 
 #endif //TARGETPRACTICE_FUNCTOR_H

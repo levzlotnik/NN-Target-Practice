@@ -10,24 +10,28 @@
 
 #include "VariableBase.h"
 
-class InputBuffer : public VariableBase {
-public:
-    Vector forward() override;
-    static Variable make(string name, Vector data){
-        return Variable{new InputBuffer(std::move(name), std::move(data))};
-    }
+namespace autograd {
+    template<typename T>
+    class InputBuffer : public VariableBase<T> {
+    public:
+        Tensor<T> forward() override;
 
-    void add_dependency(const Variable &dep) override;
+        static Variable<T> make(string name, const Tensor<T>& data) {
+            return Variable{new InputBuffer(std::move(name), std::move(data))};
+        }
 
-    bool is_input_buffer() const final { return true; }
+        void add_dependency(const Variable<T> &dep) override;
 
-private:
-    string node_style_graphviz() override;
+        bool is_input_buffer() const final { return true; }
 
-protected:
-    InputBuffer(string name, Vector data) : VariableBase(std::move(name), std::move(data), false) {}
-    void backward(VariableBase *dependee, bool recursive) override;
-};
+    private:
+        string node_style_graphviz() override;
 
+    protected:
+        InputBuffer(string name, const Tensor<T>& data) : VariableBase<T>(std::move(name), data, false) {}
 
+        void backward(VariableBase *dependee, bool recursive) override;
+    };
+
+}
 #endif //TARGETPRACTICE_INPUTBUFFER_H
