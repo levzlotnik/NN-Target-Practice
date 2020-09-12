@@ -25,8 +25,9 @@ public:
 #endif
     }
 
-#define NOT_IMPLEMENTED { throw std::logic_error("Not Implemented."); }
-#define MARK_FORBIDDEN(expr) expr { throw std::logic_error("Forbidden: '" #expr "'"); }
+#define NOT_IMPLEMENTED { throw std::logic_error("Not Implemented."); };
+#define NOT_IMPLEMENTED_CRITICAL { static_assert(false, "NOT IMPLEMENTED"); };
+#define MARK_FORBIDDEN(expr) expr { throw std::logic_error("Forbidden: '" #expr "'"); };
 
 private:
     std::string msg;

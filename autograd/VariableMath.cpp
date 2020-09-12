@@ -5,7 +5,7 @@
 #include "VariableMath.h"
 #include "Functor.h"
 #include "Loss.h"
-#include "variable/Constant.h"
+#include "Constant.h"
 
 Variable operator+(const Variable &v1, const Variable &v2) {
     if (v1->shape() == 1) {

@@ -7,6 +7,7 @@
 
 #include "Tensor.h"
 #include "TensorMath.h"
+#include "TensorCreation.h"
 
 #define PI M_PI
 

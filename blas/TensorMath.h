@@ -82,31 +82,6 @@ namespace blas {
 
     MACRO_MATH_FUNCTIONS(MATH_FUNC_TENSOR_INLINE)
 
-    template<typename T>
-    Tensor<T> linspace(T s, T f, size_t num=50) {
-        T step_size = (f - s) / T(num -1);
-        shape_t shape = {num};
-        Tensor<T> ret(shape);
-        T v = s;
-        for (int i=0; i < num; ++i, v += step_size)
-            Tensor<T>::get(ret, i) = v;
-        return ret;
-    }
-
-    template<typename T>
-    Tensor<T> arange(T s, T f, T step=1.) {
-        using std::to_string;
-        long num = ::floor((f-s) / step);
-        if (num < 1)
-            throw std::runtime_error("Invalid step - can't get to " + to_string(s) + " from " + to_string(f) + ".");
-        shape_t shape = {size_t(num)};
-        Tensor<T> ret(shape);
-        T v = s;
-        for (int i=0; i < num; ++i, v += step)
-            Tensor<T>::get(ret, i) = v;
-        return ret;
-    };
-
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
     extern Tensor<T> matmul(const Tensor1<T>& t1, const Tensor2<T>& t2);
 

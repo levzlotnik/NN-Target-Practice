@@ -14,7 +14,12 @@
 
 using namespace common_math;
 
-namespace blas {
+std::string shape2str(const shape_t &shape);
+std::string shape2str(const vector<long>& shape);
+size_t shape2size(const shape_t& shape);
+
+namespace blas
+{
     using std::vector;
     using std::tuple;
     using std::initializer_list;
@@ -63,10 +68,6 @@ namespace blas {
      * @return unraveled index for the current tensor
      */
     index_t unravel_index(size_t true_idx, const shape_t &shape, int size = -1);
-
-    std::string shape2str(const shape_t &shape);
-    std::string shape2str(const vector<long>& shape);
-    size_t shape2size(const shape_t& shape);
 
     class shape_mismatch : public std::out_of_range {
     public:
@@ -178,7 +179,6 @@ namespace blas {
     template<typename scalar_t> \
     inline Tensor1& operator=(scalar_t scalar) { this->fill_(scalar); return *this;} \
     MACRO_INTERACTABLE_TENSORTYPES(DEF_ASSIGNMENT_TEMPLATE, Tensor1, T)
-
 
     class Slice {
     private:
@@ -386,8 +386,8 @@ namespace blas {
         Tensor(const Tensor &other);
         Tensor(Tensor &&other) noexcept;
         virtual ~Tensor();
-        template<typename T_>
-        friend void swap(Tensor<T_> &t1, Tensor<T_> &t2) {
+
+        friend void swap(Tensor<T> &t1, Tensor<T> &t2) {
             using std::swap;
             swap(t1.size, t2.size);
             swap(t1.data, t2.data);

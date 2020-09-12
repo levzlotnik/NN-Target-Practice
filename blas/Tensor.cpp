@@ -14,6 +14,31 @@
 using std::cout;
 using std::endl;
 
+
+inline size_t shape2size(const std::vector<size_t>& shape) {
+    return std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>{});
+}
+std::string shape2str(const shape_t &shape) {
+    std::string ret = "(";
+    for (int i = 0; i < shape.size(); ++i) {
+        ret += std::to_string(shape[i]);
+        if (i < shape.size() - 1)
+            ret += ", ";
+    }
+    ret += ")";
+    return ret;
+}
+std::string shape2str(const std::vector<long> &shape) {
+    std::string ret = "(";
+    for (int i = 0; i < shape.size(); ++i) {
+        ret += std::to_string(shape[i]);
+        if (i < shape.size() - 1)
+            ret += ", ";
+    }
+    ret += ")";
+    return ret;
+}
+
 namespace blas {
 
     template<typename T>
@@ -23,10 +48,6 @@ namespace blas {
 
     template<typename T>
     Tensor<T>::Tensor(T scalar) : data(new T(scalar)), size(1) {
-    }
-
-    inline size_t shape2size(const std::vector<size_t>& shape) {
-        return std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>{});
     }
 
     template<typename T>
@@ -248,27 +269,6 @@ namespace blas {
             true_idx %= stride;
         }
         return res;
-    }
-
-    std::string shape2str(const shape_t &shape) {
-        std::string ret = "(";
-        for (int i = 0; i < shape.size(); ++i) {
-            ret += std::to_string(shape[i]);
-            if (i < shape.size() - 1)
-                ret += ", ";
-        }
-        ret += ")";
-        return ret;
-    }
-    std::string shape2str(const vector<long> &shape) {
-        std::string ret = "(";
-        for (int i = 0; i < shape.size(); ++i) {
-            ret += std::to_string(shape[i]);
-            if (i < shape.size() - 1)
-                ret += ", ";
-        }
-        ret += ")";
-        return ret;
     }
 
     template<template<typename>class Tens, typename T>
@@ -1183,4 +1183,6 @@ namespace blas {
     INSTANTIATE_COPY_(T)
 
     INSTANTIATE_TEMPLATE_TENSOR(double)
+    INSTANTIATE_TEMPLATE_TENSOR(float)
+    INSTANTIATE_TEMPLATE_TENSOR(long)
 }

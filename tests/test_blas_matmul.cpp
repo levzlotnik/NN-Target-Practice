@@ -6,7 +6,7 @@
 // Created by LevZ on 7/8/2020.
 //
 
-#include "../BLAS/BLAS.h"
+#include "../BLAS/blas.h"
 #include "common.h"
 #include <iostream>
 using namespace std;
@@ -27,7 +27,7 @@ int main(){
     auto t12 = arange<double>(0, 2 * 1 * 2 * 1).reshape({2, 1, 2, 1});
     PRINT_EXPR(bmm(t11, t12));
     // Stress testing matmul for profiling:
-    auto beeg = linspace<double>(-1, 1, 1000*1000).reshape({1000, 1000});
+    auto beeg = uniform<double>(-1, 1, {1000, 1000});
     cout << "Profiling blas::matmul..." << endl;
     auto beeg_matmul_result = matmul(beeg, beeg);
     TensorView<double> beeg_v1 = beeg.const_view(shape_t{100, 1, 40, 250});

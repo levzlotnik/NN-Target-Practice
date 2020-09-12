@@ -312,5 +312,7 @@ namespace blas {
     APPLY_FUNCTION(dtype, conv2d, CONV_FUNCTION)
 
     INSTANTIATE_MATRIX_OPS(double)
+    INSTANTIATE_MATRIX_OPS(float)
+    INSTANTIATE_MATRIX_OPS(long)
 }
 

@@ -5,7 +5,7 @@
 #ifndef TARGETPRACTICE_VARIABLEMATH_H
 #define TARGETPRACTICE_VARIABLEMATH_H
 
-#include "variable/VariableBase.h"
+#include "VariableBase.h"
 #include "../common.h"
 
 Variable operator+(const Variable& v1, const Variable& v2);

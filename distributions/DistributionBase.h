@@ -6,7 +6,7 @@
 #define TARGETPRACTICE_DISTRIBUTIONBASE_H
 #include "../common.h"
 #include <type_traits>
-#include "../BLAS/BLAS.h"
+#include "../BLAS/blas.h"
 #include <memory>
 
 #define INDENT_INC "    "

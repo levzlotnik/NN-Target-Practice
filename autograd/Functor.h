@@ -1,154 +1,79 @@
 //
-// Created by LevZ on 6/16/2020.
+// Created by LevZ on 9/12/2020.
 //
 
 #ifndef TARGETPRACTICE_FUNCTOR_H
 #define TARGETPRACTICE_FUNCTOR_H
 
-#include "../BLAS/BLAS.h"
-#include "variable/VariableBase.h"
-#include <array>
+#include "VariableBase.h"
+#include "blas/blas.h"
 
-class Functor {
-public:
-    vector<int> input_shapes;
-    int output_shape;
-    const string name;
+template<typename T>
+inline vector<shape_t> get_shapes(const vector<Tensor<T>>& tensors) {
+    vector<shape_t> ret(tensors.size());
+    std::transform(tensors.begin(), tensors.end(), ret.begin(), [](const Tensor<T>& t) { return t.shape; });
+    return ret;
+}
 
-    Functor(const vector<int>& input_shapes, int output_shape, string name);
+template<typename T>
+inline vector<const Tensor<T>*> get_tensors(const vector<Variable<T>>& variables) {
+    vector<const Tensor<T>*> ret(variables.size());
+    std::transform(variables.begin(), variables.end(), ret.begin(), [](const Variable<T>& v) { return &v.data(); });
+    return ret;
+}
 
-    virtual ~Functor() = default;
+namespace autograd {
+    template<typename T>
+    class Functor {
+    public:
+        const vector<shape_t> input_shapes;
+        const shape_t output_shape;
+        const string name;
 
-    virtual Vector operator()(const vector<Vector>& args) const = 0;
+        Functor(vector<shape_t> input_shapes, shape_t output_shape, string name) :
+                input_shapes(std::move(input_shapes)), output_shape(std::move(output_shape)), name(std::move(name)) {}
 
-    void check_args(const vector<Vector>& args) const; // throws runtime_error if mismatch
-    void check_args(const vector<Variable>& args) const;
+        virtual ~Functor() = default;
 
-    virtual Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const = 0;
+        // Throws exception for invalid arguments.
+        virtual void check_arg_shapes(const vector<shape_t> &args) const;
 
-    [[nodiscard]] virtual Functor* clone() const = 0;
+        void check_args(const vector<Variable<T>> &args) const;
+        using InputArgType = const Tensor<T>*;
+        using OutputArgType = Tensor<T>*;
 
-    Variable operator()(const vector<Variable>& args, bool requires_grad=true) const;
-};
+        /**
+         * Calculates the output of the function from the inputs, and stores into output.
+         * @param inputs Pointers to the inputs of the function. They are assumed to be valid for this functor.
+         * @param output_ref A pointer to the output of the function
+         * @return The reference to the output.
+         */
+        virtual Tensor<T> &apply_forward(const vector<InputArgType> &inputs,
+                                         OutputArgType output_ref) const noexcept = 0;
 
-class ReduceAndGather : public Functor {
-protected:
-    typedef float (*reduce_t)(Vector inp);
-    typedef Vector(*reducejac_t)(Vector inp, float output);
-    reduce_t func;
-    reducejac_t reducejac;
-public:
-    ReduceAndGather(const vector<int>& input_shapes, reduce_t func, reducejac_t jac, string func_name);
+        /**
+         * Calculates the gradient of the function according to the inputs and the output, and stores it into grad_ref.
+         * @param input_idx The location of the input for which we calculate the gradient. It is assumed to be valid.
+         * @param inputs Pointers to the inputs of the function. They are assumed to be valid for this functor.
+         * @param output Pointer to the resulting output from the function.
+         * @param grad_ref A pointer to the gradient tensor. It is assumed to have the shape of the corresponding input.
+         * @return grad_ref
+         */
+        virtual Tensor<T> &apply_backward(int input_idx, const vector<InputArgType> &inputs, OutputArgType output,
+                                          OutputArgType grad) const noexcept = 0;
 
-    Vector operator()(const vector<Vector>& args) const override;
-    Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
+        inline Tensor<T> operator()(const vector<Tensor<T>> &inputs) {
+            check_arg_shapes(get_shapes(inputs));
+            Tensor<T> output(output_shape);
+            apply(inputs, output);
+            return output;
+        }
 
-    [[nodiscard]] Functor *clone() const override;
-};
+        Variable<T> operator()(const vector<Variable<T>> &inputs, bool requires_grad = true);
 
-class Reduce : public ReduceAndGather {
-protected:
-    using ReduceAndGather::reduce_t;
-    using ReduceAndGather::reducejac_t;
-public:
-    Reduce(int shape, reduce_t func, reducejac_t jac, string func_name) :
-        ReduceAndGather({shape}, func, jac, func_name){}
+    };
 
-    Vector operator()(const Vector& v) const {
-        return ReduceAndGather::operator()({v});
-    }
-
-    Variable operator()(const Variable& v, bool requires_grad=true) {
-        return Functor::operator()({v}, requires_grad);
-    }
-};
-
-class Concat : public Functor {
-private:
-    vector<Matrix> const_jacs;
-public:
-    explicit Concat(const vector<int>& input_shapes);
-    Vector operator()(const vector<Vector>& args) const override;
-
-    Matrix jac(int i, const vector<Vector>& inputs, const Vector& output) const override;
-
-    [[nodiscard]] Functor *clone() const override;
-};
-
-class Slice : public Functor {
-private:
-    Matrix const_jac;
-public:
-    int begin;
-    int end;
-    int step;
-
-    Slice(int b, int e, int input_shape, int step=1);
-
-    Vector operator()(const vector<Vector> &args) const override;
-
-    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
-
-    [[nodiscard]] Functor *clone() const override;
-};
-
-class Elemwise : public Functor {
-private:
-    unary_elemwise_t func;
-    unary_elemwise_t dfunc;
-public:
-
-    Elemwise(string func_name, int shape);
-    Elemwise(unary_elemwise_t func, unary_elemwise_t dfunc, int shape, const string &func_name);
-
-    Vector operator()(const vector<Vector> &args) const override;
-    Variable operator()(const Variable& var, bool requires_grad=true) const ;
-
-    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
-
-    [[nodiscard]] Functor *clone() const override;
-};
-
-class ScalarElemwise : public Functor {
-private:
-    binary_elemwise_t op;
-    array<jac_binary_elemwise_t, 2> dx_ops;
-    bool scalar_first;
-    BinaryOperation op_for_vector;
-
-public:
-    ScalarElemwise(string op_name, int shape, bool scalar_first);
-    ScalarElemwise(binary_elemwise_t op, pair<jac_binary_elemwise_t, jac_binary_elemwise_t> d_op, int shape,
-                   const string &op_name, bool scalar_first);
-
-    Vector operator()(const vector<Vector> &args) const override;
-    Variable operator()(const Variable& v1, const Variable& v2, bool requires_grad=true) const;
-
-    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
-
-    Functor *clone() const override;
-};
-
-
-class BinaryElemwise : public Functor {
-private:
-    binary_elemwise_t op;
-    array<jac_binary_elemwise_t, 2> dx_op;
-public:
-    BinaryElemwise(string op_name, int shape);
-    BinaryElemwise(binary_elemwise_t op, pair<jac_binary_elemwise_t, jac_binary_elemwise_t> d_op,
-                   int shape, const string &op_name);
-
-    Vector operator()(const vector<Vector> &args) const override;
-    Vector operator()(const Vector& x1, const Vector& x2) const;
-    Variable operator()(const Variable& v1, const Variable& v2, bool requires_grad=true) const;
-
-    Matrix jac(int i, const vector<Vector> &inputs, const Vector &output) const override;
-
-    Functor *clone() const override;
-};
-
-
+}
 
 
 #endif //TARGETPRACTICE_FUNCTOR_H
