@@ -33,10 +33,53 @@ namespace autograd {
     }
 
     template<typename T>
-    Variable<T> Functor<T>::operator()(const vector<Variable<T>> &inputs, bool requires_grad) {
+    Variable<T> Functor<T>::operator()(const vector<Variable<T>> &inputs, bool requires_grad) const {
         Variable<T> ret = AutogradVariable<T>::make(name, *this, requires_grad);
         Tensor<T>& ret_tensor = ret->data();
         apply_forward(get_tensors(inputs), &ret_tensor);
         return ret;
+    }
+
+    template<typename T>
+    void
+    MathFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const noexcept {
+        const Tensor<T>& input = *input_ptrs[0];
+        Tensor<T>& output = *output_ptr;
+        input.apply(this->_op, output);
+    }
+
+    template<typename T>
+    void MathFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+                                        const Tensor<T> *output_ptr, Tensor<T> *grad_ptr) const noexcept {
+        // input_idx == 0 definitely.
+        const Tensor<T>& input = input_ptrs[0];
+        Tensor<T>& grad_output = *grad_ptr;
+        input.apply(this->_dop, grad_output);
+    }
+
+
+    template<typename T>
+    void ScalarTensorElemwiseFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs,
+                                                       Tensor<T> *output_ptr) const noexcept {
+        binary_op<T> op = _op;
+        if (scalar_first)
+            op = (binary_op<T>)[this](T x, T y) { return this->_op(y, x); };
+        const Tensor<T>& input = *input_ptrs[0];
+        Tensor<T>& output = *output_ptr;
+        input.apply(scalar, op, output);
+    }
+
+    template<typename T>
+    void ScalarTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+                                                        const Tensor<T> *output_ptr, Tensor<T> *grad_ptr) const noexcept {
+        binary_op<T> dop; // takes 2 elements: (x_input, x_output) -> x_grad
+        if (scalar_first)
+            dop = (binary_op<T>) [this](T x, T y) { return this->_dop(this->scalar, x, y); };
+        else
+            dop = (binary_op<T>) [this](T x, T y) { return this->_dop(x, this->scalar, y); };
+        const Tensor<T>& input = *input_ptrs[0];
+        const Tensor<T>& output = *output_ptr;
+        Tensor<T>& grad_output = *grad_ptr;
+        input.apply_tensors(output, dop, grad_output);
     }
 }

@@ -76,9 +76,20 @@ namespace blas {
     MACRO_BASIC_ARITHMETIC_OPERATORS(DEF_TENSOR_SCALAR_INTERACTIVE_OPS)
     MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(DEF_TENSOR_SCALAR_INTERACTIVE_OPS_INPLACE)
 
-#define MATH_FUNC_TENSOR_INLINE(func) \
+#define MATH_FUNC_TENSOR_INLINE_INTERACTABLE(Tensor1, func) \
     template<typename T> \
-    Tensor<T> func(const Tensor<T>& t) { return t.func(); }
+    Tensor<T> func(const Tensor1<T>& t) { return t.func(); } \
+    template<typename T> \
+    void func(const Tensor1<T>& t, Tensor<T>& out) { return t.func(out); } \
+    template<typename T> \
+    void func(const Tensor1<T>& t, TensorView<T>& out) { return t.func(out); } \
+    template<typename T> \
+    void func(const Tensor1<T>& t, TensorSliced<T>& out) { return t.func(out); }
+
+#define MATH_FUNC_TENSOR_INLINE(func) \
+    MATH_FUNC_TENSOR_INLINE_INTERACTABLE(Tensor, func) \
+    MATH_FUNC_TENSOR_INLINE_INTERACTABLE(TensorView, func) \
+    MATH_FUNC_TENSOR_INLINE_INTERACTABLE(TensorSliced, func)
 
     MACRO_MATH_FUNCTIONS(MATH_FUNC_TENSOR_INLINE)
 

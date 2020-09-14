@@ -15,7 +15,7 @@
 using namespace common_math;
 
 std::string shape2str(const shape_t &shape);
-std::string shape2str(const vector<long>& shape);
+std::string shape2str(const std::vector<long>& shape);
 size_t shape2size(const shape_t& shape);
 
 namespace blas
@@ -587,7 +587,10 @@ namespace blas
         Tensor operator-() const;
 
 #define DEF_TENSOR_MATH_FUNC(func) \
-        inline Tensor func() const { return this->apply(unary_func_data<T>::func); }
+        inline Tensor func() const { return this->apply(unary_func_data<T>::func); } \
+        inline void func(Tensor& out) const { return this->apply(unary_func_data<T>::func, out); } \
+        inline void func(TensorView<T>& out) const { return this->apply(unary_func_data<T>::func, out); } \
+        inline void func(TensorSliced<T>& out) const { return this->apply(unary_func_data<T>::func, out); }
 
 #define DEF_TENSOR_MATH_FUNC_INPLACE(func) \
         inline Tensor& func ##_() { return this->apply_(unary_func_data<T>::func); }

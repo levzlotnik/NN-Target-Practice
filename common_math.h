@@ -43,7 +43,7 @@ namespace common_math {
     template<typename T> using binary_op = std::function<T(T, T)>;
 
     template<typename T>
-    struct unary_func_data { ;
+    struct unary_func_data {
 
 #define DEF_STATIC_UNARY_FUNC(func) \
     static inline constexpr T func(T x) { return ::func(x); }
@@ -87,6 +87,8 @@ namespace common_math {
     struct unary_func_data<double>;
     template
     struct unary_func_data<float>;
+    template<typename T>
+    using jac_binary_op = std::function<T(T in1, T in2, T out)>;
 
     template<typename T>
     struct binary_func_data {
@@ -98,11 +100,9 @@ namespace common_math {
 
         static inline float div(T x, T y) { return x / y; };
 
-        using jac_binary_op = std::function<T(T in1, T in2, T out)>;
-
-        static tuple<binary_op<T>, jac_binary_op, jac_binary_op> get_function_data(std::string func_name) {
+        static tuple<binary_op<T>, jac_binary_op<T>, jac_binary_op<T>> get_function_data(const std::string& func_name) {
             const std::unordered_map<std::string,
-                    tuple<binary_op<T>, jac_binary_op, jac_binary_op>>
+                    tuple<binary_op<T>, jac_binary_op<T>, jac_binary_op<T>>>
                     binary_elemwise_mapping =
                     {
                             {"add", {add,
