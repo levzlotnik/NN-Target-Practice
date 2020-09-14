@@ -28,6 +28,8 @@ int main(){
             {1, 2, 3}
     );
     PRINT_EXPR(t3);
+    PRINT_EXPR(t3.sum());
+    PRINT_EXPR(t3.sum(1));
     PRINT_EXPR(t2 / 100.0 + t3);
     auto t4 = t2 / 100.0 + t3;
     PRINT_EXPR(log(t4));

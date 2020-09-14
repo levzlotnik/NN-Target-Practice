@@ -18,6 +18,7 @@ std::string shape2str(const shape_t &shape);
 std::string shape2str(const std::vector<long>& shape);
 size_t shape2size(const shape_t& shape);
 
+// Math operations on tensors, like numpy.
 namespace blas
 {
     using std::vector;
@@ -159,7 +160,6 @@ namespace blas
     macro(TensorTDst, Tensor, T) \
     macro(TensorTDst, TensorView, T) \
     macro(TensorTDst, TensorSliced, T)
-    // macro(TensorTDst, TensorSparse, T) - it deserves special treatment.
 
 #define MACRO_INTERACT_TENSORS(macro, T) \
     MACRO_INTERACTABLE_TENSORTYPES(macro, Tensor, T)\
@@ -598,6 +598,29 @@ namespace blas
         MACRO_MATH_FUNCTIONS(DEF_TENSOR_MATH_FUNC)
         MACRO_MATH_FUNCTIONS(DEF_TENSOR_MATH_FUNC_INPLACE)
 
+        // Reduces all elements using the same binary operation.
+        Tensor<T> reduce(const binary_op<T>& op) const;
+        // Reduces a dimension of elements using the same binary operation.
+        Tensor<T> reduce(const binary_op<T>& op, int dim) const;
+
+#define DECL_TENSOR_REDUCE_BASE(TensorOut) \
+        virtual void reduce(const binary_op<T>& op, TensorOut<T>& out) const; \
+        virtual void reduce(const binary_op<T>& op, int dim, TensorOut<T>& out) const;
+
+        DECL_TENSOR_REDUCE_BASE(Tensor)
+        DECL_TENSOR_REDUCE_BASE(TensorView)
+        DECL_TENSOR_REDUCE_BASE(TensorSliced)
+
+        inline Tensor sum() const {
+            using b = binary_func_data<T>;
+            return reduce(b::add);
+        }
+
+        inline Tensor sum(int dim) const {
+            using b = binary_func_data<T>;
+            return reduce(b::add, dim);
+        }
+
 
         inline friend ostream &operator<<(ostream &os, const Tensor &t) {
             return t.print_to_os(os, true);
@@ -743,6 +766,14 @@ namespace blas
         TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) override;
         MARK_FORBIDDEN(TensorView<T> view(const vector<long>& new_shape) override)
 
+#define DECL_TENSOR_REDUCE_OVERRIDE(TensorOut) \
+        void reduce(const binary_op<T>& op, TensorOut<T>& out) const override; \
+        void reduce(const binary_op<T>& op, int dim, TensorOut<T>& out) const override;
+
+        DECL_TENSOR_REDUCE_OVERRIDE(Tensor)
+        DECL_TENSOR_REDUCE_OVERRIDE(TensorView)
+        DECL_TENSOR_REDUCE_OVERRIDE(TensorSliced)
+
         Tensor<T> reshape(const vector<long> &new_shape) const override;
 
         Tensor<T> contiguous() override;
@@ -759,8 +790,11 @@ namespace blas
 
         Tensor<T> contiguous() const;
 
-        TensorSliced slice_unsqueeze(int i);
+        TensorSliced<T> slice_unsqueeze(int i);
         TensorSliced<T> const_slice_unsqueeze(int i) const;
+        TensorSliced<T> slice_squeeze(int i);
+        TensorSliced<T> const_slice_squeeze(int i) const;
+
     };
 
     SliceGroup broadcast_index(const index_t &src_idx, const shape_t &src_shape, const shape_t &dst_shape);
