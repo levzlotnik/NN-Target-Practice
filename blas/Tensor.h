@@ -602,10 +602,13 @@ namespace blas
         Tensor<T> reduce(const binary_op<T>& op) const;
         // Reduces a dimension of elements using the same binary operation.
         Tensor<T> reduce(const binary_op<T>& op, int dim) const;
+        // Reduces multiple dimensions of elements.
+        Tensor<T> reduce(const binary_op<T>& op, const vector<int>& dims) const;
 
 #define DECL_TENSOR_REDUCE_BASE(TensorOut) \
         virtual void reduce(const binary_op<T>& op, TensorOut<T>& out) const; \
-        virtual void reduce(const binary_op<T>& op, int dim, TensorOut<T>& out) const;
+        virtual void reduce(const binary_op<T>& op, int dim, TensorOut<T>& out) const; \
+        virtual void reduce(const binary_op<T>& op, vector<int> dims, TensorOut<T>& out) const;
 
         DECL_TENSOR_REDUCE_BASE(Tensor)
         DECL_TENSOR_REDUCE_BASE(TensorView)
@@ -619,6 +622,11 @@ namespace blas
         inline Tensor sum(int dim) const {
             using b = binary_func_data<T>;
             return reduce(b::add, dim);
+        }
+
+        inline Tensor sum(const vector<int>& dims) {
+            using b = binary_func_data<T>;
+            return reduce(b::add, dims);
         }
 
 
@@ -698,7 +706,6 @@ namespace blas
         friend class Tensor<T>;
         shape_t underlying_tensor_shape;
         const size_t underlying_tensor_size;
-        SliceGroup slice_group;
 
         TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group);
 
@@ -768,7 +775,8 @@ namespace blas
 
 #define DECL_TENSOR_REDUCE_OVERRIDE(TensorOut) \
         void reduce(const binary_op<T>& op, TensorOut<T>& out) const override; \
-        void reduce(const binary_op<T>& op, int dim, TensorOut<T>& out) const override;
+        void reduce(const binary_op<T>& op, int dim, TensorOut<T>& out) const override; \
+        void reduce(const binary_op<T>& op, vector<int> dims, TensorOut<T>& out) const override;
 
         DECL_TENSOR_REDUCE_OVERRIDE(Tensor)
         DECL_TENSOR_REDUCE_OVERRIDE(TensorView)
@@ -778,6 +786,7 @@ namespace blas
 
         Tensor<T> contiguous() override;
 
+        SliceGroup slice_group;
     protected:
         ostream &print_to_os(ostream &os, bool rec_start) const override;
 
@@ -794,6 +803,8 @@ namespace blas
         TensorSliced<T> const_slice_unsqueeze(int i) const;
         TensorSliced<T> slice_squeeze(int i);
         TensorSliced<T> const_slice_squeeze(int i) const;
+        TensorSliced<T> slice_squeeze(vector<int> dims);
+        TensorSliced<T> const_slice_squeeze(vector<int> dims) const;
 
     };
 

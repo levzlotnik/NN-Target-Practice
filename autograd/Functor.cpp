@@ -50,11 +50,14 @@ namespace autograd {
 
     template<typename T>
     void MathFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
-                                        const Tensor<T> *output_ptr, Tensor<T> *grad_ptr) const noexcept {
+                                        const Tensor<T> *output_ptr,
+                                        const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const noexcept {
         // input_idx == 0 definitely.
         const Tensor<T>& input = input_ptrs[0];
-        Tensor<T>& grad_output = *grad_ptr;
-        input.apply(this->_dop, grad_output);
+        Tensor<T>& input_grad_ref = *input_grad_ptr;
+        input.apply(this->_dop, input_grad_ref);
+        if (output_grad_ptr)
+            input_grad_ref *= *output_grad_ptr;
     }
 
 
@@ -71,7 +74,8 @@ namespace autograd {
 
     template<typename T>
     void ScalarTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
-                                                        const Tensor<T> *output_ptr, Tensor<T> *grad_ptr) const noexcept {
+                                                        const Tensor<T> *output_ptr, const Tensor<T>* output_grad_ptr,
+                                                        Tensor<T> *input_grad_ptr) const noexcept {
         binary_op<T> dop; // takes 2 elements: (x_input, x_output) -> x_grad
         if (scalar_first)
             dop = (binary_op<T>) [this](T x, T y) { return this->_dop(this->scalar, x, y); };
@@ -79,7 +83,9 @@ namespace autograd {
             dop = (binary_op<T>) [this](T x, T y) { return this->_dop(x, this->scalar, y); };
         const Tensor<T>& input = *input_ptrs[0];
         const Tensor<T>& output = *output_ptr;
-        Tensor<T>& grad_output = *grad_ptr;
-        input.apply_tensors(output, dop, grad_output);
+        Tensor<T>& input_grad_ref = *input_grad_ptr;
+        input.apply_tensors(output, dop, input_grad_ref);
+        if (output_grad_ptr)
+            input_grad_ref *= *output_grad_ptr;
     }
 }

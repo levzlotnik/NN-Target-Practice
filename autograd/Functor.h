@@ -59,9 +59,9 @@ namespace autograd {
          * @param grad_ref A pointer to the gradient tensor. It is assumed to have the shape of the corresponding input.
          * @return grad_ref
          */
-        virtual void apply_backward(int input_idx,
-                                    const vector<const Tensor<T>*> &input_ptrs, const Tensor<T>* output_ptr,
-                                    Tensor<T>* grad_ptr) const noexcept = 0;
+        virtual void
+        apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+                       const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const noexcept = 0;
 
         inline Tensor<T> operator()(const vector<Tensor<T>> &inputs) const {
             check_arg_shapes(get_shapes(inputs));
@@ -107,7 +107,7 @@ namespace autograd {
         void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const noexcept override;
 
         void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
-                            Tensor<T> *grad_ptr) const noexcept override;
+                            const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const noexcept override;
     };
 
     template<typename T>
@@ -134,7 +134,7 @@ namespace autograd {
         void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const noexcept override;
 
         void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
-                            Tensor<T> *grad_ptr) const noexcept override;
+                            const Tensor<T>* output_grad_ptr, Tensor<T> *grad_ptr) const noexcept override;
     };
 
 }

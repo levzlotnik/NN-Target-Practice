@@ -906,7 +906,7 @@ namespace blas {
     template<typename T>
     TensorSliced<T> TensorSliced<T>::const_slice_squeeze(int i) const {
         using std::to_string;
-        long norm_i = normalize_index(i, this->shape.size());
+        int norm_i = normalize_index(i, this->shape.size());
         if (this->shape[norm_i] != 1)
             throw std::runtime_error(
                     "Cannot squeeze a non-redunant dim of size " + to_string(i) +
@@ -919,6 +919,49 @@ namespace blas {
         ret_strides.erase(ret_strides.begin() + norm_i);
         return ret;
     }
+
+    template<typename T>
+    TensorSliced<T> TensorSliced<T>::slice_squeeze(vector<int> dims) {
+        using std::to_string;
+        using std::remove;
+        shape_t out_shape(this->shape);
+        for (auto& dim: dims) {
+            dim = normalize_index(dim, this->shape.size());
+            if (this->shape[dim] != 1)
+                throw std::runtime_error(
+                        "Cannot squeeze a non-redunant dim of size " + to_string(dim) +
+                        ". Squeezing is only allowed for dims of size 1."
+                );
+            out_shape[dim] = 0; // to be erased.
+        }
+        out_shape.erase(remove(out_shape.begin(), out_shape.end(), 0), out_shape.end());
+        TensorSliced out(*this);
+        out.shape = out_shape;
+        out.strides = shape2strides(out_shape);
+        return out;
+    }
+
+    template<typename T>
+    TensorSliced<T> TensorSliced<T>::const_slice_squeeze(vector<int> dims) const {
+        using std::to_string;
+        using std::remove;
+        shape_t out_shape(this->shape);
+        for (auto& dim: dims) {
+            dim = normalize_index(dim, this->shape.size());
+            if (this->shape[dim] != 1)
+                throw std::runtime_error(
+                        "Cannot squeeze a non-redunant dim of size " + to_string(dim) +
+                        ". Squeezing is only allowed for dims of size 1."
+                );
+            out_shape[dim] = 0; // to be erased.
+        }
+        out_shape.erase(remove(out_shape.begin(), out_shape.end(), 0), out_shape.end());
+        TensorSliced out(*this);
+        out.shape = out_shape;
+        out.strides = shape2strides(out_shape);
+        return out;
+    }
+
 }
 
 
@@ -1243,6 +1286,20 @@ namespace blas {
         return out;
     }
 
+    template<typename T>
+    Tensor<T> Tensor<T>::reduce(const binary_op<T> &op, const vector<int>& dims) const {
+        shape_t out_shape(shape);
+        for(int dim: dims) {
+            dim = normalize_index(dim, shape.size());
+            out_shape[dim] = 0; // to be erased.
+        }
+        using std::remove;
+        out_shape.erase(remove(out_shape.begin(), out_shape.end(), 0), out_shape.end());
+        Tensor<T> out(out_shape);
+        this->reduce(op, dims, out);
+        return out;
+    }
+
     template<template<typename> class TensorIn,
              template<typename> class TensorOut,
              typename T>
@@ -1261,19 +1318,39 @@ namespace blas {
             template<typename> class TensorOut,
             typename T>
     void _reduce(const binary_op<T>& op, int dim, const TensorIn<T>& input, TensorOut<T>& output) {
-        SliceGroup sg = SliceGroup::cover_shape(input.shape);
-        size_t size_of_dim = input.shape[dim];
-        Slice& slice = sg.slices[dim];
-        slice.e = 1; slice.update();
+        _reduce(op, vector<int>{dim}, input, output);
+    }
+
+    template<template<typename> class TensorIn,
+            template<typename> class TensorOut,
+            typename T>
+    void _reduce(const binary_op<T>& op, vector<int> dims, const TensorIn<T>& input, TensorOut<T>& output) {
+        SliceGroup index_sg = SliceGroup::cover_shape(input.shape); // indexer for input_trick
+        SliceGroup conjugate_sg(input.shape.size()); // indexer for index_sg
+        // initialize
+        for (Slice& s : conjugate_sg.slices)
+            s = {1};
+        for (int dim: dims) {
+            index_sg.slices[dim] = {0, 1};
+            long k = input.shape[dim];
+            conjugate_sg.slices[dim] = {0, k};
+        }
         auto& input_trick = const_cast<TensorIn<T>&>(input);
-        TensorSliced<T> buffer_sg = input_trick.unchecked_slice_group(sg);
-        TensorSliced<T> squeezed = buffer_sg.const_slice_squeeze(dim);
-        output.copy_(squeezed);
-        for (int i = 1; i < size_of_dim; ++i) {
-            slice.b = i, slice.e = i+1; // no update required, the stride is good.
-            buffer_sg = input_trick.unchecked_slice_group(sg);
-            squeezed = buffer_sg.const_slice_squeeze(dim);
-            _apply_tensors_(output, squeezed, op);
+        TensorSliced<T> buffer_sg = input_trick.unchecked_slice_group(index_sg);
+        int i = 0;
+        for (const index_t& k: conjugate_sg) {
+            // Update index_sg
+            for (int dim: dims) {
+                Slice& slice = index_sg.slices[dim];
+                slice = { k[dim], k[dim] + 1 };
+            }
+            // apply:
+            buffer_sg.slice_group = index_sg;
+            auto new_squeezed = buffer_sg.const_slice_squeeze(dims);
+            if (i++ != 0)
+                _apply_tensors_(output, new_squeezed, op);
+            else
+                output.copy_(new_squeezed);
         }
     }
 
@@ -1288,6 +1365,18 @@ namespace blas {
             throw shape_mismatch(reduced, to, "reduce");
     }
 
+    void check_reduce_shapes(shape_t reduced, const shape_t& to, vector<int>& dims) {
+        // Normalize dims and select the reduced dims:
+        for (int& dim : dims) {
+            dim = normalize_index(dim, reduced.size());
+            reduced[dim] = 0; // mark for deletion
+        }
+        using std::remove;
+        reduced.erase(remove(reduced.begin(), reduced.end(), 0), reduced.end());
+        if (reduced != to)
+            throw shape_mismatch(reduced, to, "reduce");
+    }
+
 #define DEF_TENSOR_REDUCE_SINGLE(TensorIn, TensorOut) \
     template<typename T> \
     void TensorIn<T>::reduce(const binary_op<T>& op, TensorOut<T>& out) const { \
@@ -1298,6 +1387,11 @@ namespace blas {
     void TensorIn<T>::reduce(const binary_op<T>& op, int dim, TensorOut<T>& out) const { \
         check_reduce_shapes(this->shape, out.shape, dim);                      \
         _reduce(op, dim, *this, out);                                          \
+    } \
+    template<typename T> \
+    void TensorIn<T>::reduce(const binary_op<T>& op, vector<int> dims, TensorOut<T>& out) const { \
+        check_reduce_shapes(this->shape, out.shape, dims);                      \
+        _reduce(op, dims, *this, out);                                          \
     }
 
 #define DEF_TENSOR_REDUCE(TensorIn) \
@@ -1307,7 +1401,6 @@ namespace blas {
 
     DEF_TENSOR_REDUCE(Tensor)
     DEF_TENSOR_REDUCE(TensorSliced)
-
 }
 
 namespace blas {
