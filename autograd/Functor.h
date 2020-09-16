@@ -8,15 +8,14 @@
 #include "VariableBase.h"
 #include "blas/blas.h"
 
-template<typename T>
-inline vector<shape_t> get_shapes(const vector<Tensor<T>>& tensors) {
-    vector<shape_t> ret(tensors.size());
-    std::transform(tensors.begin(), tensors.end(), ret.begin(), [](const Tensor<T>& t) { return t.shape; });
-    return ret;
-}
-
-
 namespace autograd {
+
+    template<typename T>
+    inline vector<shape_t> get_shapes(const vector<Tensor<T>>& tensors) {
+        vector<shape_t> ret(tensors.size());
+        std::transform(tensors.begin(), tensors.end(), ret.begin(), [](const Tensor<T>& t) { return t.shape; });
+        return ret;
+    }
 
     template<typename T>
     inline vector<const Tensor<T>*> get_tensors(const vector<Variable<T>>& variables) {
@@ -119,9 +118,9 @@ namespace autograd {
         const bool scalar_first;
         using common_math::binary_func_data<T>::get_function_data;
     public:
-        inline ScalarTensorElemwiseFunctor(const shape_t& input_shape, T scalar, const string& name,
+        inline ScalarTensorElemwiseFunctor(const shape_t& input_shape, T scalar, const string& op_name,
                                            const binary_op<T>& op, const jac_binary_op<T>& dop, bool scalar_first) :
-               Functor<T>(vector<shape_t>{input_shape}, input_shape, "ElemwiseST[" + name + "]"),
+               Functor<T>(vector<shape_t>{input_shape}, input_shape, "ElemwiseST[" + op_name + "]"),
                scalar(scalar), _op(op), _dop(dop), scalar_first(scalar_first) {}
 
         inline ScalarTensorElemwiseFunctor(const shape_t& input_shape, T scalar, const string& name, bool scalar_first):
@@ -135,6 +134,36 @@ namespace autograd {
 
         void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T>* output_grad_ptr, Tensor<T> *grad_ptr) const noexcept override;
+    };
+
+    template<typename T>
+    class TensorTensorElemwiseFunctor : public Functor<T> {
+    private:
+        Tensor<T> grad_buffer;
+        const binary_op<T> _op;
+        const jac_binary_op<T> _dops[2];
+        using common_math::binary_func_data<T>::get_function_data;
+
+    public:
+        inline TensorTensorElemwiseFunctor(const shape_t& in_shape1, const shape_t& in_shape2, const string& op_name,
+                                           const binary_op<T>& op,
+                                           const binary_op<T>& dop1, const binary_op<T>& dop2) :
+               Functor<T>({in_shape1, in_shape2}, blas::broadcast_shapes(in_shape1, in_shape2),
+                          "ElemwiseTT[" + op_name + "]"),
+               _op(op), _dops{dop1, dop2}
+        {
+            grad_buffer = Tensor<T>(this->output_shape);
+        }
+
+        inline TensorTensorElemwiseFunctor(const shape_t& in_shape1, const shape_t& in_shape2, const string& op_name) :
+        TensorTensorElemwiseFunctor(in_shape1, in_shape2, op_name,
+                                    get<0>(get_function_data(op_name)),
+                                    get<1>(get_function_data(op_name)), get<2>(get_function_data(op_name))) {}
+
+        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const noexcept override;
+
+        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+                            const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const noexcept override;
     };
 
 }

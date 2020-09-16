@@ -14,7 +14,6 @@
 using std::cout;
 using std::endl;
 
-
 inline size_t shape2size(const std::vector<size_t>& shape) {
     return std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>{});
 }
@@ -125,7 +124,6 @@ namespace blas {
         }
         return dst;
     }
-
 
     template<typename T>
     typename Tensor<T>::iterator Tensor<T>::begin() {
@@ -850,13 +848,11 @@ namespace blas {
         return res;
     }
 
-
     template<typename T>
     TensorView<T> Tensor<T>::const_view(const vector<long> &new_shape) const {
         shape_t normalized = normalize_shape(new_shape, shape);
         return TensorView<T>(data, normalized);
     }
-
 
     template<typename T>
     TensorSliced<T> TensorSliced<T>::slice_unsqueeze(int i) {
@@ -963,7 +959,6 @@ namespace blas {
     }
 
 }
-
 
 namespace blas {
 
@@ -1427,4 +1422,3 @@ namespace blas {
     INSTANTIATE_TEMPLATE_TENSOR(float)
     INSTANTIATE_TEMPLATE_TENSOR(long)
 }
-

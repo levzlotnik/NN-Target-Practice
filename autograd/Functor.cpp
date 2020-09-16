@@ -76,6 +76,8 @@ namespace autograd {
     void ScalarTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
                                                         const Tensor<T> *output_ptr, const Tensor<T>* output_grad_ptr,
                                                         Tensor<T> *input_grad_ptr) const noexcept {
+        if (input_idx != (!scalar_first)) // We only calculate gradients for the tensor.
+            return;
         binary_op<T> dop; // takes 2 elements: (x_input, x_output) -> x_grad
         if (scalar_first)
             dop = (binary_op<T>) [this](T x, T y) { return this->_dop(this->scalar, x, y); };
@@ -87,5 +89,36 @@ namespace autograd {
         input.apply_tensors(output, dop, input_grad_ref);
         if (output_grad_ptr)
             input_grad_ref *= *output_grad_ptr;
+    }
+
+
+    template<typename T>
+    void TensorTensorElemwiseFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs,
+                                                       Tensor<T> *output_ptr) const noexcept {
+        const Tensor<T>& in1 = *input_ptrs[0];
+        const Tensor<T>& in2 = *input_ptrs[1];
+        Tensor<T>& out = *output_ptr;
+        in1.apply_tensors(in2, this->_op, out);
+    }
+
+    template<typename T>
+    void TensorTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+                                                        const Tensor<T> *output_ptr, const Tensor<T> *output_grad_ptr,
+                                                        Tensor<T> *input_grad_ptr) const noexcept {
+        const Tensor<T>& in1 = *input_ptrs[0];
+        const Tensor<T>& in2 = *input_ptrs[1];
+        const Tensor<T>& out = *output_ptr;
+        const Tensor<T>& out_grad = *output_grad_ptr;
+        Tensor<T>& in_grad = *input_grad_ptr;
+        const jac_binary_op<T>& dop = _dops[input_idx];
+        // TODO - implement.
+        //     Define a special function:
+        //     blas::apply_tensors<Args...>(function<T(T...)> op,Tensor<T>& dst, const Args&... srcs)
+        //     and use it to calculate blas::apply_tensors(dop, buffer, in1, in2, out).
+        using common_math::binary_func_data<T>::add;
+        grad_buffer *= out_grad;
+        vector<int> reduction_dims;
+        // TODO - calculate reduction_dims;
+        grad_buffer.reduce(add, reduction_dims, in_grad);
     }
 }
