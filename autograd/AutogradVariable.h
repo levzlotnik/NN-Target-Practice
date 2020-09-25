@@ -16,7 +16,7 @@ namespace autograd {
         // The functor that creates the data for the current variable.
         shared_ptr<Functor<T>> source_functor_ptr;
 
-        vector<Tensor<T>> get_args();
+        vector<const Tensor<T>*> get_args() const;
 
         void backward(VariableBase<T> *dependee, bool recursive) override;
 

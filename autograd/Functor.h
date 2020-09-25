@@ -73,9 +73,11 @@ namespace autograd {
 
         Variable<T> operator()(const vector<Variable<T>> &inputs, bool requires_grad = true) const;
 
+        virtual Functor<T>* clone() const = 0;
+
     };
 
-    // TODO - create, inherit and implement various Functors.
+#define OVERRIDE_CLONE(functor_type) Functor<T>* clone() const override { return new functor_type(*this); }
 
     // Elementwise operation on a single tensor.
     template<typename T>
@@ -103,6 +105,8 @@ namespace autograd {
                         get<0>(get_function_data(op_name)),
                         get<1>(get_function_data(op_name))) {}
 
+        OVERRIDE_CLONE(MathFunctor)
+
         void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const noexcept override;
 
         void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
@@ -129,6 +133,7 @@ namespace autograd {
                    scalar_first ? get<2>(get_function_data(name)) : get<1>(get_function_data(name)),
                    scalar_first
                ) {}
+        OVERRIDE_CLONE(ScalarTensorElemwiseFunctor)
 
         void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const noexcept override;
 
@@ -164,6 +169,68 @@ namespace autograd {
 
         void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const noexcept override;
+
+        OVERRIDE_CLONE(TensorTensorElemwiseFunctor)
+    };
+
+    template<typename T>
+    class SelectFunctor : public Functor<T> {
+        index_t selector_index;
+        static inline shape_t get_output_shape(const shape_t& shape, const index_t& idx){
+            shape_t out_shape(shape);
+            if (idx.size() >= shape.size()) {
+                throw runtime_error("index has more dimensions than the shape.");
+            }
+            for (int j=0; j < idx.size(); ++j) {
+                long i = idx[j];
+                size_t s = shape[j];
+                normalize_index(i, s); // will throw an error if it's not ok
+            }
+            out_shape.erase(out_shape.begin(), out_shape.begin() + idx.size());
+            return out_shape;
+        }
+        static inline string idx2string(const index_t& idx){
+            stringstream ss;
+            ss << '[';
+            for (int i = 0; i < idx.size(); ++i) {
+                if (i != 0)
+                    ss << ", ";
+                ss << idx[i];
+            }
+            ss << ']';
+            return ss.str();
+        }
+    public:
+        inline SelectFunctor(const shape_t& input_shape, const index_t& idx) :
+               Functor<T>({input_shape}, get_output_shape(input_shape, idx),
+                          "Select" + idx2string(idx)) {}
+        inline SelectFunctor(const shape_t& input_shape, long idx) :
+               SelectFunctor(input_shape, index_t{idx}) {}
+
+        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const noexcept override;
+
+        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+                            const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const noexcept override;
+
+        OVERRIDE_CLONE(SelectFunctor)
+    };
+
+    template<typename T>
+    class SliceFunctor : public Functor<T> {
+        blas::SliceGroup slice_group;
+    public:
+        inline SliceFunctor(const shape_t& input_shape, const blas::SliceGroup& sg) :
+               Functor<T>({input_shape}, sg.shape(),
+                          "Slice" + sg.to_str()), slice_group(sg) {}
+        inline SliceFunctor(const shape_t& input_shape, const blas::Slice& slice) :
+               SliceFunctor(input_shape, blas::SliceGroup({slice}).fill_to_shape_(input_shape)) {}
+
+        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const noexcept override;
+
+        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+                            const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const noexcept override;
+
+        OVERRIDE_CLONE(SliceFunctor)
     };
 
 }

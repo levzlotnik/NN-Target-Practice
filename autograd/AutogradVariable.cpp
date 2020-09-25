@@ -6,9 +6,10 @@
 namespace autograd {
     template<typename T>
     Tensor<T> AutogradVariable<T>::forward() {
+        Tensor<T>& out = Variable<T>::data();
         if (!this->is_leaf())
-            this->_data = (*this->source_functor_ptr)(get_args());
-        return this->_data;
+            source_functor_ptr->apply_forward(get_args(), &out);
+        return out;
     }
 
     template<typename T>
@@ -26,26 +27,25 @@ namespace autograd {
                 return;
         }
         auto args = get_args();
+        Tensor<T>& curr_data = Variable<T>::data();
+        Tensor<T>& curr_grad = Variable<T>::grad();
         for (int i = 0; i < this->dependencies.size(); ++i) {
             auto dep = this->dependencies[i];
-//        cout << "dep[" << i << "] = " << dep->name << endl;
             if (!dep->requires_grad)
                 continue;
-            auto jac = source_functor_ptr->jac(i, args, this->_data);
-//        cout << name << ".jac(" << i << ") = " << jac << endl;
-            auto dep_grad = matmul(this->grad(), jac);
-//        cout << name << ".dep[" << i << "]_grad = " << dep_grad << endl;
-            dep->accumulate_grad(dep_grad);
+            Tensor<T> local_grad(dep->grad().shape);
+            source_functor_ptr->apply_backward(i, args, &curr_data, &curr_grad, &local_grad);
+            dep->accumulate_grad(local_grad);
             if (recursive)
                 dep->backward(this, true);
         }
     }
 
     template<typename T>
-    vector<Tensor<T>> AutogradVariable<T>::get_args() {
+    vector<const Tensor<T>*> AutogradVariable<T>::get_args() const {
         vector<Tensor<T>> args;
         for (const auto &dep: this->dependencies)
-            args.emplace_back(dep->data());
+            args.emplace_back(&dep->data());
         return args;
     }
 
@@ -55,7 +55,7 @@ namespace autograd {
     }
 
     template<typename T>
-    AutogradVariable<T>::AutogradVariable(const string &name, const Functor &source_functor, bool requires_grad) :
+    AutogradVariable<T>::AutogradVariable(const string &name, const Functor<T> &source_functor, bool requires_grad) :
             VariableBase<T>(name, Tensor<T>(source_functor.output_shape), requires_grad),
             source_functor_ptr(source_functor.clone()) {}
 
