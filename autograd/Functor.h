@@ -80,6 +80,7 @@ namespace autograd {
     template<typename T>
     class MathFunctor : public Functor<T> {
     private:
+        inline static int num_instances = 0;
         const unary_op<T> _op;
         const unary_op<T> _dop;
         using ufd = common_math::unary_func_data<T>;
@@ -87,7 +88,8 @@ namespace autograd {
 
         inline MathFunctor(const shape_t& input_shape, const string& op_name,
                            const unary_op<T>& op, const unary_op<T>& dop) :
-                Functor<T>(vector<shape_t>{input_shape}, input_shape, "ElemwiseT[" + op_name + "]"),
+                Functor<T>(vector<shape_t>{input_shape}, input_shape,
+                           "ElemwiseT" + to_string(num_instances++) + "[" + op_name + "]"),
                 _op(op), _dop(dop) {}
 
         /**
@@ -113,6 +115,7 @@ namespace autograd {
     template<typename T>
     class ScalarTensorElemwiseFunctor: public Functor<T> {
     private:
+        inline static int num_instances = 0;
         const T scalar;
         const binary_op<T> _op;
         const jac_binary_op<T> _dop;
@@ -121,7 +124,8 @@ namespace autograd {
     public:
         inline ScalarTensorElemwiseFunctor(const shape_t& input_shape, T scalar, const string& op_name,
                                            const binary_op<T>& op, const jac_binary_op<T>& dop, bool scalar_first) :
-               Functor<T>(vector<shape_t>{input_shape}, input_shape, "ElemwiseST[" + op_name + "]"),
+               Functor<T>(vector<shape_t>{input_shape}, input_shape,
+                          "ElemwiseST" + to_string(num_instances++) + "[" + op_name + "]"),
                scalar(scalar), _op(op), _dop(dop), scalar_first(scalar_first) {}
 
         inline ScalarTensorElemwiseFunctor(const shape_t& input_shape, T scalar, const string& name, bool scalar_first):
@@ -141,6 +145,7 @@ namespace autograd {
     template<typename T>
     class TensorTensorElemwiseFunctor : public Functor<T> {
     private:
+        inline static int num_instances = 0;
         shared_ptr<Tensor<T>> grad_buffer_ptr;
         const binary_op<T> _op;
         const jac_binary_op<T> _dops[2];
@@ -151,7 +156,7 @@ namespace autograd {
                                            const binary_op<T>& op,
                                            const jac_binary_op<T>& dop1, const jac_binary_op<T>& dop2) :
                Functor<T>({in_shape1, in_shape2}, blas::broadcast_shapes(in_shape1, in_shape2),
-                          "ElemwiseTT[" + op_name + "]"),
+                          "ElemwiseTT" + to_string(num_instances++) + "[" + op_name + "]"),
                _op(op), _dops{dop1, dop2}
         {
             grad_buffer_ptr = std::make_shared<Tensor<T>>(this->output_shape);
@@ -186,10 +191,11 @@ namespace autograd {
             out_shape.erase(out_shape.begin(), out_shape.begin() + idx.size());
             return out_shape;
         }
+        inline static int num_instances = 0;
     public:
         inline SelectFunctor(const shape_t& input_shape, const index_t& idx) :
                Functor<T>({input_shape}, get_output_shape(input_shape, idx),
-                          "Select" + vec2string(idx)) {}
+                          "Select" + to_string(num_instances++) + vec2string(idx)) {}
         inline SelectFunctor(const shape_t& input_shape, long idx) :
                SelectFunctor(input_shape, index_t{idx}) {}
 
@@ -204,10 +210,11 @@ namespace autograd {
     template<typename T>
     class SliceFunctor : public Functor<T> {
         blas::SliceGroup slice_group;
+        inline static int num_instances = 0;
     public:
         inline SliceFunctor(const shape_t& input_shape, const blas::SliceGroup& sg) :
                Functor<T>({input_shape}, sg.shape(),
-                          "Slice" + sg.to_str()), slice_group(sg) {}
+                          "Slice" + to_string(num_instances++) + sg.to_str()), slice_group(sg) {}
         inline SliceFunctor(const shape_t& input_shape, const blas::Slice& slice) :
                SliceFunctor(input_shape, blas::SliceGroup({slice}).fill_to_shape_(input_shape)) {}
 
@@ -222,6 +229,7 @@ namespace autograd {
     template<typename T>
     class ReduceFunctor : public Functor<T> {
         using bfd = common_math::binary_func_data<T>;
+        inline static int num_instances = 0;
         static inline shape_t reduced_shape(shape_t input_shape, vector<int> dims) {
             for (int dim: dims) {
                 dim = normalize_index(dim, input_shape.size());
@@ -235,7 +243,8 @@ namespace autograd {
 
         inline ReduceFunctor(const shape_t& input_shape, const string& op_name, vector<int> dims,
                              const binary_op<T>& op, const reduce_op_jac& jac) :
-            Functor<T>({input_shape}, reduced_shape(input_shape, dims), "Reduce{" + op_name + "}" + vec2string(dims)),
+            Functor<T>({input_shape}, reduced_shape(input_shape, dims),
+                       "Reduce" + to_string(num_instances++) + "{" + op_name + "}" + vec2string(dims)),
             dims(dims), _op(op), _dop(jac), reduce_all_dims(false) {}
 
         inline ReduceFunctor(const shape_t& input_shape, const string& op_name,

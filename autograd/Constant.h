@@ -14,10 +14,6 @@ namespace autograd {
     public:
         Constant(const string &name, const Tensor<T> &data) : VariableBase<T>(name, data, false) {}
 
-        Tensor<T> forward() override {
-            return VariableBase<T>::_data;
-        }
-
         void add_dependency(const Variable <T> &dep) override {
             throw runtime_error("A constant cannot be a dependent variable.");
         }

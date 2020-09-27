@@ -21,8 +21,8 @@ namespace autograd {
 
         inline bool is_param() const final { return true; }
 
-        static Variable<T> make(const string &name, Tensor<T> data, bool requires_grad = true) {
-            return Variable<T>{new Parameter(name, std::move(data), requires_grad)};
+        static Variable<T> make(const string &name, const Tensor<T>& data, bool requires_grad = true) {
+            return Variable<T>{new Parameter(name, data, requires_grad)};
         }
 
     private:
