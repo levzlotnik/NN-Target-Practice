@@ -41,8 +41,11 @@ namespace autograd {
 
     template<typename T>
     class MSELoss : public Loss<T> {
+        inline static int num_instances = 0;
     public:
-        inline explicit MSELoss(const shape_t& input_shape) : Loss<T>({input_shape, input_shape}, "MSELoss") {}
+        inline explicit MSELoss(const shape_t& input_shape) :
+            Loss<T>({input_shape, input_shape},
+                    "MSELoss" + to_string(num_instances++)) {}
 
         OVERRIDE_CLONE(MSELoss)
 

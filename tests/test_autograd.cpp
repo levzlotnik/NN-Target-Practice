@@ -45,14 +45,14 @@ void test_autograd_linear_regression() {
     GraphvizPrinter gvzp;
     loss->gather_connection_graphviz(gvzp);
     gvzp.export_to("svg");
-    for(int i=0; i < 1000; ++i){
+    for(int i=0; i < 100; ++i){
         loss->zero_grad(true);
         // TODO - debug
-        if (i % 100 == 0)
+        if (i % 10 == 0)
             cout << "Epoch " << i+1 << ": loss= " << loss->forward_recursive().item() << "\t";
         loss->backward();
         pred_theta_param.data() -= (1e-7 * pred_theta_param.grad());
-        if (i % 100 == 0)
+        if (i % 10 == 0)
             cout << " pred_x_param = " << pred_theta_param.data() << endl;
     }
 

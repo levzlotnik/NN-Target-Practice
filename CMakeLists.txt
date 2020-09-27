@@ -26,8 +26,3 @@ target_link_libraries(nn autograd)
 # Tests
 add_subdirectory(tests)
 
-add_executable(test_distributions tests/test_distributions.cpp)
-target_link_libraries(test_distributions distributions)
-
-add_executable(test_autograd tests/test_autograd.cpp)
-target_link_libraries(test_autograd autograd)

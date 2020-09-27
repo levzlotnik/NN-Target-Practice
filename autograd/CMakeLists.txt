@@ -12,7 +12,7 @@ set(SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
     Constant.h
     Functor.cpp Functor.h
     VariableMath.h VariableMath.cpp
-    Loss.cpp Loss.h)
+    Loss.h)
 
 add_library(autograd SHARED ${SOURCE_FILES_AUTOGRAD})
 target_link_libraries(autograd blas graph2dot)

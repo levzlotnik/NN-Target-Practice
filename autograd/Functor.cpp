@@ -137,6 +137,7 @@ namespace autograd {
     void TensorTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
                                                         const Tensor<T> *output_ptr, const Tensor<T> *output_grad_ptr,
                                                         Tensor<T> *input_grad_ptr) const {
+        // TODO - optimize.
         const Tensor<T>& in1 = *input_ptrs[0];
         const Tensor<T>& in2 = *input_ptrs[1];
         const Tensor<T>& out = *output_ptr;
