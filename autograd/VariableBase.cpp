@@ -103,7 +103,7 @@ namespace autograd {
 
 
     template<typename T>
-    Tensor<T> VariableBase<T>::forward_recursive() {
+    Tensor<T> & VariableBase<T>::forward_recursive() {
         for (const auto &dep: dependencies)
             dep->forward_recursive();
         return forward();

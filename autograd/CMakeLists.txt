@@ -7,11 +7,12 @@ set(SOURCE_FILES_AUTOGRAD ${SOURCE_FILES_PROJECT_GLOBALS}
     AutogradVariable.cpp AutogradVariable.h
     VariableBase.h VariableBase.cpp
     Functor.cpp Functor.h
-    Parameter.cpp Parameter.h
-    InputBuffer.cpp InputBuffer.h
+    Parameter.h
+    InputBuffer.h
     Constant.h
     Functor.cpp Functor.h
-    VariableMath.h VariableMath.cpp)
+    VariableMath.h VariableMath.cpp
+    Loss.cpp Loss.h)
 
 add_library(autograd SHARED ${SOURCE_FILES_AUTOGRAD})
-target_link_libraries(autograd blas)
+target_link_libraries(autograd blas graph2dot)

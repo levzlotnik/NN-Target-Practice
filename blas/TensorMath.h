@@ -93,6 +93,21 @@ namespace blas {
 
     MACRO_MATH_FUNCTIONS(MATH_FUNC_TENSOR_INLINE)
 
+    template<typename T>
+    T mse(const Tensor<T>& in1, const Tensor<T>& in2) {
+        using bfd = common_math::binary_func_data<T>;
+        auto i1 = Tensor<T>::const_elem_begin(in1), i2 = Tensor<T>::const_elem_begin(in2);
+        auto e1 = Tensor<T>::const_elem_end(in1);
+        T x1, x2, x_out;
+        T n = in1.size;
+        for(; i1 != e1; ++i1, ++i2) {
+            x1 = *i1;
+            x2 = *i2;
+            x_out += bfd::pow(x1 - x2, T(2.0)) / n;
+        }
+        return x_out;
+    }
+
     template<template<typename> class  Tensor1, template<typename> class Tensor2, typename T>
     extern Tensor<T> matmul(const Tensor1<T>& t1, const Tensor2<T>& t2);
 

@@ -386,6 +386,7 @@ namespace blas
         Tensor(const Tensor &other);
         Tensor(Tensor &&other) noexcept;
         virtual ~Tensor();
+        inline T item() const { return data[0]; }
 
         friend void swap(Tensor<T> &t1, Tensor<T> &t2) {
             using std::swap;

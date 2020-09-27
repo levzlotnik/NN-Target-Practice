@@ -23,7 +23,7 @@ namespace autograd {
         AutogradVariable(const string &name, const Functor<T> &source_functor, bool requires_grad = true);
 
     public:
-        Tensor<T> forward() override;
+        Tensor<T>& forward() override;
 
         // Returns true if this variable has no dependencies.
         // Autograd variable cannot be a root if its' shape isn't 1.

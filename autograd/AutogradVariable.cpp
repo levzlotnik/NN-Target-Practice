@@ -5,8 +5,8 @@
 #include "AutogradVariable.h"
 namespace autograd {
     template<typename T>
-    Tensor<T> AutogradVariable<T>::forward() {
-        Tensor<T>& out = Variable<T>::data();
+    Tensor<T>& AutogradVariable<T>::forward() {
+        Tensor<T>& out = this->data();
         if (!this->is_leaf())
             source_functor_ptr->apply_forward(get_args(), &out);
         return out;
@@ -43,7 +43,7 @@ namespace autograd {
 
     template<typename T>
     vector<const Tensor<T>*> AutogradVariable<T>::get_args() const {
-        vector<Tensor<T>> args;
+        vector<const Tensor<T>*> args;
         for (const auto &dep: this->dependencies)
             args.emplace_back(&dep->data());
         return args;
@@ -59,4 +59,9 @@ namespace autograd {
             VariableBase<T>(name, Tensor<T>(source_functor.output_shape), requires_grad),
             source_functor_ptr(source_functor.clone()) {}
 
+#define INSTANTIATE_AUTOGRADVARIABLE(dtype) \
+    template class AutogradVariable<dtype>;
+
+    INSTANTIATE_AUTOGRADVARIABLE(double)
+    INSTANTIATE_AUTOGRADVARIABLE(float)
 }

@@ -11,5 +11,6 @@
 #include "AutogradVariable.h"
 #include "Constant.h"
 #include "VariableMath.h"
+#include "Loss.h"
 
 #endif //TARGETPRACTICE_AUTOGRAD_H

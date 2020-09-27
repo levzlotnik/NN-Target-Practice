@@ -8,11 +8,11 @@ using namespace autograd;
 
 void test_autograd_simple(){
     cout << "TEST AUTOGRAD SIMPLE:" << endl;
-    auto true_x = randn<double>(5, 10, 7);
+    auto true_x = randn<double>(5, 10, {7});
     auto pred_x = zeros_like(true_x);
     auto pred_x_param = Parameter<double>::make("pred_x", pred_x, true);
     auto true_x_buffer = InputBuffer<double>::make("true_x", true_x);
-    MSELoss criterion{pred_x.shape()};
+    MSELoss<double> criterion{pred_x.shape};
     auto loss = criterion(true_x_buffer, pred_x_param);
     for(int i=0; i < 1000; ++i){
         loss->zero_grad(true);

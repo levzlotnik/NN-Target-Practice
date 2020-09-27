@@ -14,9 +14,10 @@ namespace autograd {
     template<typename T>
     class Parameter : public VariableBase<T> {
     public:
-        Tensor<T> forward() override;
-
-        void add_dependency(const Variable<T> &dep) override;
+        void add_dependency(const Variable<T> &dep) override {
+            throw runtime_error("Parameter is an independent variable, "
+                                "adding dependencies to it will have no effect.");
+        }
 
         inline bool is_param() const final { return true; }
 
@@ -25,12 +26,16 @@ namespace autograd {
         }
 
     private:
-        string node_style_graphviz() override;
+        string node_style_graphviz() override {
+            return "shape=box style=\"rounded\"";
+        }
 
     protected:
         using VariableBase<T>::VariableBase;
 
-        void backward(VariableBase<T> *dependee, bool recursive) override;
+        void backward(VariableBase<T> *dependee, bool recursive) override {
+            // Do nothing - this is leaf variable.
+        }
     };
 }
 

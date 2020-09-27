@@ -62,16 +62,13 @@ namespace autograd {
         apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
                        const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const = 0;
 
-        inline Tensor<T> operator()(const vector<Tensor<T>> &inputs) const {
-            check_arg_shapes(get_shapes(inputs));
-            Tensor<T> output(output_shape);
-            vector<const Tensor<T>*> args(inputs.size());
-            std::transform(inputs.begin(), inputs.end(), args.begin(), [](const Tensor<T>& t) { return &t; });
-            apply_forward(args, &output);
-            return output;
-        }
-
         Variable<T> operator()(const vector<Variable<T>> &inputs, bool requires_grad = true) const;
+
+        template<class... Args>
+        inline Variable<T> operator()(const Args... inputs) const {
+            vector<Variable<T>> input_vars = {inputs...};
+            return operator()(input_vars, true);
+        }
 
         virtual Functor<T>* clone() const = 0;
 

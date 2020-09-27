@@ -66,7 +66,7 @@ namespace autograd {
 
         void accumulate_grad(const Tensor<T> &grad);
 
-        virtual Tensor<T> forward() = 0;
+        virtual Tensor<T>& forward() { return data(); }
 
         // Prepares the graph for backward operation. Should be called before
         // calling backward each time.
@@ -95,7 +95,7 @@ namespace autograd {
             return (*this);
         }
 
-        Tensor<T> forward_recursive();
+        Tensor<T> & forward_recursive();
 
         ostream &print_graphviz(ostream &os);
 
