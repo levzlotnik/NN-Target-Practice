@@ -38,6 +38,8 @@ namespace autograd {
         Variable<T> ret = AutogradVariable<T>::make(name, *this, requires_grad);
         Tensor<T>& ret_tensor = ret.data();
         apply_forward(get_tensors(inputs), &ret_tensor);
+        for(const auto& v: inputs)
+            ret.add_dependency(v);
         return ret;
     }
 

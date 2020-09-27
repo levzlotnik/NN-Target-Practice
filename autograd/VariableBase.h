@@ -124,6 +124,7 @@ namespace autograd {
         inline shape_t shape() const { return ptr->shape(); }
         inline Tensor<T>& data() const { return ptr->data(); }
         inline Tensor<T>& grad() const { return ptr->grad(); }
+        inline void add_dependency(const Variable& dep) const { return ptr->add_dependency(dep); }
 
         // Math Operations:
 #define DECL_VARIABLE_MATH_METHOD(func) \

@@ -14,6 +14,9 @@ void test_autograd_simple(){
     auto true_x_buffer = InputBuffer<double>::make("true_x", true_x);
     MSELoss<double> criterion{pred_x.shape};
     auto loss = criterion(true_x_buffer, pred_x_param);
+    GraphvizPrinter gvzp;
+    loss->gather_connection_graphviz(gvzp);
+    gvzp.export_to("svg");
     for(int i=0; i < 1000; ++i){
         loss->zero_grad(true);
         if (i % 100 == 0)
