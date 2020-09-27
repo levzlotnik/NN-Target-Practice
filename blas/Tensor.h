@@ -487,62 +487,36 @@ namespace blas
         };
 
         using iterator = subtensor_iterator<TensorView<T>>;
-        using const_iterator = subtensor_iterator<Tensor<T>>;
 
         // Checked indexing
 
-        Tensor operator[](long idx) const;
-        TensorView<T> operator[](long idx);
-        Tensor operator[](const index_t &index) const;
-        TensorView<T> operator[](const index_t &index);
-        Tensor operator()(const Slice &slice) const;
-        TensorSliced<T> operator()(const Slice &slice);
-        Tensor operator()(const SliceGroup &slice) const;
-        TensorSliced<T> operator()(const SliceGroup &slice);
+        TensorView<T> operator[](long idx) const;
+        TensorView<T> operator[](const index_t &index) const;
+        TensorSliced<T> operator()(const Slice &slice) const;
+        TensorSliced<T> operator()(const SliceGroup &slice) const;
 
-        virtual Tensor unchecked_subscript(long idx) const; // Gets subtensor rvalue
-        virtual TensorView<T> unchecked_subscript(long idx); // Gets subtensor lvalue
-        virtual Tensor unchecked_subscript(const index_t &index) const; // Gets subtensor rvalue
-        virtual TensorView<T> unchecked_subscript(const index_t &index); // Gets subtensor lvalue
-        virtual Tensor unchecked_slice(const Slice &slice) const;   // Gets slice rvalue
-        virtual TensorSliced<T> unchecked_slice(const Slice &slice); // Gets slice lvalue
-        virtual Tensor unchecked_slice_group(const SliceGroup &slice_group) const;  // Gets slice rvalue
-        virtual TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group); // Gets slice lvalue
-
-        // Returns a slice for the index.
-        inline TensorSliced<T> unchecked_subscript_slice(const index_t& index) {
-            SliceGroup sg = SliceGroup::cover_index(index).fill_to_shape_(this->shape);
-            TensorSliced ret = unchecked_slice_group(sg);
-            // It's safe to just remove all the trailing shapes because
-            // this slice is contiguous
-            shape_t ret_new_shape{ret.shape.begin() + index.size(), ret.shape.end()};
-            ret.shape = ret_new_shape;
-            return ret;
-        }
+        virtual TensorView<T> unchecked_subscript(long idx) const; // Gets subtensor lvalue
+        virtual TensorView<T> unchecked_subscript(const index_t &index) const; // Gets subtensor lvalue
+        virtual TensorSliced<T> unchecked_slice(const Slice &slice) const; // Gets slice lvalue
+        virtual TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) const;
         // Returns a slice for the index.
         inline TensorSliced<T> unchecked_subscript_slice(const index_t& index) const {
             SliceGroup sg = SliceGroup::cover_index(index).fill_to_shape_(this->shape);
-            TensorSliced ret = const_cast<Tensor&>(*this).unchecked_slice_group(sg);
+            TensorSliced ret = this->unchecked_slice_group(sg);
             // It's safe to just remove all the trailing shapes because
             // this slice is contiguous
             shape_t ret_new_shape{ret.shape.begin() + index.size(), ret.shape.end()};
             ret.shape = ret_new_shape;
             return ret;
         }
-        // ONLY FOR INTENRAL USE
-        TensorView<T> optimized_unchecked_subscript(int idx) const;
-        TensorView<T> optimized_unchecked_subscript(const index_t &index) const;
 
         virtual Tensor contiguous() { return *this; }
         static T& get(Tensor<T>& t, size_t true_idx) { return t.data[true_idx]; }
         static T get(const Tensor<T>& t, size_t true_idx) { return t.data[true_idx]; }
 
         // Iterate over subtensors.
-        iterator begin();
-        iterator end();
-
-        const_iterator begin() const;
-        const_iterator end() const;
+        iterator begin() const;
+        iterator end() const;
 
         // Iterate over elements.
         typedef T *eiterator;
@@ -709,8 +683,7 @@ namespace blas
 
         TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group);
 
-        TensorSliced(Tensor<T>& t, const SliceGroup &slice_group);
-        static TensorSliced _from_const(const Tensor<T>& t, const SliceGroup &slice_group);
+        TensorSliced(const Tensor <T> &t, const SliceGroup &slice_group);
 
     public:
         ~TensorSliced() override = default;
@@ -761,16 +734,11 @@ namespace blas
         static inline ceiterator const_elem_begin(const TensorSliced &ts);
         static inline ceiterator const_elem_end(const TensorSliced &ts);
 
-        Tensor<T> unchecked_subscript(long idx) const override;
-        Tensor<T> unchecked_subscript(const index_t &index) const override;
         /* We mark these as forbidden because we cannot create TensorView out of TensorSlice.*/
-
-        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(long idx) override)
-        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(const index_t &index) override)
-        Tensor<T> unchecked_slice(const Slice &slice) const override;
-        TensorSliced<T> unchecked_slice(const Slice &slice) override;
-        Tensor<T> unchecked_slice_group(const SliceGroup &slice_group) const override;
-        TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) override;
+        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(long idx) const override)
+        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(const index_t &index) const override)
+        TensorSliced<T> unchecked_slice(const Slice &slice) const override;
+        TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) const override;
         MARK_FORBIDDEN(TensorView<T> view(const vector<long>& new_shape) override)
 
 #define DECL_TENSOR_REDUCE_OVERRIDE(TensorOut) \

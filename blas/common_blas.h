@@ -10,17 +10,6 @@
 #include "../common.h"
 #include "../common_math.h"
 
-#define MACRO_BASIC_ARITHMETIC_OPERATORS(macro) \
-    macro(+) \
-    macro(-) \
-    macro(*) \
-    macro(/)
-
-#define MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(macro) \
-    macro(+=) \
-    macro(-=) \
-    macro(*=) \
-    macro(/=)
 
 static long normalize_index(long i, long n, bool inclusive= false){
     if (inclusive && i == n)

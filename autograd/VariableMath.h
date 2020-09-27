@@ -1,42 +1,80 @@
 //
-// Created by LevZ on 6/27/2020.
+// Created by LevZ on 9/26/2020.
 //
 
 #ifndef TARGETPRACTICE_VARIABLEMATH_H
 #define TARGETPRACTICE_VARIABLEMATH_H
 
-#include "VariableBase.h"
-#include "../common.h"
+#include <numeric>
+#include "AutogradVariable.h"
+#include "Functor.h"
+#include "../common_math.h"
 
-Variable operator+(const Variable& v1, const Variable& v2);
-Variable operator*(const Variable& v1, const Variable& v2);
-Variable operator/(const Variable& v1, const Variable& v2);
-Variable operator-(const Variable& v1, const Variable& v2);
+namespace autograd {
 
-Variable operator+(float scalar, const Variable& v);
-Variable operator*(float scalar, const Variable& v);
-Variable operator/(float scalar, const Variable& v);
-Variable operator-(float scalar, const Variable& v);
+#define VARIABLE_BINARY_MATH_MACRO(op, op_name, modifier)                                               \
+    template<typename T>                                                                                \
+    Variable<T> modifier op(const Variable<T>& v1, const Variable<T>& v2) {                             \
+        TensorTensorElemwiseFunctor<T> functor{v1.shape(), v2.shape(), op_name};                      \
+        return functor({v1, v2});                                                                       \
+    }                                                                                                   \
+    template<typename T>                                                                                \
+    Variable<T> modifier op(T scalar, const Variable<T>& v) {                                           \
+        ScalarTensorElemwiseFunctor<T> functor{v.shape(), scalar, op_name, true};                      \
+        return functor({v});                                                                            \
+    }                                                                                                   \
+    template<typename T>                                                                                \
+    Variable<T> modifier op(const Variable<T>& v, T scalar) {                                           \
+        ScalarTensorElemwiseFunctor<T> functor{v.shape(), scalar, op_name, false};                     \
+        return functor({v});                                                                            \
+    }
 
-Variable operator+(const Variable& v, float scalar);
-Variable operator*(const Variable& v, float scalar);
-Variable operator/(const Variable& v, float scalar);
-Variable operator-(const Variable& v, float scalar);
+#define VARIABLE_MATH_OP(op, op_name) VARIABLE_BINARY_MATH_MACRO(op, op_name, operator)
 
+    MACRO_BASIC_ARITHMETIC_OPERATORS_NAMED(VARIABLE_MATH_OP)
 
-#define DECL_MATH_FUNCTION_VARIABLE(func) \
-    Variable func(const Variable& v);
+#define EMPTY
+    VARIABLE_BINARY_MATH_MACRO(pow, "pow", EMPTY)
+#undef EMPTY
 
-MACRO_MATH_FUNCTIONS(DECL_MATH_FUNCTION_VARIABLE)
+#define VARIABLE_MATH_FUNC(func) \
+    template<typename T>         \
+    Variable<T> func(const Variable<T>& v) { \
+        MathFunctor<T> functor{v.shape(), #func}; \
+        return functor({v}); \
+    }
+    MACRO_MATH_FUNCTIONS(VARIABLE_MATH_FUNC)
 
-Variable pow(const Variable& v1, const Variable& v2);
-Variable pow(const Variable& v, float x);
-Variable pow(float x, const Variable& v);
+    static inline string generate_op_name(){
+        static int i = 0;
+        using std::to_string;
+        return "op__" + to_string(i++);
+    }
 
-Variable sum(const Variable& v);
-Variable mean(const Variable& v);
+    template<typename T>
+    Variable<T> reduce(const Variable<T>& v,
+                       const binary_op<T>& op, const binary_op<T>& op_jac, const vector<int>& dims, string op_name = "") {
+        if (op_name.empty())
+            op_name = generate_op_name();
+        ReduceFunctor<T> functor(v.shape(), op_name, dims, op, op_jac);
+        return functor({v});
+    }
 
-Variable mse(const Variable& v_true, const Variable& v_pred);
+    template<typename T>
+    Variable<T> reduce(const Variable<T>& v,
+                       const binary_op<T>& op, const binary_op<T>& op_jac, const string& op_name = "") {
+        vector<int> dims(v.shape().size());
+        std::iota(dims.begin(), dims.end(), 0);
+        return reduce(v, op, op_jac, dims, op_name);
+    }
 
+    template<typename T>
+    Variable<T> reduce(const Variable<T>& v,
+                       const binary_op<T>& op, const binary_op<T>& op_jac, int dim, const string& op_name = "") {
+        vector<int> dims = {dim};
+        return reduce(v, op, op_jac, dims, op_name);
+    }
+
+}
 
 #endif //TARGETPRACTICE_VARIABLEMATH_H

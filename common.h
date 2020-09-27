@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 #include <unordered_set>
+#include <vector>
+#include <sstream>
 
 
 class warning : public std::exception {
@@ -32,5 +34,18 @@ public:
 private:
     std::string msg;
 };
+
+template<typename T>
+static inline std::string vec2string(const std::vector<T>& v) {
+    std::stringstream ss;
+    ss << '[';
+    for (int i = 0; i < v.size(); ++i){
+        if (i != 0)
+            ss << ", ";
+        ss << v[i];
+    }
+    ss << ']';
+    return ss.str();
+}
 
 #endif //TARGETPRACTICE_COMMON_H

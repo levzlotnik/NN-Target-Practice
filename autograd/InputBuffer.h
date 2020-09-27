@@ -30,7 +30,7 @@ namespace autograd {
     protected:
         InputBuffer(string name, const Tensor<T>& data) : VariableBase<T>(std::move(name), data, false) {}
 
-        void backward(VariableBase *dependee, bool recursive) override;
+        void backward(VariableBase<T> *dependee, bool recursive) override;
     };
 
 }

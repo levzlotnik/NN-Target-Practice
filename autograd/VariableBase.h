@@ -58,7 +58,7 @@ namespace autograd {
 
         Tensor<T> &grad();
 
-        inline shape_t shape() const { return _data.shape(); }
+        inline shape_t shape() const { return _data.shape; }
 
         virtual void add_dependency(const Variable<T> &dep);
 
@@ -112,21 +112,26 @@ namespace autograd {
         ptr_type ptr;
     public:
         inline explicit Variable(ptr_type p) : ptr(p) {}
-
         inline explicit Variable(VariableBase<T> *p) : ptr(p) {}
-
         inline Variable &rename(string name) {
             ptr->rename(name);
             return (*this);
         }
-
         inline VariableBase<T> &operator*() const noexcept { return *ptr; }
-
-        inline VariableBase<T> *operator->() const noexcept { return ptr.operator->(); }
-
         inline VariableBase<T> *get() const noexcept { return ptr.get(); }
-
+        inline VariableBase<T>* operator->() const noexcept { return ptr.operator->(); }
         inline bool equals(const Variable &other) const noexcept { return ptr == other.ptr; }
+        inline shape_t shape() const { return ptr->shape(); }
+        inline Tensor<T>& data() const { return ptr->data(); }
+        inline Tensor<T>& grad() const { return ptr->grad(); }
+
+        // Math Operations:
+#define DECL_VARIABLE_MATH_METHOD(func) \
+        Variable<T> func() const;
+
+        MACRO_MATH_FUNCTIONS(DECL_VARIABLE_MATH_METHOD)
+
+
     };
 }
 

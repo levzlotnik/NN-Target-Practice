@@ -9,7 +9,6 @@
 #include "Parameter.h"
 #include "InputBuffer.h"
 #include "AutogradVariable.h"
-#include "RandomVariable.h"
 #include "Constant.h"
 #include "VariableMath.h"
 

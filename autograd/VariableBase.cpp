@@ -4,12 +4,13 @@
 
 #include "VariableBase.h"
 #include "Functor.h"
+#include "VariableMath.h"
 
 namespace autograd {
 
     template<typename T>
     void VariableBase<T>::add_dependency(const Variable<T> &dep) {
-        if (!dep) {
+        if (dep.get() == nullptr) {
             warning::warn("Adding null dependency is ignored.");
             return;
         }
@@ -61,7 +62,7 @@ namespace autograd {
                           "flow from the middle of the graph, and may produce unexpected results. "
                           "Avoid it unless you really know what you're doing.");
         prepare_backward();
-        grad().fill_(1);
+        grad().fill_(T(1));
         backward(nullptr, true);
     }
 
@@ -94,7 +95,7 @@ namespace autograd {
     void VariableBase<T>::zero_grad(bool recursive) {
         if (!requires_grad)
             return;
-        _grad.fill_(0);
+        _grad.fill_(T(0));
         if (recursive)
             for (const auto &dep: dependencies)
                 dep->zero_grad(true);
@@ -152,4 +153,17 @@ namespace autograd {
             dependee->dependencies.erase(it_dependee, dependee->dependencies.end());
         }
     }
+
+#define DEF_VARIABLE_MATH_METHOD(func) \
+    template<typename T> Variable<T> Variable<T>::func() const { return autograd::func(*this); }
+
+    MACRO_MATH_FUNCTIONS(DEF_VARIABLE_MATH_METHOD)
+
+#define INSTANTIATE_TEMPLATE_VARIABLE(dtype) \
+    template class VariableBase<dtype>;      \
+    template class Variable<dtype>;
+
+    INSTANTIATE_TEMPLATE_VARIABLE(double)
+    INSTANTIATE_TEMPLATE_VARIABLE(float)
+
 }

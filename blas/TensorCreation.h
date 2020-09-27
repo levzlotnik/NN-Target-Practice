@@ -62,6 +62,12 @@ namespace blas
     template<typename T>
     inline Tensor<T> randn(T mu, T sigma, const shape_t& shape);
 
+    template<typename T, typename... Args>
+    inline Tensor<T> randn(T mu, T sigma, Args... args) {
+        shape_t shape = {size_t(args...)};
+        return randn(mu, sigma, shape);
+    }
+
     template<typename T>
     inline Tensor<T> uniform(const Tensor<T>& lower, const Tensor<T>& upper, const shape_t& shape) NOT_IMPLEMENTED
 

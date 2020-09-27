@@ -8,8 +8,8 @@
 
 namespace autograd {
     template<typename T>
-    Vector InputBuffer<T>::forward() {
-        return _data;
+    Tensor<T> InputBuffer<T>::forward() {
+        return this->_data;
     }
 
     template<typename T>

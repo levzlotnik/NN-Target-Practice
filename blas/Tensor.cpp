@@ -126,8 +126,8 @@ namespace blas {
     }
 
     template<typename T>
-    typename Tensor<T>::iterator Tensor<T>::begin() {
-        if (shape == shape_t{1})
+    typename Tensor<T>::iterator Tensor<T>::begin() const {
+        if (shape.empty() || shape == shape_t{1})
             throw std::out_of_range("Cannot iterate over a scalar tensor.");
         size_t stride = strides[0];
         shape_t remaining_shape{shape.begin() + 1, shape.end()};
@@ -135,32 +135,13 @@ namespace blas {
     }
 
     template<typename T>
-    typename Tensor<T>::iterator Tensor<T>::end() {
+    typename Tensor<T>::iterator Tensor<T>::end() const {
         if (shape == shape_t{1})
             throw std::out_of_range("Cannot iterate over a scalar tensor.");
         size_t stride = strides[0];
         size_t pos = shape[0];
         shape_t remaining_shape{shape.begin() + 1, shape.end()};
         return Tensor::iterator(data, stride, pos, remaining_shape);
-    }
-
-    template<typename T>
-    typename Tensor<T>::const_iterator Tensor<T>::begin() const {
-        if (shape == shape_t{1})
-            throw std::out_of_range("Cannot iterate over a scalar tensor.");
-        size_t stride = strides[0];
-        shape_t remaining_shape{shape.begin() + 1, shape.end()};
-        return Tensor::const_iterator(data, stride, 0, remaining_shape);
-    }
-
-    template<typename T>
-    typename Tensor<T>::const_iterator Tensor<T>::end() const {
-        if (shape == shape_t{1})
-            throw std::out_of_range("Cannot iterate over a scalar tensor.");
-        size_t stride = strides[0];
-        size_t pos = shape[0];
-        shape_t remaining_shape{shape.begin() + 1, shape.end()};
-        return Tensor::const_iterator(data, stride, pos, remaining_shape);
     }
 
     template<typename T>
@@ -317,50 +298,25 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> Tensor<T>::operator[](long idx) const {
+    TensorView<T> Tensor<T>::operator[](long idx) const {
         idx = normalize_index(idx, shape[0]);
         return unchecked_subscript(idx);
     }
 
     template<typename T>
-    TensorView<T> Tensor<T>::operator[](long idx) {
-        idx = normalize_index(idx, shape[0]);
-        return unchecked_subscript(idx);
-    }
-
-    template<typename T>
-    Tensor<T> Tensor<T>::operator[](const index_t &index) const {
+    TensorView<T> Tensor<T>::operator[](const index_t &index) const{
         index_t idx = normalize_index(index, shape);
         return unchecked_subscript(idx);
     }
 
     template<typename T>
-    TensorView<T> Tensor<T>::operator[](const index_t &index) {
-        index_t idx = normalize_index(index, shape);
-        return unchecked_subscript(idx);
-    }
-
-    template<typename T>
-    Tensor<T> Tensor<T>::operator()(const Slice &slice) const {
-        auto s = normalize_slice(slice, -1);
-        return unchecked_slice(s);
-    }
-
-    template<typename T>
-    TensorSliced<T> Tensor<T>::operator()(const Slice &slice) {
+    TensorSliced<T> Tensor<T>::operator()(const Slice &slice) const {
         auto s = normalize_slice(slice, -1);
         TensorSliced<T> ret = unchecked_slice(s);
         return ret;
     }
-
     template<typename T>
-    Tensor<T> Tensor<T>::operator()(const SliceGroup &slice_group) const {
-        auto sg = normalize_slice_group(slice_group);
-        return unchecked_slice_group(sg);
-    }
-
-    template<typename T>
-    TensorSliced<T> Tensor<T>::operator()(const SliceGroup &slice_group) {
+    TensorSliced<T> Tensor<T>::operator()(const SliceGroup &slice_group) const {
         auto sg = normalize_slice_group(slice_group);
         return unchecked_slice_group(sg);
     }
@@ -401,70 +357,30 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> Tensor<T>::unchecked_subscript(long idx) const {
-        Tensor::const_iterator it = begin();
-        return *(it + idx);
-    }
-
-    template<typename T>
-    TensorView<T> Tensor<T>::unchecked_subscript(long idx) {
+    TensorView<T> Tensor<T>::unchecked_subscript(long idx) const {
         Tensor::iterator it = begin();
         return *(it + idx);
     }
 
     template<typename T>
-    Tensor<T> Tensor<T>::unchecked_subscript(const index_t &index) const {
-        long idx = ravel_index(index, shape, size);
-        std::vector<size_t> remaining_shape = std::vector<size_t>{shape.begin() + index.size(), shape.end()};
-        return Tensor(&data[idx], remaining_shape);
-    }
-
-    template<typename T>
-    TensorView<T> Tensor<T>::unchecked_subscript(const index_t &index) {
+    TensorView<T> Tensor<T>::unchecked_subscript(const index_t &index) const {
         long idx = ravel_index(index, shape, size);
         std::vector<size_t> remaining_shape = std::vector<size_t>{shape.begin() + index.size(), shape.end()};
         return TensorView(&data[idx], remaining_shape);
     }
 
     template<typename T>
-    TensorView<T> Tensor<T>::optimized_unchecked_subscript(int idx) const {
-        TensorView<T> x = const_cast<Tensor *>(this)->unchecked_subscript(idx);
-        return static_cast<TensorView<T>>(x);
-    }
-
-    template<typename T>
-    TensorView<T> Tensor<T>::optimized_unchecked_subscript(const index_t &index) const {
-        TensorView<T> x = const_cast<Tensor *>(this)->unchecked_subscript(index);
-        return static_cast<TensorView<T>>(x);
-    }
-
-    template<typename T>
-    Tensor<T> Tensor<T>::unchecked_slice(const Slice &slice) const {
+    TensorSliced<T> Tensor<T>::unchecked_slice(const Slice &slice) const {
         SliceGroup sg;
         sg.slices.reserve(shape.size());
         sg.slices.emplace_back(slice);
         for (int i = 1; i < shape.size(); ++i)
             sg.slices.emplace_back(0, shape[i], 1);
-        return TensorSliced<T>::_from_const(*this, sg).contiguous();
+        return TensorSliced<T>(*this, sg);
     }
 
     template<typename T>
-    TensorSliced<T> Tensor<T>::unchecked_slice(const Slice &slice) {
-        SliceGroup sg;
-        sg.slices.reserve(shape.size());
-        sg.slices.emplace_back(slice);
-        for (int i = 1; i < shape.size(); ++i)
-            sg.slices.emplace_back(0, shape[i], 1);
-        return TensorSliced(*this, sg);
-    }
-
-    template<typename T>
-    Tensor<T> Tensor<T>::unchecked_slice_group(const SliceGroup &slice_group) const {
-        return TensorSliced<T>::_from_const(*this, slice_group).contiguous();
-    }
-
-    template<typename T>
-    TensorSliced<T> Tensor<T>::unchecked_slice_group(const SliceGroup &slice_group) {
+    TensorSliced<T> Tensor<T>::unchecked_slice_group(const SliceGroup &slice_group) const{
         return TensorSliced<T>(*this, slice_group);
     }
 
@@ -645,14 +561,9 @@ namespace blas {
     }
 
     template<typename T>
-    TensorSliced<T>::TensorSliced(Tensor<T> &t, const SliceGroup &slice_group) :
+    TensorSliced<T>::TensorSliced(const Tensor <T> &t, const SliceGroup &slice_group) :
             TensorSliced<T>(t.get_data_ptr(), t.shape, slice_group) {
 
-    }
-
-    template<typename T>
-    TensorSliced<T> TensorSliced<T>::_from_const(const Tensor<T> &t, const SliceGroup &slice_group) {
-        return TensorSliced(t.get_data_ptr(), t.shape, slice_group);
     }
 
     template<typename T>
@@ -691,32 +602,7 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> TensorSliced<T>::unchecked_subscript(long idx) const {
-        SliceGroup sg{this->slice_group};
-        select_elem(sg.slices[0], idx);
-        TensorSliced ret(this->data, this->underlying_tensor_shape, std::move(sg));
-        return ret.contiguous();
-    }
-
-    template<typename T>
-    Tensor<T> TensorSliced<T>::unchecked_subscript(const index_t &index) const {
-        SliceGroup sg{this->slice_group};
-        for (int i = 0; i < index.size(); ++i)
-            select_elem(sg.slices[i], index[i]);
-        TensorSliced ret(this->data, this->underlying_tensor_shape, std::move(sg));
-        return ret.contiguous();
-    }
-
-    template<typename T>
-    Tensor<T> TensorSliced<T>::unchecked_slice(const Slice &slice) const {
-        SliceGroup sg{this->slice_group};
-        sg.slices[0] = sg.slices[0].subslice(slice);
-        TensorSliced ret(this->data, this->underlying_tensor_shape, sg);
-        return ret.contiguous();
-    }
-
-    template<typename T>
-    TensorSliced<T> TensorSliced<T>::unchecked_slice(const Slice &slice) {
+    TensorSliced<T> TensorSliced<T>::unchecked_slice(const Slice &slice) const {
         SliceGroup sg{this->slice_group};
         sg.slices[0] = sg.slices[0].subslice(slice);
         TensorSliced ret(this->data, this->underlying_tensor_shape, sg);
@@ -724,13 +610,7 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> TensorSliced<T>::unchecked_slice_group(const SliceGroup &rel_sg) const {
-        TensorSliced ret(this->data, this->underlying_tensor_shape, this->slice_group.subslice(rel_sg));
-        return ret.contiguous();
-    }
-
-    template<typename T>
-    TensorSliced<T> TensorSliced<T>::unchecked_slice_group(const SliceGroup &rel_sg) {
+    TensorSliced<T> TensorSliced<T>::unchecked_slice_group(const SliceGroup &rel_sg) const {
         TensorSliced ret(this->data, this->underlying_tensor_shape, this->slice_group.subslice(rel_sg));
         return ret;
     }
@@ -1330,18 +1210,16 @@ namespace blas {
             long k = input.shape[dim];
             conjugate_sg.slices[dim] = {0, k};
         }
-        auto& input_trick = const_cast<TensorIn<T>&>(input);
-        TensorSliced<T> buffer_sg = input_trick.unchecked_slice_group(index_sg);
+        TensorSliced<T> buffer_sliced = input.unchecked_slice_group(index_sg);
         int i = 0;
         for (const index_t& k: conjugate_sg) {
             // Update index_sg
             for (int dim: dims) {
-                Slice& slice = index_sg.slices[dim];
+                Slice& slice = buffer_sliced.slice_group.slices[dim];
                 slice = { k[dim], k[dim] + 1 };
             }
             // apply:
-            buffer_sg.slice_group = index_sg;
-            auto new_squeezed = buffer_sg.const_slice_squeeze(dims);
+            auto new_squeezed = buffer_sliced.const_slice_squeeze(dims);
             if (i++ != 0)
                 _apply_tensors_(output, new_squeezed, op);
             else

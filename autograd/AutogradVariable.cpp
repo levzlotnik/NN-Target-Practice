@@ -27,8 +27,8 @@ namespace autograd {
                 return;
         }
         auto args = get_args();
-        Tensor<T>& curr_data = Variable<T>::data();
-        Tensor<T>& curr_grad = Variable<T>::grad();
+        Tensor<T>& curr_data = this->data();
+        Tensor<T>& curr_grad = this->grad();
         for (int i = 0; i < this->dependencies.size(); ++i) {
             auto dep = this->dependencies[i];
             if (!dep->requires_grad)
