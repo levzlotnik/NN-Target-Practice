@@ -36,23 +36,30 @@ namespace autograd {
             Tensor<T>& input_grad = *input_grad_ptr;
             const Tensor<T>& output = *output_ptr;
             this->backward(input_idx, input_ptrs, output, input_grad);
+            input_grad *= output_grad;
         }
     };
 
     template<typename T>
     class MSELoss : public Loss<T> {
         inline static int num_instances = 0;
+        T normalization_factor;
     public:
         inline explicit MSELoss(const shape_t& input_shape) :
             Loss<T>({input_shape, input_shape},
-                    "MSELoss" + to_string(num_instances++)) {}
+                    "MSELoss" + to_string(num_instances++)) {
+            // We normalize by the batch
+            if (input_shape.empty())
+                throw std::runtime_error("MSELoss can only be calculated for rank 1 (or more) tensors.");
+            normalization_factor = input_shape[0];
+        }
 
         OVERRIDE_CLONE(MSELoss)
 
         void forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> &out) const override {
             const Tensor<T>& in1 = *input_ptrs[0];
             const Tensor<T>& in2 = *input_ptrs[1];
-            Tensor<T>::get(out, 0) = blas::mse(in1, in2);
+            Tensor<T>::get(out, 0) = blas::mse(in1, in2, normalization_factor);
         }
 
         void backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> &out,
@@ -61,7 +68,7 @@ namespace autograd {
             // The tensors.
             const Tensor<T>& in1 = *input_ptrs[0];
             const Tensor<T>& in2 = *input_ptrs[1];
-            T multiplier = 2.0 * (input_idx == 0 ? 1 : -1);
+            T multiplier = 2.0 * (input_idx == 0 ? 1 : -1) / normalization_factor;
             using bfd = common_math::binary_func_data<T>;
             in1.apply_tensors(in2, bfd::sub, input_grad); // (input_grad = in1 - in2) [but without memory overhead]
             input_grad *= multiplier;

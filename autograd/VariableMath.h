@@ -15,17 +15,17 @@ namespace autograd {
 #define VARIABLE_BINARY_MATH_MACRO(op, op_name, modifier)                                               \
     template<typename T>                                                                                \
     Variable<T> modifier op(const Variable<T>& v1, const Variable<T>& v2) {                             \
-        TensorTensorElemwiseFunctor<T> functor{v1.shape(), v2.shape(), op_name};                      \
+        TensorTensorElemwiseFunctor<T> functor{v1.shape(), v2.shape(), op_name};                        \
         return functor({v1, v2});                                                                       \
     }                                                                                                   \
     template<typename T>                                                                                \
     Variable<T> modifier op(T scalar, const Variable<T>& v) {                                           \
-        ScalarTensorElemwiseFunctor<T> functor{v.shape(), scalar, op_name, true};                      \
+        ScalarTensorElemwiseFunctor<T> functor{v.shape(), scalar, op_name, true};                       \
         return functor({v});                                                                            \
     }                                                                                                   \
     template<typename T>                                                                                \
     Variable<T> modifier op(const Variable<T>& v, T scalar) {                                           \
-        ScalarTensorElemwiseFunctor<T> functor{v.shape(), scalar, op_name, false};                     \
+        ScalarTensorElemwiseFunctor<T> functor{v.shape(), scalar, op_name, false};                      \
         return functor({v});                                                                            \
     }
 

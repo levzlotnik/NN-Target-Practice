@@ -30,7 +30,7 @@ namespace autograd {
         Tensor<T>& curr_data = this->data();
         Tensor<T>& curr_grad = this->grad();
         for (int i = 0; i < this->dependencies.size(); ++i) {
-            auto dep = this->dependencies[i];
+            auto& dep = this->dependencies[i];
             if (!dep->requires_grad)
                 continue;
             Tensor<T> local_grad(dep->grad().shape);

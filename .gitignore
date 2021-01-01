@@ -33,6 +33,13 @@
 
 # CMake
 cmake-build-*/
+build/*
 
 # idea
 .idea/*
+
+# vscode
+.vscode/*
+
+# debug log
+./**/*debug.log

@@ -117,12 +117,29 @@ namespace autograd {
     template<typename T>
     static void apply_triop(Tensor<T>& out, const std::function<T (T, T, T)>& op,
                      const Tensor<T>& in1, const Tensor<T>& in2, const Tensor<T>& in3) {
+        using namespace blas;
+        if (in3.shape != out.shape)
+            throw shape_mismatch(in3.shape, out.shape, "apply_triop");
+        SliceGroup sg_in1 = SliceGroup::cover_shape(in1.shape);
+        T x;
+        binary_op<T> kernel = [&x, &op](T e2, T e3) -> T {
+            return op(x, e2, e3);
+        };
+        for (const auto& idx_in1 : sg_in1){
+            size_t idx_true_in1 = ravel_index(idx_in1, in1.shape, in1.size);
+            x = Tensor<T>::get(in1, idx_true_in1);
+            auto [sg_in2, sg_out] = broadcast_index(idx_in1, in1.shape, in2.shape, out.shape);
+            TensorSliced<T> slice_in2 = in2.unchecked_slice_group(sg_in2);
+            TensorSliced<T> slice_in3 = in3.unchecked_slice_group(sg_out);
+            TensorSliced<T> slice_out = out.unchecked_slice_group(sg_out);
+            slice_in2.apply_tensors(slice_in3, kernel, slice_out);
+        }
     }
 
     inline vector<int> get_output_reduction_dims(const shape_t& input_shape, const shape_t& output_shape) {
         vector<int> ret;
         size_t dims_in = input_shape.size(), dims_out = output_shape.size();
-        for (int i = 0; i < dims_in; ++i){
+        for (int i = 0; i < dims_in; ++i) {
             int idx_in = dims_in - i - 1;
             int idx_out = dims_out - i - 1;
             if (input_shape[idx_in] == 1)
@@ -137,7 +154,7 @@ namespace autograd {
     void TensorTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
                                                         const Tensor<T> *output_ptr, const Tensor<T> *output_grad_ptr,
                                                         Tensor<T> *input_grad_ptr) const {
-        // TODO - optimize.
+        // TODO - debug & optimize.
         const Tensor<T>& in1 = *input_ptrs[0];
         const Tensor<T>& in2 = *input_ptrs[1];
         const Tensor<T>& out = *output_ptr;
@@ -222,15 +239,13 @@ namespace autograd {
     template<typename T>
     static std::function<T(T, T)> get_jac(const string& op_name) {
         using common_math::jac_binary_op;
-        using b = common_math::binary_func_data<T>;
         if (op_name != "add" && op_name != "mul")
             throw std::invalid_argument("This function isn't supported for reduce operation.\n"
                                         "Reduce requires a commutative (i.e. symmetric) operation.");
-        auto op_data = b::get_function_data(op_name);
         if (op_name == "add")
             return [](T in, T out) -> T { return 1; };
-        else
-            return [](T in, T out) -> T { return in != 0 ? out / in : 0; };
+        else // "mul"
+            throw std::runtime_error("\"mul\" is unsupported yet.");
     }
 
     template<typename T>

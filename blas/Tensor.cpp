@@ -658,9 +658,9 @@ namespace blas {
         // TODO - optimize this mechanic.
         SliceGroup sg_src2(src2_shape.size()), sg_dst(dst_shape.size());
         for (int i = 0; i < dst_shape.size(); ++i) {
-            size_t dsts_idx = dst_shape.size() - 1 - i;
-            size_t src1s_idx = src1_shape.size() - 1 - i;
-            size_t src2s_idx = src2_shape.size() - 1 - i;
+            int dsts_idx = dst_shape.size() - 1 - i;
+            int src1s_idx = src1_shape.size() - 1 - i;
+            int src2s_idx = src2_shape.size() - 1 - i;
             Slice &src2_s = sg_src2.slices[src2s_idx], &dst_s = sg_dst.slices[dsts_idx];
             if (src1s_idx < 0) { // this shape has finished, which means that other two shapes are definitely not
                 size_t s2 = src2_shape[src2s_idx], d = dst_shape[dsts_idx];
@@ -947,11 +947,11 @@ namespace blas {
             throw broadcast_failure(dst.shape, broadcast_shape);
         // We would like the smaller size tensor to be iterated on.
         if (src1.size < src2.size) {
+            binary_op<T> rev_op = [op](T x, T y) -> T { return op(y, x); };
             for (size_t src1_true_idx = 0; src1_true_idx < src1.size; ++src1_true_idx) {
                 T src1_x = TnsrSrc1<T>::get(src1, src1_true_idx);
                 index_t src1_idx = unravel_index(src1_true_idx, src1.shape, src1.size);
                 auto[sg_src2, sg_dst] = broadcast_index(src1_idx, src1.shape, src2.shape, dst.shape);
-                const binary_op<T> rev_op = [op](T x, T y) -> T { return op(y, x); };
                 const Tensor<T> &src2_slice = src2.unchecked_slice_group(sg_src2);
                 TensorSliced<T> dst_slice = dst.unchecked_slice_group(sg_dst);
                 _apply_scalar(src2_slice, src1_x, rev_op, OUT dst_slice);
@@ -1099,25 +1099,25 @@ namespace blas {
 
 #define TENSOR_TENSOR_BINARY_APPLY_(TensorT1, TensorT2, T) \
     template<typename T>\
-    TensorT1<T>& TensorT1<T>::apply_tensors_(TensorT2<T> t, const binary_op<T>& op) {\
+    TensorT1<T>& TensorT1<T>::apply_tensors_(const TensorT2<T>& t, const binary_op<T>& op) {\
         return _apply_tensors_(*this, t, op); \
     }
 
 #define TENSOR_TENSOR_BINARY_APPLY(TensorT1, TensorT2, T) \
     template<typename T>\
-    void TensorT1<T>::apply_tensors(TensorT2<T> t, const binary_op<T>& op, Tensor<T>&dst) const {\
+    void TensorT1<T>::apply_tensors(const TensorT2<T>& t, const binary_op<T>& op, Tensor<T>&dst) const {\
         _apply_tensors(*this, t, op, dst); \
     } \
     template<typename T>\
-    void TensorT1<T>::apply_tensors(TensorT2<T> t, const binary_op<T>& op, TensorView<T>&dst) const {\
+    void TensorT1<T>::apply_tensors(const TensorT2<T>& t, const binary_op<T>& op, TensorView<T>&dst) const {\
         _apply_tensors(*this, t, op, dst); \
     } \
     template<typename T>\
-    void TensorT1<T>::apply_tensors(TensorT2<T> t, const binary_op<T>& op, TensorSliced<T>&dst) const {\
+    void TensorT1<T>::apply_tensors(const TensorT2<T>& t, const binary_op<T>& op, TensorSliced<T>&dst) const {\
         _apply_tensors(*this, t, op, dst); \
     } \
     template<typename T>\
-    Tensor<T> TensorT1<T>::apply_tensors(TensorT2<T> t, const binary_op<T>& op) const {\
+    Tensor<T> TensorT1<T>::apply_tensors(const TensorT2<T>& t, const binary_op<T>& op) const {\
         return _apply_tensors(*this, t, op); \
     }
 

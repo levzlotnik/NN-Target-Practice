@@ -143,18 +143,18 @@ namespace blas
     Tensor<T> apply(const unary_op<T>&) const override;
 
 #define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2, T) \
-    virtual TensorT1& apply_tensors_(TensorT2<T> other, const binary_op<T>& op); \
-    virtual void apply_tensors(TensorT2<T> other, const binary_op<T>& op, Tensor<T>& out) const; \
-    virtual void apply_tensors(TensorT2<T> other, const binary_op<T>& op, TensorView<T>& out) const; \
-    virtual void apply_tensors(TensorT2<T> other, const binary_op<T>& op, TensorSliced<T>& out) const; \
-    virtual Tensor<T> apply_tensors(TensorT2<T> other, const binary_op<T>& op) const;
+    virtual TensorT1& apply_tensors_(const TensorT2<T>& other, const binary_op<T>& op); \
+    virtual void apply_tensors(const TensorT2<T>& other, const binary_op<T>& op, Tensor<T>& out) const; \
+    virtual void apply_tensors(const TensorT2<T>& other, const binary_op<T>& op, TensorView<T>& out) const; \
+    virtual void apply_tensors(const TensorT2<T>& other, const binary_op<T>& op, TensorSliced<T>& out) const; \
+    virtual Tensor<T> apply_tensors(const TensorT2<T>& other, const binary_op<T>& op) const;
 
 #define DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE(TensorT1, TensorT2, T) \
-    TensorT1& apply_tensors_(TensorT2<T> other, const binary_op<T>& op)override; \
-    void apply_tensors(TensorT2<T> other, const binary_op<T>& op, Tensor<T>& out) const override; \
-    void apply_tensors(TensorT2<T> other, const binary_op<T>& op, TensorView<T>& out) const override; \
-    void apply_tensors(TensorT2<T> other, const binary_op<T>& op, TensorSliced<T>& out) const override; \
-    Tensor<T> apply_tensors(TensorT2<T> other, const binary_op<T>& op) const override;
+    TensorT1& apply_tensors_(const TensorT2<T>& other, const binary_op<T>& op)override; \
+    void apply_tensors(const TensorT2<T>& other, const binary_op<T>& op, Tensor<T>& out) const override; \
+    void apply_tensors(const TensorT2<T>& other, const binary_op<T>& op, TensorView<T>& out) const override; \
+    void apply_tensors(const TensorT2<T>& other, const binary_op<T>& op, TensorSliced<T>& out) const override; \
+    Tensor<T> apply_tensors(const TensorT2<T>& other, const binary_op<T>& op) const override;
 
 #define MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTDst, T) \
     macro(TensorTDst, Tensor, T) \

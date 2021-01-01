@@ -33,27 +33,28 @@ void test_autograd_simple(){
 
 void test_autograd_linear_regression() {
     cout << "TEST AUTOGRAD LINEAR REGRESSION:" << endl;
-    auto true_theta = randn<double>({7});
-    auto pred_theta = randn<double>({7});
+    auto true_theta = arange<double>(1, 4);
+    auto pred_theta = zeros_like(true_theta);
     auto pred_theta_param = Parameter<double>::make("pred_theta", pred_theta);
     auto true_theta_param = Constant<double>::make("true_theta", true_theta);
-    auto input = InputBuffer<double>::make("input", randn<double>({5000, 7}));
+    auto input = InputBuffer<double>::make("input", randn<double>({5, 3}));
     auto true_y = true_theta_param * input;
     auto pred_y = pred_theta_param * input;
+    cout << "true_theta, pred_theta = " << true_theta_param.data() << ", " << pred_theta_param.data() << endl;
     MSELoss<double> criterion{pred_y.shape()};
     auto loss = criterion(pred_y, true_y);
     GraphvizPrinter gvzp;
     loss->gather_connection_graphviz(gvzp);
     gvzp.export_to("svg");
-    for(int i=0; i < 100; ++i){
+    for(int i=0; i < 1000; ++i){
         loss->zero_grad(true);
-        // TODO - debug
-        if (i % 10 == 0)
-            cout << "Epoch " << i+1 << ": loss= " << loss->forward_recursive().item() << "\t";
         loss->backward();
-        pred_theta_param.data() -= (1e-7 * pred_theta_param.grad());
-        if (i % 10 == 0)
-            cout << " pred_x_param = " << pred_theta_param.data() << endl;
+        pred_theta_param.data() -= (1e-1 * pred_theta_param.grad());
+        if (i % 100 == 0) {
+            cout << "Epoch " << i + 1 << ": loss= " << loss->forward_recursive().item() << "\t";
+            cout << " pred_theta_param = " << pred_theta_param.data() << "\t";
+            cout << " pred_theta_param.grad = " << pred_theta_param.grad() << endl;
+        }
     }
 
     cout << "true_theta, pred_theta = " <<
@@ -64,7 +65,5 @@ void test_autograd_linear_regression() {
 int main(){
     test_autograd_simple();
     test_autograd_linear_regression();
-//    test_autograd_ops();
-//    test_vi_simple();
     return 0;
 }
