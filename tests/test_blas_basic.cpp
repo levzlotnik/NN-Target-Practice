@@ -2,7 +2,7 @@
 // Created by LevZ on 7/8/2020.
 //
 
-#include "../BLAS/blas.h"
+#include "../blas/blas.h"
 #include "common.h"
 #include <iostream>
 using namespace std;

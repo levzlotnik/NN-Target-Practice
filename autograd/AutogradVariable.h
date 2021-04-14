@@ -20,7 +20,7 @@ namespace autograd {
 
         void backward(VariableBase<T> *dependee, bool recursive) override;
 
-        AutogradVariable(const string &name, const Functor<T> &source_functor, bool requires_grad = true);
+        AutogradVariable(const string& name, const Functor<T>& source_functor, bool requires_grad = true);
 
     public:
         Tensor<T>& forward() override;
@@ -29,7 +29,7 @@ namespace autograd {
         // Autograd variable cannot be a root if its' shape isn't 1.
         bool is_root() const override;
 
-        static Variable<T> make(const string &name, const Functor<T> &source_functor, bool requires_grad = true) {
+        static Variable<T> make(const string& name, const Functor<T>& source_functor, bool requires_grad = true) {
             Variable<T> res{new AutogradVariable(name, source_functor, requires_grad)};
             return res;
         }

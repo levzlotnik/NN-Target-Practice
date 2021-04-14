@@ -9,7 +9,7 @@
 namespace autograd {
 
     template<typename T>
-    void VariableBase<T>::add_dependency(const Variable<T> &dep) {
+    void VariableBase<T>::add_dependency(const Variable<T>& dep) {
         if (dep.get() == nullptr) {
             warning::warn("Adding null dependency is ignored.");
             return;
@@ -20,7 +20,7 @@ namespace autograd {
 
 
     template<typename T>
-    inline Tensor<T> &VariableBase<T>::data() {
+    inline Tensor<T>& VariableBase<T>::data() {
         return _data;
     }
 
@@ -36,17 +36,17 @@ namespace autograd {
     }
 
     template<typename T>
-    void VariableBase<T>::check_graph_integrity(unordered_set<VariableBase *> &visited) {
+    void VariableBase<T>::check_graph_integrity(unordered_set<VariableBase *>& visited) {
         if (visited.count(this) > 0)
             throw runtime_error("Graph contains cycles. Redefine the graph to not contain cycles.");
         visited.insert(this);
-        for (const auto &dep: dependencies)
+        for (const auto& dep: dependencies)
             dep->check_graph_integrity(visited);
         visited.erase(this);
     }
 
     template<typename T>
-    inline Tensor<T> &VariableBase<T>::grad() {
+    inline Tensor<T>& VariableBase<T>::grad() {
         return _grad;
     }
 
@@ -67,7 +67,7 @@ namespace autograd {
     }
 
     template<typename T>
-    void VariableBase<T>::accumulate_grad(const Tensor<T> &grad) {
+    void VariableBase<T>::accumulate_grad(const Tensor<T>& grad) {
         if (requires_grad)
             _grad += grad;
     }
@@ -77,7 +77,7 @@ namespace autograd {
         unvisited_dependees.clear();
         for (auto dependeePtr: dependees)
             unvisited_dependees[dependeePtr]++;
-        for (const auto &dep: dependencies)
+        for (const auto& dep: dependencies)
             dep->prepare_backward();
     }
 
@@ -97,22 +97,22 @@ namespace autograd {
             return;
         _grad.fill_(T(0));
         if (recursive)
-            for (const auto &dep: dependencies)
+            for (const auto& dep: dependencies)
                 dep->zero_grad(true);
     }
 
 
     template<typename T>
-    Tensor<T> & VariableBase<T>::forward_recursive() {
-        for (const auto &dep: dependencies)
+    Tensor<T>&  VariableBase<T>::forward_recursive() {
+        for (const auto& dep: dependencies)
             dep->forward_recursive();
         return forward();
     }
 
     template<typename T>
-    GraphvizPrinter &VariableBase<T>::gather_connection_graphviz(GraphvizPrinter &gvzp) {
+    GraphvizPrinter& VariableBase<T>::gather_connection_graphviz(GraphvizPrinter& gvzp) {
         gvzp.create_node(this->name, this->node_style_graphviz());
-        for (const auto &dep: dependencies) {
+        for (const auto& dep: dependencies) {
             dep->gather_connection_graphviz(gvzp);
             gvzp.create_dependency(this->name, dep->name);
         }
@@ -120,7 +120,7 @@ namespace autograd {
     }
 
     template<typename T>
-    ostream &VariableBase<T>::print_graphviz(ostream &os) {
+    ostream& VariableBase<T>::print_graphviz(ostream& os) {
         GraphvizPrinter gvzp;
         gather_connection_graphviz(gvzp);
         return gvzp.print_dot(os);
@@ -132,24 +132,24 @@ namespace autograd {
     }
 
     template<typename T>
-    void VariableBase<T>::remove_dependency(const Variable<T> &dep) {
-        vector<VariableBase *> &dep_dependees = dep->dependees;
+    void VariableBase<T>::remove_dependency(const Variable<T>& dep) {
+        vector<VariableBase *>& dep_dependees = dep->dependees;
         auto it_dep = std::remove(dep_dependees.begin(), dep_dependees.end(), this);
         dep_dependees.erase(it_dep, dep_dependees.end());
         auto it_this = std::remove_if(dependencies.begin(), dependencies.end(),
-                                      [dep](const Variable<T> &v) { return v.equals(dep); });
+                                      [dep](const Variable<T>& v) { return v.equals(dep); });
         dependencies.erase(it_this, dependencies.end());
     }
 
     template<typename T>
     VariableBase<T>::~VariableBase() {
         vector<Variable<T>> dependencies_clone(dependencies);
-        for (const Variable<T> &dep: dependencies_clone)
+        for (const Variable<T>& dep: dependencies_clone)
             this->remove_dependency(dep);
         for (VariableBase *dependee: dependees) {
             auto it_dependee = std::remove_if(dependee->dependencies.begin(),
                                               dependee->dependencies.end(),
-                                              [this](const Variable<T> &v) { return v.get() == this; });
+                                              [this](const Variable<T>& v) { return v.get() == this; });
             dependee->dependencies.erase(it_dependee, dependee->dependencies.end());
         }
     }

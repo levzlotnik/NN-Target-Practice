@@ -14,14 +14,14 @@ namespace autograd {
     template<typename T>
     class Parameter : public VariableBase<T> {
     public:
-        void add_dependency(const Variable<T> &dep) override {
+        void add_dependency(const Variable<T>& dep) override {
             throw runtime_error("Parameter is an independent variable, "
                                 "adding dependencies to it will have no effect.");
         }
 
         inline bool is_param() const final { return true; }
 
-        static Variable<T> make(const string &name, const Tensor<T>& data, bool requires_grad = true) {
+        static Variable<T> make(const string& name, const Tensor<T>& data, bool requires_grad = true) {
             return Variable<T>{new Parameter(name, data, requires_grad)};
         }
 

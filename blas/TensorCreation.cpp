@@ -46,7 +46,7 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> uniform(T lower, T upper, const shape_t &shape) {
+    Tensor<T> uniform(T lower, T upper, const shape_t& shape) {
         Tensor<T> ret(shape);
         uniform_driver_type<T> driver{lower, upper};
         auto& gen = RandomState::get_engine();
@@ -57,7 +57,7 @@ namespace blas {
     }
 
     template<typename T>
-    Tensor<T> randn(T mu, T sigma, const shape_t &shape) {
+    Tensor<T> randn(T mu, T sigma, const shape_t& shape) {
         Tensor<T> ret(shape);
         normal_driver_type<T> driver{mu, sigma};
         auto& gen = RandomState::get_engine();

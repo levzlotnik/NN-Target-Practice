@@ -8,7 +8,7 @@ namespace autograd {
     Tensor<T>& AutogradVariable<T>::forward() {
         Tensor<T>& out = this->data();
         if (!this->is_leaf())
-            source_functor_ptr->apply_forward(get_args(), &out);
+            source_functor_ptr->apply_forward(get_args(),& out);
         return out;
     }
 
@@ -34,7 +34,7 @@ namespace autograd {
             if (!dep->requires_grad)
                 continue;
             Tensor<T> local_grad(dep->grad().shape);
-            source_functor_ptr->apply_backward(i, args, &curr_data, &curr_grad, &local_grad);
+            source_functor_ptr->apply_backward(i, args,& curr_data,& curr_grad,& local_grad);
             dep->accumulate_grad(local_grad);
             if (recursive)
                 dep->backward(this, true);
@@ -44,7 +44,7 @@ namespace autograd {
     template<typename T>
     vector<const Tensor<T>*> AutogradVariable<T>::get_args() const {
         vector<const Tensor<T>*> args;
-        for (const auto &dep: this->dependencies)
+        for (const auto& dep: this->dependencies)
             args.emplace_back(&dep->data());
         return args;
     }
@@ -55,7 +55,7 @@ namespace autograd {
     }
 
     template<typename T>
-    AutogradVariable<T>::AutogradVariable(const string &name, const Functor<T> &source_functor, bool requires_grad) :
+    AutogradVariable<T>::AutogradVariable(const string& name, const Functor<T>& source_functor, bool requires_grad) :
             VariableBase<T>(name, Tensor<T>(source_functor.output_shape), requires_grad),
             source_functor_ptr(source_functor.clone()) {}
 

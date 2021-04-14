@@ -11,8 +11,8 @@ file(GLOB
      SOURCE_FILES_DISTRIBUTIONS ${SOURCE_FILES_PROJECT_GLOBALS}
      distributions/*.h distributions/*.cpp)
 
-add_library(distributions SHARED ${SOURCE_FILES_DISTRIBUTIONS})
-target_link_libraries(distributions blas)
+# add_library(distributions SHARED ${SOURCE_FILES_DISTRIBUTIONS})
+# target_link_libraries(distributions blas)
 
 add_subdirectory(autograd)
 target_include_directories(autograd PUBLIC .)

@@ -12,13 +12,13 @@ namespace autograd {
     template<typename T>
     class Constant : public VariableBase<T> {
     public:
-        Constant(const string &name, const Tensor<T> &data) : VariableBase<T>(name, data, false) {}
+        Constant(const string& name, const Tensor<T>& data) : VariableBase<T>(name, data, false) {}
 
-        void add_dependency(const Variable <T> &dep) override {
+        void add_dependency(const Variable <T>& dep) override {
             throw runtime_error("A constant cannot be a dependent variable.");
         }
 
-        static Variable <T> make(const string &name, const Tensor<T> &data) {
+        static Variable <T> make(const string& name, const Tensor<T>& data) {
             return Variable<T>{new Constant{name, data}};
         }
 

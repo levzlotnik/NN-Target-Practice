@@ -14,7 +14,7 @@
 
 using namespace common_math;
 
-std::string shape2str(const shape_t &shape);
+std::string shape2str(const shape_t& shape);
 std::string shape2str(const std::vector<long>& shape);
 size_t shape2size(const shape_t& shape);
 
@@ -39,7 +39,7 @@ namespace blas
     template<typename T>
     class TensorSparse;
 
-    shape_t shape2strides(const shape_t &shape);
+    shape_t shape2strides(const shape_t& shape);
 
     /**
      *
@@ -50,7 +50,7 @@ namespace blas
      * @param size : the total size of the tensor. Optional, if (-1) the size will be determined from the shape.
      * @return pair of (true_index, num_elements).
      */
-    std::pair<size_t, size_t> ravel_index_checked(const index_t &idx, const shape_t &shape, int size = -1);
+    std::pair<size_t, size_t> ravel_index_checked(const index_t& idx, const shape_t& shape, int size = -1);
 
     /**
      * Same as last function but doesn't check for errors and only returns the true index.
@@ -59,7 +59,7 @@ namespace blas
      * @param size : see ravel_index_checked
      * @return
      */
-    size_t ravel_index(const index_t &idx, const shape_t &shape, int size = -1);
+    size_t ravel_index(const index_t& idx, const shape_t& shape, int size = -1);
 
     /**
      * The invers operation of ravel index - translates a true index into dims-format index.
@@ -68,17 +68,17 @@ namespace blas
      * @param size : see ravel_index_checked
      * @return unraveled index for the current tensor
      */
-    index_t unravel_index(size_t true_idx, const shape_t &shape, int size = -1);
+    index_t unravel_index(size_t true_idx, const shape_t& shape, int size = -1);
 
     class shape_mismatch : public std::out_of_range {
     public:
-        shape_mismatch(const shape_t &s1, const shape_t &s2, const std::string &action = "") :
+        shape_mismatch(const shape_t& s1, const shape_t& s2, const std::string& action = "") :
                 std::out_of_range(
                         "Shape Mismatch: " + shape2str(s1) + ", " + shape2str(s2) +
                         (action.empty() ? "" : " for action {" + action + "}") + "."
                 ) {}
 
-        shape_mismatch(const vector<long> &s1, const shape_t &s2, const std::string &action = "") :
+        shape_mismatch(const vector<long>& s1, const shape_t& s2, const std::string& action = "") :
                 std::out_of_range(
                         "Shape Mismatch: " + shape2str(s1) + ", " + shape2str(s2) +
                         (action.empty() ? "" : " for action {" + action + "}") + "."
@@ -88,7 +88,7 @@ namespace blas
     class broadcast_failure : public std::out_of_range {
     public:
         using std::out_of_range::out_of_range;
-        broadcast_failure(const shape_t &s1, const shape_t &s2, const std::string &action = "") :
+        broadcast_failure(const shape_t& s1, const shape_t& s2, const std::string& action = "") :
                 std::out_of_range(
                         "Cannot Broadcast shapes: " + shape2str(s1) + ", " + shape2str(s2) +
                         (action.empty() ? "" : " for action {" + action + "}") + "."
@@ -104,7 +104,7 @@ namespace blas
      * @return destination tensor.
      */
     template<template<typename>class Tens, typename T>
-    Tens<T> &fill_(Tens<T> &dst, T scalar);
+    Tens<T>& fill_(Tens<T>& dst, T scalar);
 
     /**
      * Copy data inplace into a destination tensor, generically.
@@ -115,7 +115,7 @@ namespace blas
      * @return destination after copying data has been made.
      */
     template<class Tensor1, class Tensor2>
-    Tensor1 &copy_(Tensor1 &dst, const Tensor2 &src);
+    Tensor1& copy_(Tensor1& dst, const Tensor2& src);
 
 
 #define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_BASE(TensorT1) \
@@ -190,12 +190,12 @@ namespace blas
             using difference_type = long; // unused
             using value_type = index_t;
             using pointer = const index_t *; // unused
-            using reference = const index_t &;
+            using reference = const index_t& ;
             using iterator_category = std::input_iterator_tag;
 
             const_iterator(index_t pos, index_t stride) : pos(pos), stride(stride) {}
 
-            inline const_iterator &operator++() {
+            inline const_iterator& operator++() {
                 pos += stride;
                 return *this;
             }
@@ -209,9 +209,9 @@ namespace blas
 
             inline const_iterator operator+(difference_type x) { const_iterator temp(*this); return temp+=x; }
 
-            inline bool operator==(const const_iterator &other) const { return pos == other.pos; }
+            inline bool operator==(const const_iterator& other) const { return pos == other.pos; }
 
-            inline bool operator!=(const const_iterator &other) const { return !(*this == other); }
+            inline bool operator!=(const const_iterator& other) const { return !(*this == other); }
 
             inline reference operator*() const { return pos; }
         };
@@ -226,7 +226,7 @@ namespace blas
         Slice() : Slice(0, 0, 1) {}
         Slice(long b, long e, long stride = 1);
 
-        explicit Slice(const tuple<long, long, long> &tup) :
+        explicit Slice(const tuple<long, long, long>& tup) :
                 Slice(std::get<0>(tup),std::get<1>(tup), std::get<2>(tup)) {}
 
         Slice(initializer_list<long> lst);
@@ -257,7 +257,7 @@ namespace blas
         vector<Slice> slices;
         SliceGroup() = default;
         SliceGroup(size_t dims) : slices(dims) {}
-        explicit SliceGroup(const vector<tuple<int, int, int>> &slices);
+        explicit SliceGroup(const vector<tuple<int, int, int>>& slices);
         explicit SliceGroup(const vector<Slice>& slices) : slices(slices) {}
         SliceGroup(initializer_list<initializer_list<long>> lst);
 
@@ -306,17 +306,17 @@ namespace blas
             using difference_type = long; // unused
             using value_type = index_t;
             using pointer = const index_t *; // unused
-            using reference = const index_t &;
+            using reference = const index_t& ;
             using iterator_category = std::input_iterator_tag;
 
             const_iterator(index_t pos, vector<Slice> slices, size_t elems_passed = 0);
 
-            const_iterator &operator++();
+            const_iterator& operator++();
             inline const_iterator operator ++(int) { const_iterator temp(*this); ++*this; return temp; }\
 
-            inline bool operator==(const const_iterator &other) const { return elems_passed == other.elems_passed; }
+            inline bool operator==(const const_iterator& other) const { return elems_passed == other.elems_passed; }
 
-            inline bool operator!=(const const_iterator &other) const { return !(*this == other); }
+            inline bool operator!=(const const_iterator& other) const { return !(*this == other); }
 
             inline reference operator*() { return pos; }
         };
@@ -380,15 +380,15 @@ namespace blas
         Tensor();
 
         explicit Tensor(T scalar);
-        explicit Tensor(const shape_t &shape);
-        Tensor(std::vector<T> data, const shape_t &shape);
-        Tensor(T *data, const shape_t &shape);
-        Tensor(const Tensor &other);
-        Tensor(Tensor &&other) noexcept;
+        explicit Tensor(const shape_t& shape);
+        Tensor(std::vector<T> data, const shape_t& shape);
+        Tensor(T *data, const shape_t& shape);
+        Tensor(const Tensor& other);
+        Tensor(Tensor&& other) noexcept;
         virtual ~Tensor();
         inline T item() const { return data[0]; }
 
-        friend void swap(Tensor<T> &t1, Tensor<T> &t2) {
+        friend void swap(Tensor<T>& t1, Tensor<T>& t2) {
             using std::swap;
             swap(t1.size, t2.size);
             swap(t1.data, t2.data);
@@ -400,9 +400,9 @@ namespace blas
 
         DEF_COPY_FILL_TEMPLATES(Tensor, T)
 
-        Tensor &operator=(Tensor &&other) noexcept;
+        Tensor& operator=(Tensor&& other) noexcept;
 
-        inline Tensor &operator=(T scalar) { fill_(scalar); return *this;}
+        inline Tensor& operator=(T scalar) { fill_(scalar); return *this;}
 
         template<typename Tnsr>
         class subtensor_iterator {
@@ -415,12 +415,12 @@ namespace blas
             using difference_type = long;
             using value_type = Tnsr;
             using pointer = Tnsr *;
-            using reference = Tnsr &;
+            using reference = Tnsr& ;
             using iterator_category = std::random_access_iterator_tag;
 
             subtensor_iterator(T *data_ptr, size_t stride, size_t pos, shape_t shape);
 
-            inline subtensor_iterator &operator+=(difference_type n) {
+            inline subtensor_iterator& operator+=(difference_type n) {
                 pos += n;
                 return *this;
             }
@@ -435,7 +435,7 @@ namespace blas
                 return temp += n;
             }
 
-            inline subtensor_iterator &operator-=(difference_type n) {
+            inline subtensor_iterator& operator-=(difference_type n) {
                 pos -= n;
                 return *this;
             }
@@ -470,7 +470,7 @@ namespace blas
 
             inline bool operator>=(subtensor_iterator other) { return !(*this < other); }
 
-            inline subtensor_iterator &operator++() { return (*this += 1); }
+            inline subtensor_iterator& operator++() { return (*this += 1); }
 
             inline subtensor_iterator operator++(int) {
                 subtensor_iterator temp{*this};
@@ -478,7 +478,7 @@ namespace blas
                 return temp;
             }
 
-            inline subtensor_iterator &operator--() { return (*this -= 1); }
+            inline subtensor_iterator& operator--() { return (*this -= 1); }
 
             inline subtensor_iterator operator--(int) {
                 subtensor_iterator temp{*this};
@@ -492,14 +492,14 @@ namespace blas
         // Checked indexing
 
         TensorView<T> operator[](long idx) const;
-        TensorView<T> operator[](const index_t &index) const;
-        TensorSliced<T> operator()(const Slice &slice) const;
-        TensorSliced<T> operator()(const SliceGroup &slice) const;
+        TensorView<T> operator[](const index_t& index) const;
+        TensorSliced<T> operator()(const Slice& slice) const;
+        TensorSliced<T> operator()(const SliceGroup& slice) const;
 
         virtual TensorView<T> unchecked_subscript(long idx) const; // Gets subtensor lvalue
-        virtual TensorView<T> unchecked_subscript(const index_t &index) const; // Gets subtensor lvalue
-        virtual TensorSliced<T> unchecked_slice(const Slice &slice) const; // Gets slice lvalue
-        virtual TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) const;
+        virtual TensorView<T> unchecked_subscript(const index_t& index) const; // Gets subtensor lvalue
+        virtual TensorSliced<T> unchecked_slice(const Slice& slice) const; // Gets slice lvalue
+        virtual TensorSliced<T> unchecked_slice_group(const SliceGroup& slice_group) const;
         // Returns a slice for the index.
         inline TensorSliced<T> unchecked_subscript_slice(const index_t& index) const {
             SliceGroup sg = SliceGroup::cover_index(index).fill_to_shape_(this->shape);
@@ -523,14 +523,14 @@ namespace blas
         typedef T *eiterator;
         typedef const T *ceiterator;
 
-        static inline eiterator elem_begin(Tensor &t) { return t.data; }
-        static inline eiterator elem_end(Tensor &t) { return t.data + t.size; }
+        static inline eiterator elem_begin(Tensor& t) { return t.data; }
+        static inline eiterator elem_end(Tensor& t) { return t.data + t.size; }
 
-        static inline ceiterator const_elem_begin(const Tensor &t) { return t.data; }
-        static inline ceiterator const_elem_end(const Tensor &t) { return t.data + t.size; }
+        static inline ceiterator const_elem_begin(const Tensor& t) { return t.data; }
+        static inline ceiterator const_elem_end(const Tensor& t) { return t.data + t.size; }
 
-        virtual Tensor reshape(const vector<long> &new_shape) const;
-        virtual TensorView<T> view(const vector<long> &new_shape);
+        virtual Tensor reshape(const vector<long>& new_shape) const;
+        virtual TensorView<T> view(const vector<long>& new_shape);
         virtual TensorView<T> const_view(const vector<long>& new_shape) const;
         inline TensorView<T> view(const shape_t& new_shape) {
             return this->view(vector<long>(new_shape.begin(), new_shape.end()));
@@ -605,7 +605,7 @@ namespace blas
         }
 
 
-        inline friend ostream &operator<<(ostream &os, const Tensor &t) {
+        inline friend ostream& operator<<(ostream& os, const Tensor& t) {
             return t.print_to_os(os, true);
         }
         inline string to_str() {
@@ -618,7 +618,7 @@ namespace blas
         T *get_data_ptr() const;
 
         size_t size;
-        virtual ostream &print_to_os(ostream &os, bool rec_start) const;
+        virtual ostream& print_to_os(ostream& os, bool rec_start) const;
 
 
     protected:
@@ -627,11 +627,11 @@ namespace blas
         shape_t strides;
         bool requires_deletion = true;
 
-        shape_t slice2shape(const Slice &slice) const;
+        shape_t slice2shape(const Slice& slice) const;
 
-        Slice normalize_slice(const Slice &slice, long max_size = -1) const;
+        Slice normalize_slice(const Slice& slice, long max_size = -1) const;
 
-        SliceGroup normalize_slice_group(const SliceGroup &group) const;
+        SliceGroup normalize_slice_group(const SliceGroup& group) const;
 
     };
 
@@ -645,7 +645,7 @@ namespace blas
     class TensorView : public Tensor<T> {
         friend class Tensor<T>;
 
-        TensorView(T *data, const std::vector<size_t> &);
+        TensorView(T *data, const std::vector<size_t>& );
 
         explicit TensorView(Tensor<T> t);
 
@@ -682,9 +682,9 @@ namespace blas
         shape_t underlying_tensor_shape;
         const size_t underlying_tensor_size;
 
-        TensorSliced(T *data, const shape_t &shape, const SliceGroup &slice_group);
+        TensorSliced(T *data, const shape_t& shape, const SliceGroup& slice_group);
 
-        TensorSliced(const Tensor <T> &t, const SliceGroup &slice_group);
+        TensorSliced(const Tensor <T>& t, const SliceGroup& slice_group);
 
     public:
         ~TensorSliced() override = default;
@@ -703,7 +703,7 @@ namespace blas
 
             using difference_type = ptrdiff_t;
             using value_type = T_;
-            using reference = T_ &;
+            using reference = T_& ;
             using pointer = T_ *;
             using iterator_category = std::forward_iterator_tag;
 
@@ -713,7 +713,7 @@ namespace blas
                 return data[true_idx];
             }
 
-            inline eliterator &operator++() {
+            inline eliterator& operator++() {
                 ++sg_iterator;
                 return *this;
             }
@@ -724,22 +724,22 @@ namespace blas
                 return temp;
             }
 
-            inline bool operator==(const eliterator &other) { return sg_iterator == other.sg_iterator; }
+            inline bool operator==(const eliterator& other) { return sg_iterator == other.sg_iterator; }
 
-            inline bool operator!=(const eliterator &other) { return !(*this == other); }
+            inline bool operator!=(const eliterator& other) { return !(*this == other); }
         };
         using eiterator = eliterator<T>;
         using ceiterator = eliterator<const T>;
-        static inline eiterator elem_begin(TensorSliced &ts);
-        static inline eiterator elem_end(TensorSliced &ts);
-        static inline ceiterator const_elem_begin(const TensorSliced &ts);
-        static inline ceiterator const_elem_end(const TensorSliced &ts);
+        static inline eiterator elem_begin(TensorSliced& ts);
+        static inline eiterator elem_end(TensorSliced& ts);
+        static inline ceiterator const_elem_begin(const TensorSliced& ts);
+        static inline ceiterator const_elem_end(const TensorSliced& ts);
 
         /* We mark these as forbidden because we cannot create TensorView out of TensorSlice.*/
         MARK_FORBIDDEN(TensorView<T> unchecked_subscript(long idx) const override)
-        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(const index_t &index) const override)
-        TensorSliced<T> unchecked_slice(const Slice &slice) const override;
-        TensorSliced<T> unchecked_slice_group(const SliceGroup &slice_group) const override;
+        MARK_FORBIDDEN(TensorView<T> unchecked_subscript(const index_t& index) const override)
+        TensorSliced<T> unchecked_slice(const Slice& slice) const override;
+        TensorSliced<T> unchecked_slice_group(const SliceGroup& slice_group) const override;
         MARK_FORBIDDEN(TensorView<T> view(const vector<long>& new_shape) override)
 
 #define DECL_TENSOR_REDUCE_OVERRIDE(TensorOut) \
@@ -751,13 +751,13 @@ namespace blas
         DECL_TENSOR_REDUCE_OVERRIDE(TensorView)
         DECL_TENSOR_REDUCE_OVERRIDE(TensorSliced)
 
-        Tensor<T> reshape(const vector<long> &new_shape) const override;
+        Tensor<T> reshape(const vector<long>& new_shape) const override;
 
         Tensor<T> contiguous() override;
 
         SliceGroup slice_group;
     protected:
-        ostream &print_to_os(ostream &os, bool rec_start) const override;
+        ostream& print_to_os(ostream& os, bool rec_start) const override;
 
     public:
 
@@ -777,7 +777,7 @@ namespace blas
 
     };
 
-    SliceGroup broadcast_index(const index_t &src_idx, const shape_t &src_shape, const shape_t &dst_shape);
+    SliceGroup broadcast_index(const index_t& src_idx, const shape_t& src_shape, const shape_t& dst_shape);
 
     /**
      * Broadcasts an index of element in tensor towards an output shape, and retrieves the broadcasted
@@ -811,14 +811,14 @@ namespace blas
      * @param safe indicator of whether or not to validate shapes.
      * @return output shape.
      */
-    inline shape_t broadcast_shapes(const shape_t &s1, const shape_t &s2, bool safe=false) {
+    inline shape_t broadcast_shapes(const shape_t& s1, const shape_t& s2, bool safe=false) {
         if (s1.empty() || s2.empty())
             return s1.empty() ? s2 : s1;
         shape_t result(std::max(s1.size(), s2.size()));
         for (int i=0; i < result.size(); ++i) {
             size_t e1 = i >= s1.size() ? 1 : s1[s1.size() - 1 - i];
             size_t e2 = i >= s2.size() ? 1 : s2[s2.size() - 1 - i];
-            if (!safe && (e1 != e2 && e1 != 1 && e2 != 1))
+            if (!safe&&  (e1 != e2&&  e1 != 1&&  e2 != 1))
                 throw broadcast_failure(s1, s2);
             result[result.size()-1-i] = std::max(e1, e2);
         }

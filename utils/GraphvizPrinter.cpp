@@ -17,7 +17,7 @@ void GraphvizPrinter::create_dependency(const string& dependee, const string& de
     connections.insert(connection);
 }
 
-size_t GraphvizPrinter::create_node(const string &name, const string &style) {
+size_t GraphvizPrinter::create_node(const string& name, const string& style) {
     if (name.empty())
         throw invalid_argument("Empty string is not allowed.");
     if (!isalpha(name[0]))
@@ -29,7 +29,7 @@ size_t GraphvizPrinter::create_node(const string &name, const string &style) {
     return nodes[name] = nodes.size();
 }
 
-ostream & GraphvizPrinter::print_dot(ostream &os) {
+ostream&  GraphvizPrinter::print_dot(ostream& os) {
     os << "digraph g{" << endl;
     // First pass: Define all nodes:
     for (const auto& [label, id]: nodes)
@@ -41,7 +41,7 @@ ostream & GraphvizPrinter::print_dot(ostream &os) {
     return os;
 }
 
-void GraphvizPrinter::export_to(const string &format) {
+void GraphvizPrinter::export_to(const string& format) {
     if (available_formats.count(format) < 1)
         throw invalid_argument("Unavailable format: \"" + format + "\".");
     auto filename = "graph.dot";

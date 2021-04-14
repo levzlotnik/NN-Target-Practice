@@ -24,12 +24,12 @@ namespace autograd {
         virtual void backward(int input_idx, const vector<const Tensor<T>*>& input_ptrs, const Tensor<T>& out,
                               Tensor<T>& input_grad) const = 0;
 
-        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const override {
+        void apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const override {
             Tensor<T>& output = *output_ptr;
             this->forward(input_ptrs, output);
         }
 
-        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+        void apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const override {
             Tensor<T> output_grad = output_grad_ptr != nullptr ?
                                     *output_grad_ptr : Tensor<T>(T(1)); // We can allow nullptr.
@@ -56,14 +56,14 @@ namespace autograd {
 
         OVERRIDE_CLONE(MSELoss)
 
-        void forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> &out) const override {
+        void forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T>& out) const override {
             const Tensor<T>& in1 = *input_ptrs[0];
             const Tensor<T>& in2 = *input_ptrs[1];
             Tensor<T>::get(out, 0) = blas::mse(in1, in2, normalization_factor);
         }
 
-        void backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> &out,
-                      Tensor<T> &input_grad) const override {
+        void backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T>& out,
+                      Tensor<T>& input_grad) const override {
             // This loss is symmetric. We can use this fact. The gradient is of course twice the difference between
             // The tensors.
             const Tensor<T>& in1 = *input_ptrs[0];

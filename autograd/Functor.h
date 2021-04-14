@@ -37,9 +37,9 @@ namespace autograd {
         virtual ~Functor() = default;
 
         // Throws exception for invalid arguments.
-        virtual void check_arg_shapes(const vector<shape_t> &args) const;
+        virtual void check_arg_shapes(const vector<shape_t>& args) const;
 
-        void check_args(const vector<Variable<T>> &args) const;
+        void check_args(const vector<Variable<T>>& args) const;
 
         /**
          * Calculates the output of the function from the inputs, and stores into output.
@@ -47,7 +47,7 @@ namespace autograd {
          * @param output_ref A pointer to the output of the function
          * @return The reference to the output.
          */
-        virtual void apply_forward(const vector<const Tensor<T>*> &input_ptrs,
+        virtual void apply_forward(const vector<const Tensor<T>*>& input_ptrs,
                                    Tensor<T>* output_ptr) const = 0;
 
         /**
@@ -59,10 +59,10 @@ namespace autograd {
          * @return grad_ref
          */
         virtual void
-        apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+        apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T> *output_ptr,
                        const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const = 0;
 
-        Variable<T> operator()(const vector<Variable<T>> &inputs, bool requires_grad = true) const;
+        Variable<T> operator()(const vector<Variable<T>>& inputs, bool requires_grad = true) const;
 
         template<class... Args>
         inline Variable<T> operator()(const Args... inputs) const {
@@ -106,9 +106,9 @@ namespace autograd {
 
         OVERRIDE_CLONE(MathFunctor)
 
-        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const override;
+        void apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const override;
 
-        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+        void apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const override;
     };
 
@@ -136,9 +136,9 @@ namespace autograd {
                ) {}
         OVERRIDE_CLONE(ScalarTensorElemwiseFunctor)
 
-        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const  override;
+        void apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const  override;
 
-        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+        void apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T>* output_grad_ptr, Tensor<T> *grad_ptr) const  override;
     };
 
@@ -167,9 +167,9 @@ namespace autograd {
                                     get<0>(bfd::get_function_data(op_name)),
                                     get<1>(bfd::get_function_data(op_name)), get<2>(bfd::get_function_data(op_name))) {}
 
-        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const  override;
+        void apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const  override;
 
-        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+        void apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const  override;
 
         OVERRIDE_CLONE(TensorTensorElemwiseFunctor)
@@ -199,9 +199,9 @@ namespace autograd {
         inline SelectFunctor(const shape_t& input_shape, long idx) :
                SelectFunctor(input_shape, index_t{idx}) {}
 
-        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const  override;
+        void apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const  override;
 
-        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+        void apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const  override;
 
         OVERRIDE_CLONE(SelectFunctor)
@@ -218,9 +218,9 @@ namespace autograd {
         inline SliceFunctor(const shape_t& input_shape, const blas::Slice& slice) :
                SliceFunctor(input_shape, blas::SliceGroup({slice}).fill_to_shape_(input_shape)) {}
 
-        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const  override;
+        void apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const  override;
 
-        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+        void apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const  override;
 
         OVERRIDE_CLONE(SliceFunctor)
@@ -258,8 +258,8 @@ namespace autograd {
 
         OVERRIDE_CLONE(ReduceFunctor)
 
-        void apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const  override;
-        void apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs, const Tensor<T> *output_ptr,
+        void apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const  override;
+        void apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs, const Tensor<T> *output_ptr,
                             const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const  override;
     private:
         vector<int> dims;

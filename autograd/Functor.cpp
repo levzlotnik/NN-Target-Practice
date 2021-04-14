@@ -7,7 +7,7 @@
 namespace autograd {
 
     template<typename T>
-    void Functor<T>::check_arg_shapes(const vector<shape_t> &args) const {
+    void Functor<T>::check_arg_shapes(const vector<shape_t>& args) const {
         using std::to_string;
         if (args.size() != input_shapes.size())
             throw std::invalid_argument(
@@ -26,18 +26,18 @@ namespace autograd {
     }
 
     template<typename T>
-    void Functor<T>::check_args(const vector<Variable<T>> &args) const {
+    void Functor<T>::check_args(const vector<Variable<T>>& args) const {
         vector<shape_t> shapes(args.size());
         std::transform(args.begin(), args.end(), shapes.begin(), [](const Variable<T>& v) { return v.shape(); });
         check_arg_shapes(shapes);
     }
 
     template<typename T>
-    Variable<T> Functor<T>::operator()(const vector<Variable<T>> &inputs, bool requires_grad) const {
+    Variable<T> Functor<T>::operator()(const vector<Variable<T>>& inputs, bool requires_grad) const {
         check_args(inputs);
         Variable<T> ret = AutogradVariable<T>::make(name, *this, requires_grad);
         Tensor<T>& ret_tensor = ret.data();
-        apply_forward(get_tensors(inputs), &ret_tensor);
+        apply_forward(get_tensors(inputs),& ret_tensor);
         for(const auto& v: inputs)
             ret.add_dependency(v);
         return ret;
@@ -45,14 +45,14 @@ namespace autograd {
 
     template<typename T>
     void
-    MathFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const {
+    MathFunctor<T>::apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const {
         const Tensor<T>& input = *input_ptrs[0];
         Tensor<T>& output = *output_ptr;
         input.apply(this->_op, output);
     }
 
     template<typename T>
-    void MathFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+    void MathFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs,
                                         const Tensor<T> *output_ptr,
                                         const Tensor<T> *output_grad_ptr, Tensor<T> *input_grad_ptr) const {
         // input_idx == 0 definitely.
@@ -65,7 +65,7 @@ namespace autograd {
 
 
     template<typename T>
-    void ScalarTensorElemwiseFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs,
+    void ScalarTensorElemwiseFunctor<T>::apply_forward(const vector<const Tensor<T> *>& input_ptrs,
                                                        Tensor<T> *output_ptr) const {
         binary_op<T> op = _op;
         if (scalar_first)
@@ -76,7 +76,7 @@ namespace autograd {
     }
 
     template<typename T>
-    void ScalarTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+    void ScalarTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs,
                                                         const Tensor<T> *output_ptr, const Tensor<T>* output_grad_ptr,
                                                         Tensor<T> *input_grad_ptr) const {
         if (input_idx != (!scalar_first)) // We only calculate gradients for the tensor.
@@ -96,7 +96,7 @@ namespace autograd {
 
 
     template<typename T>
-    void TensorTensorElemwiseFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs,
+    void TensorTensorElemwiseFunctor<T>::apply_forward(const vector<const Tensor<T> *>& input_ptrs,
                                                        Tensor<T> *output_ptr) const {
         const Tensor<T>& in1 = *input_ptrs[0];
         const Tensor<T>& in2 = *input_ptrs[1];
@@ -122,7 +122,7 @@ namespace autograd {
             throw shape_mismatch(in3.shape, out.shape, "apply_triop");
         SliceGroup sg_in1 = SliceGroup::cover_shape(in1.shape);
         T x;
-        binary_op<T> kernel = [&x, &op](T e2, T e3) -> T {
+        binary_op<T> kernel = [&x,& op](T e2, T e3) -> T {
             return op(x, e2, e3);
         };
         for (const auto& idx_in1 : sg_in1){
@@ -151,10 +151,10 @@ namespace autograd {
     }
 
     template<typename T>
-    void TensorTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+    void TensorTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs,
                                                         const Tensor<T> *output_ptr, const Tensor<T> *output_grad_ptr,
                                                         Tensor<T> *input_grad_ptr) const {
-        // TODO - debug & optimize.
+        // TODO - debug&  optimize.
         const Tensor<T>& in1 = *input_ptrs[0];
         const Tensor<T>& in2 = *input_ptrs[1];
         const Tensor<T>& out = *output_ptr;
@@ -171,7 +171,7 @@ namespace autograd {
 
     template<typename T>
     void
-    SelectFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const {
+    SelectFunctor<T>::apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const {
         using blas::TensorView;
         Tensor<T>& out = *output_ptr;
         const Tensor<T>& in = *input_ptrs[0];
@@ -180,7 +180,7 @@ namespace autograd {
     }
 
     template<typename T>
-    void SelectFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+    void SelectFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs,
                                           const Tensor<T> *output_ptr, const Tensor<T> *output_grad_ptr,
                                           Tensor<T> *input_grad_ptr) const {
         // Just copy the gradient into the correct slice.
@@ -193,7 +193,7 @@ namespace autograd {
 
     template<typename T>
     void
-    SliceFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const {
+    SliceFunctor<T>::apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const {
         using blas::TensorSliced;
         const Tensor<T>& input = *input_ptrs[0];
         Tensor<T>& output = *output_ptr;
@@ -202,7 +202,7 @@ namespace autograd {
     }
 
     template<typename T>
-    void SliceFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+    void SliceFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs,
                                          const Tensor<T> *output_ptr, const Tensor<T> *output_grad_ptr,
                                          Tensor<T> *input_grad_ptr) const {
         using blas::TensorSliced;
@@ -214,7 +214,7 @@ namespace autograd {
 
 
     template<typename T>
-    void ReduceFunctor<T>::apply_forward(const vector<const Tensor<T> *> &input_ptrs, Tensor<T> *output_ptr) const {
+    void ReduceFunctor<T>::apply_forward(const vector<const Tensor<T> *>& input_ptrs, Tensor<T> *output_ptr) const {
         const Tensor<T>& input = *input_ptrs[0];
         Tensor<T>& output = *output_ptr;
         if (reduce_all_dims)
@@ -224,7 +224,7 @@ namespace autograd {
     }
 
     template<typename T>
-    void ReduceFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *> &input_ptrs,
+    void ReduceFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs,
                                           const Tensor<T> *output_ptr, const Tensor<T> *output_grad_ptr,
                                           Tensor<T> *input_grad_ptr) const  {
         const Tensor<T>& input = *input_ptrs[0];
@@ -249,7 +249,7 @@ namespace autograd {
     }
 
     template<typename T>
-    ReduceFunctor<T>::ReduceFunctor(const shape_t &input_shape, const string& op_name, const vector<int>& dims) :
+    ReduceFunctor<T>::ReduceFunctor(const shape_t& input_shape, const string& op_name, const vector<int>& dims) :
         ReduceFunctor(input_shape, op_name, dims,
                       get<0>(bfd::get_function_data(op_name)),
                       get_jac<T>(op_name))
@@ -258,7 +258,7 @@ namespace autograd {
     }
 
     template<typename T>
-    ReduceFunctor<T>::ReduceFunctor(const shape_t &input_shape, const string &op_name) :
+    ReduceFunctor<T>::ReduceFunctor(const shape_t& input_shape, const string& op_name) :
             ReduceFunctor(input_shape, op_name,
                           get<0>(bfd::get_function_data(op_name)),
                           get_jac<T>(op_name))

@@ -18,7 +18,7 @@ namespace autograd {
             return Variable{new InputBuffer(std::move(name), std::move(data))};
         }
 
-        void add_dependency(const Variable<T> &dep) override {
+        void add_dependency(const Variable<T>& dep) override {
             throw runtime_error("InputBuffer is an independent variable, "
                                 "adding dependencies to it will have no effect.");
         }

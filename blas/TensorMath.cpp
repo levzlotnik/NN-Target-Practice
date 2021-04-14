@@ -8,14 +8,14 @@ namespace blas {
 
     class matmul_shape_mismatch : public std::runtime_error {
     public:
-        explicit matmul_shape_mismatch(const std::string &what) :
+        explicit matmul_shape_mismatch(const std::string& what) :
                 std::runtime_error("matmul_shape_mismatch: " + what) {}
 
-        matmul_shape_mismatch(const shape_t &s1, const shape_t &s2) :
+        matmul_shape_mismatch(const shape_t& s1, const shape_t& s2) :
                 matmul_shape_mismatch(shape2str(s1) + ", " + shape2str(s2)) {}
     };
 
-    shape_t check_matrix_matrix_mm(const shape_t &s1, const shape_t &s2) {
+    shape_t check_matrix_matrix_mm(const shape_t& s1, const shape_t& s2) {
         if (s1.size() != 2 || s2.size() != 2)
             throw matmul_shape_mismatch("Matrix dims must be 2.");
         if (s1[1] != s2[0])
@@ -23,7 +23,7 @@ namespace blas {
         return shape_t{s1[0], s2[1]};
     }
 
-    shape_t check_shapes_bmm(const shape_t &s1, const shape_t &s2) {
+    shape_t check_shapes_bmm(const shape_t& s1, const shape_t& s2) {
         shape_t out_shape;
         shape_t s1_b, s2_b;
         out_shape.resize(std::max(s1.size(), s2.size()));
@@ -106,8 +106,8 @@ namespace blas {
         }
     }
 
-    inline index_t push_broadcast_index(const index_t &src1_idx, const shape_t &src1_shape,
-                                 const index_t &src2_idx, const shape_t &src2_shape,
+    inline index_t push_broadcast_index(const index_t& src1_idx, const shape_t& src1_shape,
+                                 const index_t& src2_idx, const shape_t& src2_shape,
                                  const shape_t& dst_shape, bool safe) {
         if (!safe)
             validate_indexes_compatibility(src1_idx, src1_shape, src2_idx, src2_shape);
@@ -162,7 +162,7 @@ namespace blas {
 
     template<template<typename> class Tensor1,
             template<typename> class Tensor2, typename T>
-    Tensor<T> bmm(const Tensor1<T> &t1, const Tensor2<T> &t2) {
+    Tensor<T> bmm(const Tensor1<T>& t1, const Tensor2<T>& t2) {
         static_assert(std::is_base_of_v<Tensor<T>, Tensor1<T>> &&
                       std::is_base_of_v<Tensor<T>, Tensor2<T>>,
                       "No.");
@@ -187,7 +187,7 @@ namespace blas {
 
     template<template<typename> class Tensor1,
             template<typename> class Tensor2, typename T>
-    Tensor<T>& bmm(const Tensor1<T> &t1, const Tensor2<T> &t2, Tensor<T> &out) {
+    Tensor<T>& bmm(const Tensor1<T>& t1, const Tensor2<T>& t2, Tensor<T>& out) {
         static_assert(std::is_base_of_v<Tensor<T>, Tensor1<T>> &&
                       std::is_base_of_v<Tensor<T>, Tensor2<T>>,
                       "No.");
@@ -213,7 +213,7 @@ namespace blas {
     template<template<typename> class Tensor1,
              template<typename> class Tensor2,
              typename T>
-    Tensor<T> matmul(const Tensor1<T> &t1, const Tensor2<T> &t2) {
+    Tensor<T> matmul(const Tensor1<T>& t1, const Tensor2<T>& t2) {
         if (t1.shape.size() > 2 || t2.shape.size() > 2)
             throw std::runtime_error("'blas::matmul' requires at least the tensors to be of <=2 dimensions.\n\t"
                                      "For a batch version of matrix multiplication use 'blas::bmm'.");
@@ -233,7 +233,7 @@ namespace blas {
     template<template<typename> class Tensor1,
             template<typename> class Tensor2,
             typename T>
-    Tensor<T> &matmul(const Tensor1<T> &t1, const Tensor2<T> &t2, Tensor<T> &out) {
+    Tensor<T>& matmul(const Tensor1<T>& t1, const Tensor2<T>& t2, Tensor<T>& out) {
         if (t1.shape.size() > 2 || t2.shape.size() > 2)
             throw std::runtime_error("'blas::matmul' requires at least the tensors to be of <=2 dimensions.\n\t"
                                      "For a batch version of matrix multiplication use 'blas::bmm'.");
@@ -256,22 +256,22 @@ namespace blas {
     template<template<typename> class Tensor1,
             template<typename> class Tensor2,
             typename T>
-    Tensor<T> conv1d(const Tensor1<T> &input, const Tensor2<T> &kernels, ConvMode mode) NOT_IMPLEMENTED
+    Tensor<T> conv1d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode) NOT_IMPLEMENTED
 
     template<template<typename> class Tensor1,
             template<typename> class Tensor2,
             typename T>
-    Tensor<T> conv2d(const Tensor1<T> &input, const Tensor2<T> &kernels, ConvMode mode) NOT_IMPLEMENTED
+    Tensor<T> conv2d(const Tensor1<T>& input, const Tensor2<T>& kernels, ConvMode mode) NOT_IMPLEMENTED
 
     template<template<typename> class Tensor1,
             template<typename> class Tensor2,
             typename T>
-    Tensor<T>& conv1d(const Tensor1<T> &input, const Tensor2<T> &kernels, Tensor<T>& out, ConvMode mode) NOT_IMPLEMENTED
+    Tensor<T>& conv1d(const Tensor1<T>& input, const Tensor2<T>& kernels, Tensor<T>& out, ConvMode mode) NOT_IMPLEMENTED
 
     template<template<typename> class Tensor1,
             template<typename> class Tensor2,
             typename T>
-    Tensor<T>& conv2d(const Tensor1<T> &input, const Tensor2<T> &kernels, Tensor<T>& out, ConvMode mode) NOT_IMPLEMENTED
+    Tensor<T>& conv2d(const Tensor1<T>& input, const Tensor2<T>& kernels, Tensor<T>& out, ConvMode mode) NOT_IMPLEMENTED
 
 
 #define INSTANTIATE_MATRIX_OPS(dtype) \
