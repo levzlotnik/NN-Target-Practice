@@ -92,12 +92,11 @@ namespace blas {
     }
 
     shape_t shape2strides(const shape_t& shape) {
-        std::vector<size_t> res;
-        res.reserve(shape.size());
+        std::vector<size_t> res(shape.size());
         size_t stride = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>{});
-        for (auto s: shape) {
-            stride /= s;
-            res.push_back(stride);
+        for (int i=0; i < shape.size(); ++i) {
+            stride /= shape[i];
+            res[i] = stride;
         }
         return res;
     }
@@ -655,42 +654,37 @@ namespace blas {
 
     tuple<SliceGroup /*src2*/, SliceGroup /*dst*/>
     broadcast_index(index_t src1_idx, const shape_t& src1_shape, const shape_t& src2_shape, const shape_t& dst_shape) {
-        // TODO - optimize this mechanic.
         SliceGroup sg_src2(src2_shape.size()), sg_dst(dst_shape.size());
-        for (int i = 0; i < dst_shape.size(); ++i) {
+        size_t valid_size = std::min(src1_shape.size(), src2_shape.size());
+        
+        for (int i=0; i < valid_size; ++i) {
             int dsts_idx = dst_shape.size() - 1 - i;
             int src1s_idx = src1_shape.size() - 1 - i;
             int src2s_idx = src2_shape.size() - 1 - i;
-            Slice& src2_s = sg_src2.slices[src2s_idx],& dst_s = sg_dst.slices[dsts_idx];
-            if (src1s_idx < 0) { // this shape has finished, which means that other two shapes are definitely not
-                size_t s2 = src2_shape[src2s_idx], d = dst_shape[dsts_idx];
-                src2_s.e = s2;
-                dst_s.e = d;
-            } else if (src1_shape[src1s_idx] == 1) {
-                size_t d = dst_shape[dsts_idx];
-                dst_s.e = d;
-                dst_s.update();
-                if (src2s_idx >= 0) {
-                    size_t s2 = src2_shape[src2s_idx];
-                    src2_s.e = s2;
-                }
-            } else {
-                long s1 = src1_idx[src1s_idx];
-                dst_s.b = s1;
-                dst_s.e = s1 + 1;
-                if (src2s_idx >= 0) {
-                    size_t s2 = src2_shape[src2s_idx];
-                    if (s2 != 1) {
-                        src2_s.b = s1;
-                        src2_s.e = s1 + 1;
-                    } else {
-                        src2_s.e = 1;
-                    }
-                }
+            Slice& dst_s = sg_dst.slices[dsts_idx];
+            Slice& src2_s = sg_src2.slices[src2s_idx];
+            size_t src1_d = src1_shape[src1s_idx];
+            size_t src2_d = src2_shape[src2s_idx];
+            size_t dst_d = dst_shape[dsts_idx];
+            long s1 = src1_idx[src1s_idx];
+            if (src1_d == src2_d) {
+                src2_s = Slice(s1, s1+1);
+                dst_s = Slice(s1, s1+1);
+            } else if (src2_d == 1) {
+                src2_s = Slice(0, 1);
+                dst_s = Slice(s1, s1+1);
+            } else { // src1_d == 1
+                src2_s = Slice(0, src2_d);
+                dst_s = Slice(0, dst_d);
             }
-            src2_s.update();
-            dst_s.update();
         }
+
+        size_t filler_size = dst_shape.size() - src1_shape.size();
+        for (int i = 0; i < filler_size; ++i) {
+           sg_dst.slices[i] = Slice(0, dst_shape[i]);
+           sg_src2.slices[i] = Slice(0, src2_shape[i]);
+        }
+
         return {sg_src2, sg_dst};
     }
 

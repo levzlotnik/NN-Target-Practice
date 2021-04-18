@@ -1,3 +1,4 @@
+#!/bin/bash
 EXEC_CMD=$1
 echo "EXEC_CMD = $EXEC_CMD"
 EXEC_FILENAME=$(basename -- "$EXEC_CMD")

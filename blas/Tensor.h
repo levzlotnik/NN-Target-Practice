@@ -223,7 +223,7 @@ namespace blas
     public:
         long b, e, stride;
 
-        Slice() : Slice(0, 0, 1) {}
+        Slice() : Slice(0, 1, 1) {}
         Slice(long b, long e, long stride = 1);
 
         explicit Slice(const tuple<long, long, long>& tup) :

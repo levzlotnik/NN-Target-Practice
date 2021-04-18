@@ -40,13 +40,20 @@ namespace autograd {
                 dep->backward(this, true);
         }
     }
+    
+    template<typename T>
+    void AutogradVariable<T>::add_dependency(const Variable<T>& dep) {
+        VariableBase<T>::add_dependency(dep);
+        _args.emplace_back(&dep->data());
+    }
 
     template<typename T>
-    vector<const Tensor<T>*> AutogradVariable<T>::get_args() const {
-        vector<const Tensor<T>*> args;
-        for (const auto& dep: this->dependencies)
-            args.emplace_back(&dep->data());
-        return args;
+    const vector<const Tensor<T>*>& AutogradVariable<T>::get_args() const {
+        // vector<const Tensor<T>*> args;
+        // for (const auto& dep: this->dependencies)
+        //     args.emplace_back(&dep->data());
+        // return args;
+        return _args;
     }
 
     template<typename T>

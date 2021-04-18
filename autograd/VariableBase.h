@@ -118,7 +118,7 @@ namespace autograd {
             return (*this);
         }
         inline VariableBase<T>& operator*() const noexcept { return *ptr; }
-        inline VariableBase<T> *get() const noexcept { return ptr.get(); }
+        inline VariableBase<T>* get() const noexcept { return ptr.get(); }
         inline VariableBase<T>* operator->() const noexcept { return ptr.operator->(); }
         inline bool equals(const Variable& other) const noexcept { return ptr == other.ptr; }
         inline shape_t shape() const { return ptr->shape(); }

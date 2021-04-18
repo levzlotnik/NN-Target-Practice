@@ -77,7 +77,7 @@ namespace common_math {
             static const unordered_map<string, pair<unary_op<T>, unary_op<T>>>
                     unary_elemwise_mapping
                     {
-                            /* {func,       {name, derivative}} */
+                            /* {name,       {func, derivative}} */
                             {"sin",   {unary_func_data::sin,   [](T x) -> T { return cos(x); }}},
                             {"cos",   {unary_func_data::cos,   [](T x) -> T { return -sin(x); }}},
                             {"tan",   {unary_func_data::tan,   [](T x) -> T { return 1 / (cos(x) * cos(x)); }}},

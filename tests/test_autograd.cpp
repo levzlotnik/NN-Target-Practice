@@ -18,9 +18,10 @@ void test_autograd_simple(){
     loss->gather_connection_graphviz(gvzp);
     gvzp.export_to("svg");
     for(int i=0; i < 1000; ++i){
+        auto loss_val = loss->forward_recursive().item();
         loss->zero_grad(true);
         if (i % 100 == 0)
-            cout << "Epoch " << i+1 << ": loss= " << loss->forward_recursive().item() << "\t";
+            cout << "Epoch " << i+1 << ": loss= " << loss_val << "\t";
         loss->backward();
         pred_x_param->data() -= (1e-1 * pred_x_param->grad());
         if (i % 100 == 0)
@@ -33,11 +34,13 @@ void test_autograd_simple(){
 
 void test_autograd_linear_regression() {
     cout << "TEST AUTOGRAD LINEAR REGRESSION:" << endl;
+    double alpha = 1e-3;
     auto true_theta = arange<double>(1, 4);
     auto pred_theta = zeros_like(true_theta);
     auto pred_theta_param = Parameter<double>::make("pred_theta", pred_theta);
     auto true_theta_param = Constant<double>::make("true_theta", true_theta);
-    auto input = InputBuffer<double>::make("input", randn<double>({5, 3}));
+    // auto input = InputBuffer<double>::make("input", randn<double>({5, 3}));
+    auto input = InputBuffer<double>::make("input", arange<double>(0, 5*3).const_view(shape_t{5, 3}));
     auto true_y = true_theta_param * input;
     auto pred_y = pred_theta_param * input;
     cout << "true_theta, pred_theta = " << true_theta_param.data() << ", " << pred_theta_param.data() << endl;
@@ -47,11 +50,13 @@ void test_autograd_linear_regression() {
     loss->gather_connection_graphviz(gvzp);
     gvzp.export_to("svg");
     for(int i=0; i < 1000; ++i){
+        loss->forward_recursive();
+        auto loss_val = loss->data().item();
         loss->zero_grad(true);
         loss->backward();
-        pred_theta_param.data() -= (1e-1 * pred_theta_param.grad());
+        pred_theta_param.data() -= (alpha * pred_theta_param.grad());
         if (i % 100 == 0) {
-            cout << "Epoch " << i + 1 << ": loss= " << loss->forward_recursive().item() << "\t";
+            cout << "Epoch " << i + 1 << ": loss= " << loss_val << "\t";
             cout << " pred_theta_param = " << pred_theta_param.data() << "\t";
             cout << " pred_theta_param.grad = " << pred_theta_param.grad() << endl;
         }
