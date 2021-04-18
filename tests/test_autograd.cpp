@@ -6,7 +6,8 @@
 using namespace blas;
 using namespace autograd;
 
-void test_autograd_simple(){
+void test_autograd_simple()
+{
     cout << "TEST AUTOGRAD SIMPLE:" << endl;
     auto true_x = randn<double>(5, 10, {7});
     auto pred_x = zeros_like(true_x);
@@ -17,30 +18,29 @@ void test_autograd_simple(){
     GraphvizPrinter gvzp;
     loss->gather_connection_graphviz(gvzp);
     gvzp.export_to("svg");
-    for(int i=0; i < 1000; ++i){
+    for (int i = 0; i < 1000; ++i)
+    {
         auto loss_val = loss->forward_recursive().item();
         loss->zero_grad(true);
         if (i % 100 == 0)
-            cout << "Epoch " << i+1 << ": loss= " << loss_val << "\t";
+            cout << "Epoch " << i + 1 << ": loss= " << loss_val << "\t";
         loss->backward();
         pred_x_param->data() -= (1e-1 * pred_x_param->grad());
         if (i % 100 == 0)
             cout << " pred_x_param = " << pred_x_param->data() << endl;
     }
-    cout << "true_x_buffer, pred_x_param = " <<
-        true_x_buffer->data() << ", " <<
-        pred_x_param->data() << endl;
+    cout << "true_x_buffer, pred_x_param = " << true_x_buffer->data() << ", " << pred_x_param->data() << endl;
 }
 
-void test_autograd_linear_regression() {
+void test_autograd_linear_regression()
+{
     cout << "TEST AUTOGRAD LINEAR REGRESSION:" << endl;
     double alpha = 1e-3;
     auto true_theta = arange<double>(1, 4);
     auto pred_theta = zeros_like(true_theta);
     auto pred_theta_param = Parameter<double>::make("pred_theta", pred_theta);
     auto true_theta_param = Constant<double>::make("true_theta", true_theta);
-    // auto input = InputBuffer<double>::make("input", randn<double>({5, 3}));
-    auto input = InputBuffer<double>::make("input", arange<double>(0, 5*3).const_view(shape_t{5, 3}));
+    auto input = InputBuffer<double>::make("input", arange<double>(0, 5 * 3).const_view(shape_t{5, 3}));
     auto true_y = true_theta_param * input;
     auto pred_y = pred_theta_param * input;
     cout << "true_theta, pred_theta = " << true_theta_param.data() << ", " << pred_theta_param.data() << endl;
@@ -49,26 +49,68 @@ void test_autograd_linear_regression() {
     GraphvizPrinter gvzp;
     loss->gather_connection_graphviz(gvzp);
     gvzp.export_to("svg");
-    for(int i=0; i < 1000; ++i){
+    for (int i = 0; i < 1000; ++i)
+    {
         loss->forward_recursive();
         auto loss_val = loss->data().item();
         loss->zero_grad(true);
         loss->backward();
         pred_theta_param.data() -= (alpha * pred_theta_param.grad());
-        if (i % 100 == 0) {
+        if (i % 100 == 0)
+        {
             cout << "Epoch " << i + 1 << ": loss= " << loss_val << "\t";
             cout << " pred_theta_param = " << pred_theta_param.data() << "\t";
+#ifndef NDEBUG
             cout << " pred_theta_param.grad = " << pred_theta_param.grad() << endl;
+#endif
         }
     }
 
-    cout << "true_theta, pred_theta = " <<
-         true_theta << ", " <<
-         pred_theta_param.data() << endl;
+    cout << "true_theta, pred_theta = " << true_theta << ", " << pred_theta_param.data() << endl;
 }
 
-int main(){
+void test_autograd_manual_linear_regression()
+{
+    cout << "TEST AUTOGRAD MANUAL LINEAR REGRESSION:" << endl;
+    double alpha = 1e-1;
+    auto true_theta = arange<double>(1, 4);
+    auto pred_theta = zeros_like(true_theta);
+    auto pred_theta_param = Parameter<double>::make("pred_theta", pred_theta);
+    auto true_theta_param = Constant<double>::make("true_theta", true_theta);
+    auto input = InputBuffer<double>::make("input", arange<double>(0, 5 * 3).const_view(shape_t{5, 3}));
+    auto true_y = true_theta_param * input;
+    auto pred_y = pred_theta_param * input;
+    cout << "true_theta, pred_theta = " << true_theta_param.data() << ", " << pred_theta_param.data() << endl;
+    auto dy = pred_y - true_y;
+    auto dy2 = pow(dy, 2.0);
+    auto loss = sum(dy2) / (double)dy2->data().size;
+    GraphvizPrinter gvzp;
+    loss->gather_connection_graphviz(gvzp);
+    gvzp.export_to("svg");
+    for (int i = 0; i < 1000; ++i)
+    {
+        loss->forward_recursive();
+        auto loss_val = loss->data().item();
+        loss->zero_grad(true);
+        loss->backward();
+        pred_theta_param.data() -= (alpha * pred_theta_param.grad());
+        if (i % 100 == 0)
+        {
+            cout << "Epoch " << i + 1 << ": loss= " << loss_val << "\t";
+            cout << " pred_theta_param = " << pred_theta_param.data() << "\t";
+#ifndef NDEBUG
+            cout << " pred_theta_param.grad = " << pred_theta_param.grad() << endl;
+#endif
+        }
+    }
+
+    cout << "true_theta, pred_theta = " << true_theta << ", " << pred_theta_param.data() << endl;
+}
+
+int main()
+{
     test_autograd_simple();
     test_autograd_linear_regression();
+    test_autograd_manual_linear_regression();
     return 0;
 }

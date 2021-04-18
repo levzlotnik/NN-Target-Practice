@@ -52,7 +52,7 @@ namespace autograd {
     }
 
     template<typename T>
-    Variable<T> reduce(const Variable<T>& v,
+    inline Variable<T> reduce(const Variable<T>& v,
                        const binary_op<T>& op, const binary_op<T>& op_jac, const vector<int>& dims, string op_name = "") {
         if (op_name.empty())
             op_name = generate_op_name();
@@ -61,7 +61,7 @@ namespace autograd {
     }
 
     template<typename T>
-    Variable<T> reduce(const Variable<T>& v,
+    inline Variable<T> reduce(const Variable<T>& v,
                        const binary_op<T>& op, const binary_op<T>& op_jac, const string& op_name = "") {
         vector<int> dims(v.shape().size());
         std::iota(dims.begin(), dims.end(), 0);
@@ -69,10 +69,27 @@ namespace autograd {
     }
 
     template<typename T>
-    Variable<T> reduce(const Variable<T>& v,
+    inline Variable<T> reduce(const Variable<T>& v,
                        const binary_op<T>& op, const binary_op<T>& op_jac, int dim, const string& op_name = "") {
         vector<int> dims = {dim};
         return reduce(v, op, op_jac, dims, op_name);
+    }
+
+    template<typename T>
+    inline Variable<T> sum(const Variable<T>& v) {
+        ReduceFunctor<T> functor{v.shape(), "add"};
+        return functor({v});
+    }
+
+    template<typename T>
+    inline Variable<T> sum(const Variable<T>& v, const vector<int>& dims) {
+        ReduceFunctor<T> functor{v.shape(), "add", dims};
+        return functor({v});
+    } 
+
+    template<typename T>
+    inline Variable<T> sum(const Variable<T>& v, int dim){
+        return sum(v, vector<int>{dim});
     }
 
 }

@@ -79,7 +79,7 @@ namespace autograd {
     void ScalarTensorElemwiseFunctor<T>::apply_backward(int input_idx, const vector<const Tensor<T> *>& input_ptrs,
                                                         const Tensor<T> *output_ptr, const Tensor<T>* output_grad_ptr,
                                                         Tensor<T> *input_grad_ptr) const {
-        if (input_idx != (!scalar_first)) // We only calculate gradients for the tensor.
+        if (input_idx == (!scalar_first)) // We only calculate gradients for the tensor.
             return;
         binary_op<T> dop; // takes 2 elements: (x_input, x_output) -> x_grad
         if (scalar_first)

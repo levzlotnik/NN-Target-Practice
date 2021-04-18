@@ -141,7 +141,7 @@ namespace common_math {
                                             [](T i1, T i2, T o) -> T { return 1 / i2; },
                                             [](T i1, T i2, T o) -> T { return -o / i2; }}},
                             {"pow", {pow,
-                                            [](T i1, T i2, T o) -> T { return o * i2 / i1;},
+                                            [](T i1, T i2, T o) -> T { return o == 0 ? 0 : o * i2 / i1;},
                                             [](T i1, T i2, T o) -> T { return o * u::log(i1); }}}
                     };
             return binary_elemwise_mapping.at(func_name);

@@ -1222,7 +1222,7 @@ namespace blas {
     }
 
     void check_reduce_shapes(const shape_t& reduced, const shape_t& to) {
-        if (to.size() != 1 || to[0] != 1)
+        if (!to.empty() && (to.size() != 1 || to[0] != 1))
             throw shape_mismatch(reduced, to, "reduce");
     }
 
