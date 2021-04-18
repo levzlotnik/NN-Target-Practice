@@ -2,9 +2,6 @@
 // Created by LevZ on 9/11/2020.
 //
 
-//
-// Created by LevZ on 7/8/2020.
-//
 
 #include "../blas/blas.h"
 #include "common.h"
@@ -16,7 +13,7 @@ int main(){
 
     auto t = Tensor<double> {
             {1, 2, 3, 4,
-                  5, 6, 7, 8},
+             5, 6, 7, 8},
             {2, 4}
     };
     auto t10 = t({{}, {2, 4}});
