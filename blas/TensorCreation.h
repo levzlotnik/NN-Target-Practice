@@ -5,7 +5,7 @@
 #ifndef TARGETPRACTICE_TENSORCREATION_H
 #define TARGETPRACTICE_TENSORCREATION_H
 
-#include "Tensor.h"
+#include "all_tensors.h"
 
 namespace blas
 {

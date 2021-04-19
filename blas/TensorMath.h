@@ -5,8 +5,7 @@
 #ifndef TARGETPRACTICE_TENSORMATH_H
 #define TARGETPRACTICE_TENSORMATH_H
 
-#include "Tensor.h"
-#include "../common_math.h"
+#include "all_tensors.h"
 
 namespace blas
 {
