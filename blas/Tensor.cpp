@@ -246,6 +246,13 @@ size_t ravel_index(const index_t& idx, const shape_t& shape, int size) {
     return index;
 }
 
+size_t ravel_index(const index_t& idx, const shape_t& shape, const shape_t& strides){
+    size_t index = 0;
+    for (int i = 0; i < shape.size(); ++i)
+        index += strides[i] * shape[i];
+    return index;
+}
+
 index_t unravel_index(size_t true_idx, const shape_t& shape, int size) {
     int stride = size > 0 ? size
                           : std::accumulate(shape.begin(), shape.end(), 1,
