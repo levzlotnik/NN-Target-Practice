@@ -754,7 +754,7 @@ SliceGroup broadcast_index(const index_t& src_idx, const shape_t& src_shape,
 }
 
 template <typename T>
-TensorView<T> Tensor<T>::const_view(const vector<long>& new_shape) const {
+const TensorView<T> Tensor<T>::const_view(const vector<long>& new_shape) const {
     shape_t normalized = normalize_shape(new_shape, shape);
     return TensorView<T>(data, normalized);
 }
@@ -774,7 +774,7 @@ TensorSliced<T> TensorSliced<T>::slice_unsqueeze(int i) {
 }
 
 template <typename T>
-TensorSliced<T> TensorSliced<T>::const_slice_unsqueeze(int i) const {
+const TensorSliced<T> TensorSliced<T>::const_slice_unsqueeze(int i) const {
     long norm_i = normalize_index(i, this->shape.size(), true);
     TensorSliced ret(*this);
     auto& ret_slices = ret.slice_group.slices;
@@ -804,7 +804,7 @@ TensorSliced<T> TensorSliced<T>::slice_squeeze(int i) {
 }
 
 template <typename T>
-TensorSliced<T> TensorSliced<T>::const_slice_squeeze(int i) const {
+const TensorSliced<T> TensorSliced<T>::const_slice_squeeze(int i) const {
     using std::to_string;
     int norm_i = normalize_index(i, this->shape.size());
     if (this->shape[norm_i] != 1)
@@ -841,7 +841,7 @@ TensorSliced<T> TensorSliced<T>::slice_squeeze(vector<int> dims) {
 }
 
 template <typename T>
-TensorSliced<T> TensorSliced<T>::const_slice_squeeze(vector<int> dims) const {
+const TensorSliced<T> TensorSliced<T>::const_slice_squeeze(vector<int> dims) const {
     using std::remove;
     using std::to_string;
     shape_t out_shape(this->shape);
@@ -859,6 +859,15 @@ TensorSliced<T> TensorSliced<T>::const_slice_squeeze(vector<int> dims) const {
     out.shape = out_shape;
     out.strides = shape2strides(out_shape);
     return out;
+}
+
+template<typename T>
+TensorTransposed<T> Tensor<T>::permute(const shape_t& permute_idx) {
+    return TensorTransposed<T>(*this, permute_idx);
+}
+template<typename T>
+const TensorTransposed<T> Tensor<T>::const_permute(const shape_t& permute_idx) const {
+    return TensorTransposed<T>(*this, permute_idx);
 }
 
 }  // namespace blas
@@ -1111,7 +1120,13 @@ inline Tensor<T> _apply_scalar(const Tnsr<T>& src, T scalar,
         _apply_unary(*this, op, dst);                                        \
     }                                                                        \
     template <typename T>                                                    \
-    void Tnsr<T>::apply(const unary_op<T>& op, TensorSliced<T>& dst) const { \
+    void Tnsr<T>::apply(const unary_op<T>& op,                               \
+                        TensorSliced<T>& dst) const {                        \
+        _apply_unary(*this, op, dst);                                        \
+    }                                                                        \
+    template <typename T>                                                    \
+    void Tnsr<T>::apply(const unary_op<T>& op,                               \
+                        TensorTransposed<T>& dst) const {                    \
         _apply_unary(*this, op, dst);                                        \
     }                                                                        \
     template <typename T>                                                    \
@@ -1142,6 +1157,11 @@ inline Tensor<T> _apply_scalar(const Tnsr<T>& src, T scalar,
         _apply_scalar(*this, scalar, op, dst);                                \
     }                                                                         \
     template <typename T>                                                     \
+    void Tnsr<T>::apply(T scalar, const binary_op<T>& op,                     \
+                        TensorTransposed<T>& dst) const {                     \
+        _apply_scalar(*this, scalar, op, dst);                                \
+    }                                                                         \
+    template <typename T>                                                     \
     Tensor<T> Tnsr<T>::apply(T scalar, const binary_op<T>& op) const {        \
         return _apply_scalar(*this, scalar, op);                              \
     }
@@ -1153,28 +1173,37 @@ inline Tensor<T> _apply_scalar(const Tnsr<T>& src, T scalar,
         return _apply_tensors_(*this, t, op);                          \
     }
 
-#define TENSOR_TENSOR_BINARY_APPLY(TensorT1, TensorT2, T)                     \
-    template <typename T>                                                     \
-    void TensorT1<T>::apply_tensors(                                          \
-        const TensorT2<T>& t, const binary_op<T>& op, Tensor<T>& dst) const { \
-        _apply_tensors(*this, t, op, dst);                                    \
-    }                                                                         \
-    template <typename T>                                                     \
-    void TensorT1<T>::apply_tensors(                                          \
-        const TensorT2<T>& t, const binary_op<T>& op, TensorView<T>& dst)     \
-        const {                                                               \
-        _apply_tensors(*this, t, op, dst);                                    \
-    }                                                                         \
-    template <typename T>                                                     \
-    void TensorT1<T>::apply_tensors(                                          \
-        const TensorT2<T>& t, const binary_op<T>& op, TensorSliced<T>& dst)   \
-        const {                                                               \
-        _apply_tensors(*this, t, op, dst);                                    \
-    }                                                                         \
-    template <typename T>                                                     \
-    Tensor<T> TensorT1<T>::apply_tensors(const TensorT2<T>& t,                \
-                                         const binary_op<T>& op) const {      \
-        return _apply_tensors(*this, t, op);                                  \
+#define TENSOR_TENSOR_BINARY_APPLY(TensorT1, TensorT2, T)              \
+    template <typename T>                                              \
+    void TensorT1<T>::apply_tensors(                                   \
+        const TensorT2<T>& t, const binary_op<T>& op,                  \
+        Tensor<T>& dst) const {                                        \
+        _apply_tensors(*this, t, op, dst);                             \
+    }                                                                  \
+    template <typename T>                                              \
+    void TensorT1<T>::apply_tensors(                                   \
+        const TensorT2<T>& t, const binary_op<T>& op,                  \
+        TensorView<T>& dst) const {                                    \
+        _apply_tensors(*this, t, op, dst);                             \
+    }                                                                  \
+    template <typename T>                                              \
+    void TensorT1<T>::apply_tensors(                                   \
+        const TensorT2<T>& t, const binary_op<T>& op,                  \
+        TensorSliced<T>& dst) const {                                  \
+        _apply_tensors(*this, t, op, dst);                             \
+    }                                                                  \
+    template <typename T>                                              \
+    void TensorT1<T>::apply_tensors(                                   \
+        const TensorT2<T>& t,                                          \
+        const binary_op<T>& op,                                        \
+        TensorTransposed<T>& dst) const {                              \
+        _apply_tensors(*this, t, op, dst);                             \
+    }                                                                  \
+    template <typename T>                                              \
+    Tensor<T> TensorT1<T>::apply_tensors(                              \
+        const TensorT2<T>& t,                                          \
+        const binary_op<T>& op) const {                                \
+        return _apply_tensors(*this, t, op);                           \
     }
 
 #define APPLY_UNIQUE_INTERACTABLE(Tnsr) \
@@ -1194,6 +1223,7 @@ inline Tensor<T> _apply_scalar(const Tnsr<T>& src, T scalar,
 DEF_APPLY_TENSOR(Tensor)
 APPLY_UNIQUE_INTERACTABLE(TensorView)
 DEF_APPLY_TENSOR(TensorSliced)
+DEF_APPLY_TENSOR(TensorTransposed)
 }  // namespace blas
 
 namespace blas {
@@ -1326,13 +1356,15 @@ void check_reduce_shapes(shape_t reduced, const shape_t& to,
         _reduce(op, dims, *this, out);                                  \
     }
 
-#define DEF_TENSOR_REDUCE(TensorIn)                \
-    DEF_TENSOR_REDUCE_SINGLE(TensorIn, Tensor)     \
-    DEF_TENSOR_REDUCE_SINGLE(TensorIn, TensorView) \
-    DEF_TENSOR_REDUCE_SINGLE(TensorIn, TensorSliced)
+#define DEF_TENSOR_REDUCE(TensorIn)                  \
+    DEF_TENSOR_REDUCE_SINGLE(TensorIn, Tensor)       \
+    DEF_TENSOR_REDUCE_SINGLE(TensorIn, TensorView)   \
+    DEF_TENSOR_REDUCE_SINGLE(TensorIn, TensorSliced) \
+    DEF_TENSOR_REDUCE_SINGLE(TensorIn, TensorTransposed)
 
 DEF_TENSOR_REDUCE(Tensor)
 DEF_TENSOR_REDUCE(TensorSliced)
+DEF_TENSOR_REDUCE(TensorTransposed)
 }  // namespace blas
 
 namespace blas {
@@ -1346,13 +1378,15 @@ namespace blas {
     MACRO_INTERACTABLE_TENSORTYPES(MACRO_COPY_, TensorView, T) \
     MACRO_INTERACTABLE_TENSORTYPES(MACRO_COPY_, TensorSliced, T)
 
-#define INSTANTIATE_TEMPLATE_TENSOR(T)                    \
-    template class Tensor<T>;                             \
-    template class TensorView<T>;                         \
-    template class TensorSliced<T>;                       \
-    template Tensor<T>& fill_(Tensor<T>&, T);             \
-    template TensorView<T>& fill_(TensorView<T>&, T);     \
-    template TensorSliced<T>& fill_(TensorSliced<T>&, T); \
+#define INSTANTIATE_TEMPLATE_TENSOR(T)                            \
+    template class Tensor<T>;                                     \
+    template class TensorView<T>;                                 \
+    template class TensorSliced<T>;                               \
+    template class TensorTransposed<T>;                           \
+    template Tensor<T>& fill_(Tensor<T>&, T);                     \
+    template TensorView<T>& fill_(TensorView<T>&, T);             \
+    template TensorSliced<T>& fill_(TensorSliced<T>&, T);         \
+    template TensorTransposed<T>& fill_(TensorTransposed<T>&, T); \
     INSTANTIATE_COPY_(T)
 
 INSTANTIATE_TEMPLATE_TENSOR(double)

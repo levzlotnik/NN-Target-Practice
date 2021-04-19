@@ -80,16 +80,7 @@ class TensorSliced : public Tensor<T> {
         const SliceGroup& slice_group) const override;
     MARK_FORBIDDEN(TensorView<T> view(const vector<long>& new_shape) override)
 
-#define DECL_TENSOR_REDUCE_OVERRIDE(TensorOut)                               \
-    void reduce(const binary_op<T>& op, TensorOut<T>& out) const override;   \
-    void reduce(const binary_op<T>& op, int dim, TensorOut<T>& out)          \
-        const override;                                                      \
-    void reduce(const binary_op<T>& op, vector<int> dims, TensorOut<T>& out) \
-        const override;
-
-    DECL_TENSOR_REDUCE_OVERRIDE(Tensor)
-    DECL_TENSOR_REDUCE_OVERRIDE(TensorView)
-    DECL_TENSOR_REDUCE_OVERRIDE(TensorSliced)
+    DECL_ALL_REDUCE_OVERRIDES()
 
     Tensor<T> reshape(const vector<long>& new_shape) const override;
 
@@ -110,11 +101,11 @@ class TensorSliced : public Tensor<T> {
     Tensor<T> contiguous() const;
 
     TensorSliced<T> slice_unsqueeze(int i);
-    TensorSliced<T> const_slice_unsqueeze(int i) const;
+    const TensorSliced<T> const_slice_unsqueeze(int i) const;
     TensorSliced<T> slice_squeeze(int i);
-    TensorSliced<T> const_slice_squeeze(int i) const;
+    const TensorSliced<T> const_slice_squeeze(int i) const;
     TensorSliced<T> slice_squeeze(vector<int> dims);
-    TensorSliced<T> const_slice_squeeze(vector<int> dims) const;
+    const TensorSliced<T> const_slice_squeeze(vector<int> dims) const;
 };
 }
 #endif // BLAS_TENSORSLICED_H_

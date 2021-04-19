@@ -11,10 +11,12 @@ using namespace blas;
 int main(){
     Tensor<double> t (
             {1, 2, 3,
-                  4, 5, 6},
+             4, 5, 6},
             {2, 1, 3}
     );
     PRINT_EXPR(t);
+    PRINT_EXPR(t.const_permute({0, 1, 2}));
+    PRINT_EXPR(t.permute({1, 2, 0}));
     auto t1 = t({1, 2});
     t1 = 900.0;
     auto t2 = t * t1;

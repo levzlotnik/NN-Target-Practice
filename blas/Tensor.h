@@ -5,19 +5,16 @@
 #ifndef BLAS_TENSOR_H_
 #define BLAS_TENSOR_H_
 
- 
-
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
 
-#include "common_blas.h"
 #include "Slice.h"
+#include "common_blas.h"
 
 using namespace common_math;
-
 
 // Math operations on tensors, like numpy.
 namespace blas {
@@ -36,7 +33,6 @@ class TensorSliced;
 
 template <typename T>
 class TensorTransposed;
-
 
 /**
  * Fill a tensor with a single value inplace, generically.
@@ -69,39 +65,49 @@ Tensor1& copy_(Tensor1& dst, const Tensor2& src);
         const;                                                                 \
     virtual void apply(T scalar, const binary_op<T>& op, TensorSliced<T>& out) \
         const;                                                                 \
+    virtual void apply(T scalar, const binary_op<T>& op,                       \
+                       TensorTransposed<T>& out) const;                        \
     virtual Tensor<T> apply(T scalar, const binary_op<T>& op) const;           \
     virtual void apply(const unary_op<T>&, Tensor<T>& out) const;              \
     virtual void apply(const unary_op<T>&, TensorView<T>& out) const;          \
     virtual void apply(const unary_op<T>&, TensorSliced<T>& out) const;        \
+    virtual void apply(const unary_op<T>&, TensorTransposed<T>& out) const;    \
     virtual Tensor<T> apply(const unary_op<T>&) const;
 
-#define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorT1)         \
-    TensorT1& apply_(T scalar, const binary_op<T>& op) override;         \
-    TensorT1& apply_(const unary_op<T>&) override;                       \
-    void apply(T scalar, const binary_op<T>& op, Tensor<T>& out)         \
-        const override;                                                  \
-    void apply(T scalar, const binary_op<T>& op, TensorView<T>& out)     \
-        const override;                                                  \
-    void apply(T scalar, const binary_op<T>& op, TensorSliced<T>& out)   \
-        const override;                                                  \
-    Tensor<T> apply(T scalar, const binary_op<T>& op) const override;    \
-    void apply(const unary_op<T>&, Tensor<T>& out) const override;       \
-    void apply(const unary_op<T>&, TensorView<T>& out) const override;   \
-    void apply(const unary_op<T>&, TensorSliced<T>& out) const override; \
+#define DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorT1)             \
+    TensorT1& apply_(T scalar, const binary_op<T>& op) override;             \
+    TensorT1& apply_(const unary_op<T>&) override;                           \
+    void apply(T scalar, const binary_op<T>& op, Tensor<T>& out)             \
+        const override;                                                      \
+    void apply(T scalar, const binary_op<T>& op, TensorView<T>& out)         \
+        const override;                                                      \
+    void apply(T scalar, const binary_op<T>& op, TensorSliced<T>& out)       \
+        const override;                                                      \
+    void apply(T scalar, const binary_op<T>& op, TensorTransposed<T>& out)   \
+        const override;                                                      \
+    Tensor<T> apply(T scalar, const binary_op<T>& op) const override;        \
+    void apply(const unary_op<T>&, Tensor<T>& out) const override;           \
+    void apply(const unary_op<T>&, TensorView<T>& out) const override;       \
+    void apply(const unary_op<T>&, TensorSliced<T>& out) const override;     \
+    void apply(const unary_op<T>&, TensorTransposed<T>& out) const override; \
     Tensor<T> apply(const unary_op<T>&) const override;
 
-#define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2, T)           \
-    virtual TensorT1& apply_tensors_(const TensorT2<T>& other,                \
-                                     const binary_op<T>& op);                 \
-    virtual void apply_tensors(const TensorT2<T>& other,                      \
-                               const binary_op<T>& op, Tensor<T>& out) const; \
-    virtual void apply_tensors(const TensorT2<T>& other,                      \
-                               const binary_op<T>& op, TensorView<T>& out)    \
-        const;                                                                \
-    virtual void apply_tensors(const TensorT2<T>& other,                      \
-                               const binary_op<T>& op, TensorSliced<T>& out)  \
-        const;                                                                \
-    virtual Tensor<T> apply_tensors(const TensorT2<T>& other,                 \
+#define DECL_INTERACTIVE_ACTIONS_TENSOR_BASE(TensorT1, TensorT2, T)      \
+    virtual TensorT1& apply_tensors_(const TensorT2<T>& other,           \
+                                     const binary_op<T>& op);            \
+    virtual void apply_tensors(const TensorT2<T>& other,                 \
+                               const binary_op<T>& op,                   \
+                               Tensor<T>& out) const;                    \
+    virtual void apply_tensors(const TensorT2<T>& other,                 \
+                               const binary_op<T>& op,                   \
+                               TensorView<T>& out) const;                \
+    virtual void apply_tensors(const TensorT2<T>& other,                 \
+                               const binary_op<T>& op,                   \
+                               TensorSliced<T>& out) const;              \
+    virtual void apply_tensors(const TensorT2<T>& other,                 \
+                               const binary_op<T>& op,                   \
+                               TensorTransposed<T>& out) const;          \
+    virtual Tensor<T> apply_tensors(const TensorT2<T>& other,            \
                                     const binary_op<T>& op) const;
 
 #define DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE(TensorT1, TensorT2, T)        \
@@ -113,17 +119,20 @@ Tensor1& copy_(Tensor1& dst, const Tensor2& src);
                        TensorView<T>& out) const override;                     \
     void apply_tensors(const TensorT2<T>& other, const binary_op<T>& op,       \
                        TensorSliced<T>& out) const override;                   \
+    void apply_tensors(const TensorT2<T>& other, const binary_op<T>& op,       \
+                       TensorTransposed<T>& out) const override;               \
     Tensor<T> apply_tensors(const TensorT2<T>& other, const binary_op<T>& op)  \
         const override;
 
-#define MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTDst, T)      \
-    macro(TensorTDst, Tensor, T) macro(TensorTDst, TensorView, T) \
-        macro(TensorTDst, TensorSliced, T)
+#define MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTDst, T)             \
+    macro(TensorTDst, Tensor, T) macro(TensorTDst, TensorView, T) macro( \
+        TensorTDst, TensorSliced, T) macro(TensorTDst, TensorTransposed, T)
 
-#define MACRO_INTERACT_TENSORS(macro, T)                 \
-    MACRO_INTERACTABLE_TENSORTYPES(macro, Tensor, T)     \
-    MACRO_INTERACTABLE_TENSORTYPES(macro, TensorView, T) \
-    MACRO_INTERACTABLE_TENSORTYPES(macro, TensorSlice, T)
+#define MACRO_INTERACT_TENSORS(macro, T)                   \
+    MACRO_INTERACTABLE_TENSORTYPES(macro, Tensor, T)       \
+    MACRO_INTERACTABLE_TENSORTYPES(macro, TensorView, T)   \
+    MACRO_INTERACTABLE_TENSORTYPES(macro, TensorSliced, T) \
+    MACRO_INTERACTABLE_TENSORTYPES(macro, TensorTransposed, T)
 
 #define DEF_ASSIGNMENT_TEMPLATE(TensorT1, TensorT2, T)     \
     inline TensorT1& copy_(const TensorT2<T>& other) {     \
@@ -147,6 +156,7 @@ Tensor1& copy_(Tensor1& dst, const Tensor2& src);
         return *this;                            \
     }                                            \
     MACRO_INTERACTABLE_TENSORTYPES(DEF_ASSIGNMENT_TEMPLATE, Tensor1, T)
+
 template <typename T>
 class Tensor {
    public:
@@ -294,19 +304,14 @@ class Tensor {
     TensorSliced<T> operator()(const Slice& slice) const;
     TensorSliced<T> operator()(const SliceGroup& slice) const;
 
-    virtual TensorView<T> unchecked_subscript(
-        long idx) const;  // Gets subtensor lvalue
-    virtual TensorView<T> unchecked_subscript(
-        const index_t& index) const;  // Gets subtensor lvalue
-    virtual TensorSliced<T> unchecked_slice(
-        const Slice& slice) const;  // Gets slice lvalue
-    virtual TensorSliced<T> unchecked_slice_group(
-        const SliceGroup& slice_group) const;
+    virtual TensorView<T> unchecked_subscript(long idx) const;  
+    virtual TensorView<T> unchecked_subscript(const index_t& index) const;  
+    virtual TensorSliced<T> unchecked_slice(const Slice& slice) const;  
+    virtual TensorSliced<T> unchecked_slice_group(const SliceGroup& slice_group) const;
     // Returns a slice for the index.
     inline TensorSliced<T> unchecked_subscript_slice(
         const index_t& index) const {
-        SliceGroup sg =
-            SliceGroup::cover_index(index).fill_to_shape_(this->shape);
+        SliceGroup sg = SliceGroup::cover_index(index).fill_to_shape_(this->shape);
         TensorSliced ret = this->unchecked_slice_group(sg);
         // It's safe to just remove all the trailing shapes because
         // this slice is contiguous
@@ -342,11 +347,11 @@ class Tensor {
 
     virtual Tensor reshape(const vector<long>& new_shape) const;
     virtual TensorView<T> view(const vector<long>& new_shape);
-    virtual TensorView<T> const_view(const vector<long>& new_shape) const;
+    virtual const TensorView<T> const_view(const vector<long>& new_shape) const;
     inline TensorView<T> view(const shape_t& new_shape) {
         return this->view(vector<long>(new_shape.begin(), new_shape.end()));
     }
-    inline TensorView<T> const_view(const shape_t& new_shape) const {
+    inline const TensorView<T> const_view(const shape_t& new_shape) const {
         return this->const_view(
             vector<long>(new_shape.begin(), new_shape.end()));
     }
@@ -356,12 +361,14 @@ class Tensor {
         new_shape.insert(new_shape.begin() + dim, 1);
         return this->view(new_shape);
     }
-    inline TensorView<T> const_unsqueeze(int dim) const {
+    inline const TensorView<T> const_unsqueeze(int dim) const {
         dim = normalize_index(dim, this->dim(), true);
         shape_t new_shape(this->shape);
         new_shape.insert(new_shape.begin() + dim, 1);
         return this->const_view(new_shape);
     }
+    const TensorTransposed<T> const_permute(const shape_t& permute_idx) const;
+    TensorTransposed<T> permute(const shape_t& permute_idx);
 
     inline size_t dim() const { return shape.size(); }
 
@@ -412,6 +419,20 @@ class Tensor {
     DECL_TENSOR_REDUCE_BASE(Tensor)
     DECL_TENSOR_REDUCE_BASE(TensorView)
     DECL_TENSOR_REDUCE_BASE(TensorSliced)
+    DECL_TENSOR_REDUCE_BASE(TensorTransposed)
+
+#define DECL_TENSOR_REDUCE_OVERRIDE(TensorOut)                               \
+    void reduce(const binary_op<T>& op, TensorOut<T>& out) const override;   \
+    void reduce(const binary_op<T>& op, int dim, TensorOut<T>& out)          \
+        const override;                                                      \
+    void reduce(const binary_op<T>& op, vector<int> dims, TensorOut<T>& out) \
+        const override;
+
+#define DECL_ALL_REDUCE_OVERRIDES()           \
+    DECL_TENSOR_REDUCE_OVERRIDE(Tensor)       \
+    DECL_TENSOR_REDUCE_OVERRIDE(TensorView)   \
+    DECL_TENSOR_REDUCE_OVERRIDE(TensorSliced) \
+    DECL_TENSOR_REDUCE_OVERRIDE(TensorTransposed)
 
     inline Tensor sum() const {
         using b = binary_func_data<T>;
@@ -441,12 +462,12 @@ class Tensor {
     T* get_data_ptr() const;
 
     size_t size;
+    shape_t strides;
     virtual ostream& print_to_os(ostream& os, bool rec_start) const;
 
    protected:
     static_assert(std::is_arithmetic_v<T>, "Must be an arithmetic type.");
     T* data;
-    shape_t strides;
     bool requires_deletion = true;
 
     shape_t slice2shape(const Slice& slice) const;
@@ -461,6 +482,4 @@ size_t Tensor<T>::print_precision = 0;
 using DoubleTensor = Tensor<double>;
 }  // namespace blas
 
- 
-
-#endif // BLAS_TENSOR_H_
+#endif  // BLAS_TENSOR_H_
