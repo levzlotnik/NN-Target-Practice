@@ -350,13 +350,15 @@ class Tensor {
     virtual const TensorView<T> const_view(const vector<long>& new_shape) const;
     inline TensorView<T> unsqueeze(int dim) {
         dim = normalize_index(dim, this->dim(), true);
-        shape_t new_shape(this->shape);
+        // shape_t new_shape(this->shape);
+        vector<long> new_shape(this->shape.begin(), this->shape.end());
         new_shape.insert(new_shape.begin() + dim, 1);
         return this->view(new_shape);
     }
     inline const TensorView<T> const_unsqueeze(int dim) const {
         dim = normalize_index(dim, this->dim(), true);
-        shape_t new_shape(this->shape);
+        // shape_t new_shape(this->shape);
+        vector<long> new_shape(this->shape.begin(), this->shape.end());
         new_shape.insert(new_shape.begin() + dim, 1);
         return this->const_view(new_shape);
     }

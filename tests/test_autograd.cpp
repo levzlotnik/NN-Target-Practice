@@ -11,7 +11,7 @@ void test_autograd_simple()
     cout << "TEST AUTOGRAD SIMPLE:" << endl;
     auto true_x = randn<double>(5, 10, {7});
     auto pred_x = zeros_like(true_x);
-    auto pred_x_param = Parameter<double>::make("pred_x", pred_x, true);
+    auto pred_x_param = Parameter<double>::make("pred_x", pred_x);
     auto true_x_buffer = InputBuffer<double>::make("true_x", true_x);
     MSELoss<double> criterion{pred_x.shape};
     auto loss = criterion(true_x_buffer, pred_x_param);
@@ -40,11 +40,11 @@ void test_autograd_linear_regression()
     auto pred_theta = zeros_like(true_theta);
     auto pred_theta_param = Parameter<double>::make("pred_theta", pred_theta);
     auto true_theta_param = Constant<double>::make("true_theta", true_theta);
-    auto input = InputBuffer<double>::make("input", arange<double>(0, 5 * 3).const_view(shape_t{5, 3}));
+    auto input = InputBuffer<double>::make("input", arange<double>(0, 5 * 3).const_view({5, 3}));
     auto true_y = true_theta_param * input;
     auto pred_y = pred_theta_param * input;
     cout << "true_theta, pred_theta = " << true_theta_param.data() << ", " << pred_theta_param.data() << endl;
-    MSELoss<double> criterion{pred_y.shape()};
+    MSELoss<double> criterion(pred_y.shape());
     auto loss = criterion(pred_y, true_y);
     GraphvizPrinter gvzp;
     loss->gather_connection_graphviz(gvzp);
@@ -77,7 +77,7 @@ void test_autograd_manual_linear_regression()
     auto pred_theta = zeros_like(true_theta);
     auto pred_theta_param = Parameter<double>::make("pred_theta", pred_theta);
     auto true_theta_param = Constant<double>::make("true_theta", true_theta);
-    auto input = InputBuffer<double>::make("input", arange<double>(0, 5 * 3).const_view(shape_t{5, 3}));
+    auto input = InputBuffer<double>::make("input", arange<double>(0, 5 * 3).const_view({5, 3}));
     auto true_y = true_theta_param * input;
     auto pred_y = pred_theta_param * input;
     cout << "true_theta, pred_theta = " << true_theta_param.data() << ", " << pred_theta_param.data() << endl;
@@ -115,14 +115,14 @@ void test_multi_layer_perceptron()
     auto x = linspace<double>(-1, 1, 500);
     auto y = x*x;
     auto input = InputBuffer<double>::make("x", x.const_view({-1, 1}));
-    auto w1 = Parameter<double>::make("w1", randn(-1, 1, {1, 32})),
-         b1 = Parameter<double>::make("b1", randn(-1, 1, {32}));
-    auto w2 = Parameter<double>::make("w2", randn(-1, 1, {32, 16})),
-         b2 = Parameter<double>::make("b2", randn(-1, 1, {16}));
-    auto w3 = Parameter<double>::make("w3", randn(-1, 1, {16, 8})),
-         b3 = Parameter<double>::make("b3", randn(-1, 1, {8}));
-    auto w4 = Parameter<double>::make("w4", randn(-1, 1, {8, 1})),
-         b4 = Parameter<double>::make("b4", randn(-1, 1, {1}));
+    auto w1 = Parameter<double>::make("w1", randn(-1., 1., {1, 32})),
+         b1 = Parameter<double>::make("b1", randn(-1., 1., {32}));
+    auto w2 = Parameter<double>::make("w2", randn(-1., 1., {32, 16})),
+         b2 = Parameter<double>::make("b2", randn(-1., 1., {16}));
+    auto w3 = Parameter<double>::make("w3", randn(-1., 1., {16, 8})),
+         b3 = Parameter<double>::make("b3", randn(-1., 1., {8}));
+    auto w4 = Parameter<double>::make("w4", randn(-1., 1., {8, 1})),
+         b4 = Parameter<double>::make("b4", randn(-1., 1., {1}));
     vector<Variable<double>> params = {w1, b1, w2, b2, w3, b3, w4, b4};;
     auto h1 = relu(matmul(input, w1) + b1);
     auto h2 = relu(matmul(input, w2) + b2);
@@ -130,7 +130,8 @@ void test_multi_layer_perceptron()
     auto y_pred = relu(matmul(input, w4) + b4);
     MSELoss<double> criterion{y.shape};
     GraphvizPrinter gvzp;
-    auto loss = criterion(y_pred, y); 
+    auto y_true = InputBuffer<double>::make("y_true", y);
+    auto loss = criterion(y_pred, y_true); 
     loss->gather_connection_graphviz(gvzp);
     gvzp.export_to("svg");
     for (int i = 0; i < 1000; ++i)

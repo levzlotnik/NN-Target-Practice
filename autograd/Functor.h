@@ -357,6 +357,8 @@ class MatMulFunctor : public Functor<T> {
                         const Tensor<T>* output_ptr,
                         const Tensor<T>* output_grad_ptr,
                         Tensor<T>* input_grad_ptr) const override;
+                        
+    OVERRIDE_CLONE(MatMulFunctor);
 };
 }  // namespace autograd
 

@@ -11,36 +11,34 @@
 
 namespace autograd {
 // Represents a leaf variable with data only.
-    template<typename T>
-    class Parameter : public VariableBase<T> {
-    public:
-        void add_dependency(const Variable<T>& dep) override {
-            throw runtime_error("Parameter is an independent variable, "
-                                "adding dependencies to it will have no effect.");
-        }
+template <typename T>
+class Parameter : public VariableBase<T> {
+   public:
+    void add_dependency(const Variable<T>& dep) override {
+        throw runtime_error(
+            "Parameter is an independent variable, "
+            "adding dependencies to it will have no effect.");
+    }
 
-        inline bool is_param() const final { return true; }
+    inline bool is_param() const final { return true; }
 
-        template<typename ...Args>
-        static Variable<T> make(const string& name, Args&& ...args) {
-            return Variable<T>{new Parameter(name, std::forward<Args>(args)..., true)};
-        }
+    static Variable<T> make(const string& name, Tensor<T> t,
+                            bool requires_grad = true) {
+        return Variable<T>{new Parameter(name, std::move(t), requires_grad)};
+    }
 
-    private:
-        string node_style_graphviz() override {
-            return "shape=box style=\"rounded\"";
-        }
+   private:
+    string node_style_graphviz() override {
+        return "shape=box style=\"rounded\"";
+    }
 
-    protected:
-     template <typename... Args>
-     Parameter(const string& name, Args&&... args, bool required_grad)
-         : VariableBase(name, Tensor<T>(std::forward<Args>(args)...),
-                        required_grad) {}
+   protected:
+    using VariableBase<T>::VariableBase;
 
-     void backward(VariableBase<T>* dependee, bool recursive) override {
-         // Do nothing - this is leaf variable.
-        }
-    };
-}
+    void backward(VariableBase<T>* dependee, bool recursive) override {
+        // Do nothing - this is leaf variable.
+    }
+};
+}  // namespace autograd
 
-#endif //TARGETPRACTICE_PARAMETER_H
+#endif  // TARGETPRACTICE_PARAMETER_H

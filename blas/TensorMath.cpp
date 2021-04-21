@@ -40,6 +40,7 @@ namespace blas {
 
     template<template<typename> class Tensor1, typename T>
     inline TensorView<T> promote(const Tensor1<T>& t, int pos, bool to_batched=false) {
+        vector<long> new_shape(t.shape.begin(), t.shape.end());
         switch (t.dim()) {
             case 0:
                 throw broadcast_failure("Cannot accept scalars for matmul of any kind.");
@@ -48,13 +49,17 @@ namespace blas {
                 return to_batched ? t_.unsqueeze(0) : t_;
             }
             case 2: {
-                auto t_ = t.const_view(t.shape);
+                auto t_ = t.const_view(new_shape);
                 return to_batched ? t_.unsqueeze(0) : t_;
             }
             default:
-                return t.const_view(t.shape);
+                return t.const_view(new_shape);
         }
     }
+
+
+    template<typename T>
+    inline TensorView<T> promote(const TensorTransposed<T>& t, int pos, bool to_batched=false) NOT_IMPLEMENTED
 
     template<typename T>
     inline TensorSliced<T> promote(const TensorSliced<T>& t, int pos, bool to_batched=false){
@@ -160,6 +165,8 @@ namespace blas {
         }
     }
 
+    vector<long> to_long(const shape_t& shape) { return vector<long>(shape.begin(), shape.end()); }
+
     template<template<typename> class Tensor1,
             template<typename> class Tensor2, typename T>
     Tensor<T> bmm(const Tensor1<T>& t1, const Tensor2<T>& t2) {
@@ -180,7 +187,7 @@ namespace blas {
             out_shape.erase(out_shape.end() + squeeze_at);
         }
         Tensor<T> out(out_shape);
-        TensorView<T> out_view = out.view(out_shape_unsqueezed);
+        TensorView<T> out_view = out.view(to_long(out_shape_unsqueezed));
         _unchecked_bmm(in1, in2, out_view);
         return out;
     }
@@ -205,7 +212,7 @@ namespace blas {
         }
         if (out.shape != out_shape_squeezed)
             throw shape_mismatch(out.shape, out_shape_squeezed);
-        TensorView<T> out_view = out.view(out_shape_unsqueezed);
+        TensorView<T> out_view = out.view(to_long(out_shape_unsqueezed));
         _unchecked_bmm(in1, in2, out_view);
         return out;
     }
@@ -248,7 +255,7 @@ namespace blas {
         }
         if (out.shape != out_shape_squeezed)
             throw shape_mismatch(out.shape, out_shape_squeezed);
-        TensorView<T> out_view = out.view(out_shape_unsqueezed);
+        TensorView<T> out_view = out.view(to_long(out_shape_unsqueezed));
         _unchecked_matmul(in1, in2, out_view);
         return out;
     }
@@ -292,12 +299,19 @@ namespace blas {
     macro(Tensor, Tensor, T, func) \
     macro(Tensor, TensorView, T, func) \
     macro(Tensor, TensorSliced, T, func) \
+    macro(Tensor, TensorTransposed, T, func) \
     macro(TensorView, Tensor, T, func) \
     macro(TensorView, TensorView, T, func) \
     macro(TensorView, TensorSliced, T, func) \
+    macro(TensorView, TensorTransposed, T, func) \
     macro(TensorSliced, Tensor, T, func) \
     macro(TensorSliced, TensorView, T, func) \
-    macro(TensorSliced, TensorSliced, T, func)
+    macro(TensorSliced, TensorSliced, T, func) \
+    macro(TensorSliced, TensorTransposed, T, func) \
+    macro(TensorTransposed, Tensor, T, func) \
+    macro(TensorTransposed, TensorView, T, func) \
+    macro(TensorTransposed, TensorSliced, T, func) \
+    macro(TensorTransposed, TensorTransposed, T, func) \
 
 #define INSTANTIATE_MATMUL(dtype) \
     APPLY_FUNCTION(dtype, matmul, TWO_ARG_FUNCTION)
