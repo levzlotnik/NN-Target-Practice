@@ -84,8 +84,6 @@ class TensorSliced : public Tensor<T> {
 
     Tensor<T> reshape(const vector<long>& new_shape) const override;
 
-    Tensor<T> contiguous() override;
-
     SliceGroup slice_group;
 
    protected:
@@ -98,7 +96,7 @@ class TensorSliced : public Tensor<T> {
     MACRO_INTERACTABLE_TENSORTYPES(DECL_INTERACTIVE_ACTIONS_TENSOR_OVERRIDE,
                                    TensorSliced, T)
 
-    Tensor<T> contiguous() const;
+    Tensor<T> contiguous() const override;
 
     TensorSliced<T> slice_unsqueeze(int i);
     const TensorSliced<T> const_slice_unsqueeze(int i) const;

@@ -15,7 +15,7 @@ int main(){
             {2, 1, 3}
     );
     PRINT_EXPR(t);
-    PRINT_EXPR(t.const_permute({0, 1, 2}));
+    PRINT_EXPR(t.const_permute({0, 1, 2}).contiguous());
     PRINT_EXPR(t.permute({1, 2, 0}));
     auto t1 = t({1, 2});
     t1 = 900.0;

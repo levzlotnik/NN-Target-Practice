@@ -252,7 +252,7 @@ size_t ravel_index(const index_t& idx, const shape_t& shape, int size) {
 size_t ravel_index(const index_t& idx, const shape_t& shape, const shape_t& strides){
     size_t index = 0;
     for (int i = 0; i < shape.size(); ++i)
-        index += strides[i] * shape[i];
+        index += strides[i] * idx[i];
     return index;
 }
 
@@ -406,6 +406,11 @@ TensorSliced<T> Tensor<T>::unchecked_slice_group(
 
 template <typename T>
 ostream& TensorSliced<T>::print_to_os(ostream& os, bool rec_start) const {
+    return this->contiguous().print_to_os(os, rec_start);
+}
+
+template <typename T>
+ostream& TensorTransposed<T>::print_to_os(ostream& os, bool rec_start) const {
     return this->contiguous().print_to_os(os, rec_start);
 }
 
@@ -614,6 +619,13 @@ Tensor<T> TensorSliced<T>::contiguous() const {
     return t;
 }
 
+template <typename T>
+Tensor<T> TensorTransposed<T>::contiguous() const {
+    Tensor<T> t(this->shape);
+    t.copy_(*this);
+    return t;
+}
+
 Slice& select_elem(Slice& s, long idx) {
     long new_b = s.b + idx * s.stride;
     long new_e = s.b + (idx + 1) * s.stride;
@@ -638,15 +650,6 @@ TensorSliced<T> TensorSliced<T>::unchecked_slice_group(
     return ret;
 }
 
-template <typename T>
-Tensor<T> TensorSliced<T>::contiguous() {
-    Tensor<T> ret(this->shape);
-    auto ret_it = Tensor<T>::elem_begin(ret),
-         ret_end = Tensor<T>::elem_end(ret);
-    auto it = TensorSliced::const_elem_begin(*this);
-    for (; ret_it != ret_end; ++ret_it, ++it) *ret_it = *it;
-    return ret;
-}
 
 template <typename T>
 Tensor<T> TensorSliced<T>::reshape(const vector<long>& new_shape) const {

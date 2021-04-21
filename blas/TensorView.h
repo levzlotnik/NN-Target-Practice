@@ -28,7 +28,7 @@ class TensorView : public Tensor<T> {
         return tv.data[true_idx];
     }
 
-    inline Tensor<T> contiguous() override {
+    inline Tensor<T> contiguous() const override {
         Tensor<T> t(this->shape);
         t.copy_(*this);
         return t;

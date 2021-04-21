@@ -321,7 +321,7 @@ class Tensor {
         return ret;
     }
 
-    virtual Tensor contiguous() { return *this; }
+    virtual Tensor contiguous() const { return *this; }
     static T& get(Tensor<T>& t, size_t true_idx) { return t.data[true_idx]; }
     static T get(const Tensor<T>& t, size_t true_idx) {
         return t.data[true_idx];

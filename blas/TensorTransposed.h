@@ -8,7 +8,7 @@ template <typename T>
 class TensorTransposed : public Tensor<T> {
     friend class Tensor<T>;
     const shape_t old_strides;
-    const SliceGroup sg_convenience;
+    SliceGroup sg_convenience;
 
    public:
     ~TensorTransposed() override = default;  // doesn't delete data
@@ -22,7 +22,9 @@ class TensorTransposed : public Tensor<T> {
             this->shape[i] = t.shape[new_i];
         }
         this->requires_deletion = false;
+        sg_convenience = SliceGroup::cover_shape(this->shape);
     }
+
     TensorTransposed(Tensor<T>& t, const shape_t& permute_indexes)
         : Tensor<T>::Tensor(t.get_data_ptr(), t.shape), old_strides(t.strides) {
         size_t new_shape(t.dim());
@@ -33,6 +35,7 @@ class TensorTransposed : public Tensor<T> {
             this->shape[i] = t.shape[new_i];
         }
         this->requires_deletion = false;
+        sg_convenience = SliceGroup::cover_shape(this->shape);
     }
 
     template <typename T_>
@@ -112,6 +115,9 @@ class TensorTransposed : public Tensor<T> {
     DECL_INTERACTIVE_ACTION_TENSOR_UNIQUE_OVERRIDE(TensorTransposed)
     DEF_COPY_FILL_TEMPLATES(TensorTransposed, T)
 
+    Tensor<T> contiguous() const override;
+    
+    ostream& print_to_os(ostream& os, bool rec_start) const override;
 };
 }  // namespace blas
 #endif  // BLAS_TENSORTRANSPOSED_H_
