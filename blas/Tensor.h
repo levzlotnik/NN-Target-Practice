@@ -348,13 +348,6 @@ class Tensor {
     virtual Tensor reshape(const vector<long>& new_shape) const;
     virtual TensorView<T> view(const vector<long>& new_shape);
     virtual const TensorView<T> const_view(const vector<long>& new_shape) const;
-    inline TensorView<T> view(const shape_t& new_shape) {
-        return this->view(vector<long>(new_shape.begin(), new_shape.end()));
-    }
-    inline const TensorView<T> const_view(const shape_t& new_shape) const {
-        return this->const_view(
-            vector<long>(new_shape.begin(), new_shape.end()));
-    }
     inline TensorView<T> unsqueeze(int dim) {
         dim = normalize_index(dim, this->dim(), true);
         shape_t new_shape(this->shape);
@@ -369,6 +362,18 @@ class Tensor {
     }
     const TensorTransposed<T> const_permute(const shape_t& permute_idx) const;
     TensorTransposed<T> permute(const shape_t& permute_idx);
+
+    inline TensorTransposed<T> transpose() const {
+        if (dim() != 2)
+            throw std::invalid_argument("Only matrixes of 2 dimensions can be transposed.");
+        return this->const_permute({1, 0});
+    }
+
+    inline TensorTransposed<T> transpose() {
+        if (dim() != 2)
+            throw std::invalid_argument("Only matrixes of 2 dimensions can be transposed.");
+        return this->permute({1, 0});
+    }
 
     inline size_t dim() const { return shape.size(); }
 

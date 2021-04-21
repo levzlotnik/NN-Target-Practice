@@ -21,8 +21,9 @@ namespace autograd {
 
         inline bool is_param() const final { return true; }
 
-        static Variable<T> make(const string& name, const Tensor<T>& data, bool requires_grad = true) {
-            return Variable<T>{new Parameter(name, data, requires_grad)};
+        template<typename ...Args>
+        static Variable<T> make(const string& name, Args&& ...args) {
+            return Variable<T>{new Parameter(name, std::forward<Args>(args)..., true)};
         }
 
     private:
@@ -31,10 +32,13 @@ namespace autograd {
         }
 
     protected:
-        using VariableBase<T>::VariableBase;
+     template <typename... Args>
+     Parameter(const string& name, Args&&... args, bool required_grad)
+         : VariableBase(name, Tensor<T>(std::forward<Args>(args)...),
+                        required_grad) {}
 
-        void backward(VariableBase<T> *dependee, bool recursive) override {
-            // Do nothing - this is leaf variable.
+     void backward(VariableBase<T>* dependee, bool recursive) override {
+         // Do nothing - this is leaf variable.
         }
     };
 }

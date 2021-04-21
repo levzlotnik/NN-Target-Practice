@@ -107,6 +107,48 @@ void test_autograd_manual_linear_regression()
     cout << "true_theta, pred_theta = " << true_theta << ", " << pred_theta_param.data() << endl;
 }
 
+
+void test_multi_layer_perceptron()
+{
+    cout << "TEST AUTOGRAD MANUAL LINEAR REGRESSION:" << endl;
+    double alpha = 1e-1;
+    auto x = linspace<double>(-1, 1, 500);
+    auto y = x*x;
+    auto input = InputBuffer<double>::make("x", x.const_view({-1, 1}));
+    auto w1 = Parameter<double>::make("w1", randn(-1, 1, {1, 32})),
+         b1 = Parameter<double>::make("b1", randn(-1, 1, {32}));
+    auto w2 = Parameter<double>::make("w2", randn(-1, 1, {32, 16})),
+         b2 = Parameter<double>::make("b2", randn(-1, 1, {16}));
+    auto w3 = Parameter<double>::make("w3", randn(-1, 1, {16, 8})),
+         b3 = Parameter<double>::make("b3", randn(-1, 1, {8}));
+    auto w4 = Parameter<double>::make("w4", randn(-1, 1, {8, 1})),
+         b4 = Parameter<double>::make("b4", randn(-1, 1, {1}));
+    vector<Variable<double>> params = {w1, b1, w2, b2, w3, b3, w4, b4};;
+    auto h1 = relu(matmul(input, w1) + b1);
+    auto h2 = relu(matmul(input, w2) + b2);
+    auto h3 = relu(matmul(input, w3) + b3);
+    auto y_pred = relu(matmul(input, w4) + b4);
+    MSELoss<double> criterion{y.shape};
+    GraphvizPrinter gvzp;
+    auto loss = criterion(y_pred, y); 
+    loss->gather_connection_graphviz(gvzp);
+    gvzp.export_to("svg");
+    for (int i = 0; i < 1000; ++i)
+    {
+        loss->forward_recursive();
+        auto loss_val = loss->data().item();
+        loss->zero_grad(true);
+        loss->backward();
+        for (const auto& p: params) {
+            p.data() -= alpha * p.grad();
+        }
+        if (i % 10) 
+        {
+            cout << "Epoch " << i << " loss = " << loss_val << endl;
+        }
+    }
+}
+
 int main()
 {
     test_autograd_simple();

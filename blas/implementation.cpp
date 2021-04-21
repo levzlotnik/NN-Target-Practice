@@ -655,7 +655,8 @@ template <typename T>
 Tensor<T> TensorSliced<T>::reshape(const vector<long>& new_shape) const {
     shape_t normalized = normalize_shape(new_shape, this->shape);
     Tensor<T> ret(normalized);
-    TensorView<T> buff = ret.view(this->shape);
+    vector<long> old_shape(this->shape.begin(), this->shape.end());
+    TensorView<T> buff = ret.view(old_shape);
     buff.copy_(*this);
     return ret;
 }

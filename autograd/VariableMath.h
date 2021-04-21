@@ -92,6 +92,11 @@ namespace autograd {
         return sum(v, vector<int>{dim});
     }
 
+    template<typename T>
+    inline Variable<T> matmul(const Variable<T>& v1, const Variable<T>& v2) {
+        MatMulFunctor<T> functor{v1.shape(), v2.shape()};
+        return functor(v1, v2);
+    }
 }
 
 #endif //TARGETPRACTICE_VARIABLEMATH_H

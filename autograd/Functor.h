@@ -344,6 +344,20 @@ class ReduceFunctor : public Functor<T> {
     bool reduce_all_dims;
 };
 
+template <typename T>
+class MatMulFunctor : public Functor<T> {
+   public:
+    MatMulFunctor(const shape_t& m1_shape, const shape_t& m2_shape);
+
+    void apply_forward(const vector<const Tensor<T>*>& input_ptrs,
+                       Tensor<T>* output_ptr) const override;
+
+    void apply_backward(int input_idx,
+                        const vector<const Tensor<T>*>& input_ptrs,
+                        const Tensor<T>* output_ptr,
+                        const Tensor<T>* output_grad_ptr,
+                        Tensor<T>* input_grad_ptr) const override;
+};
 }  // namespace autograd
 
 #endif  // TARGETPRACTICE_FUNCTOR_H
