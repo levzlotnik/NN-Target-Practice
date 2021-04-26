@@ -1,2 +1,2 @@
 # Bayes Target Practice [WIP]
-Playground with BLAS and Bayesian Inference from scratch, using CPP
+Playground with BLAS and Neural Networks from scratch, using CPP
