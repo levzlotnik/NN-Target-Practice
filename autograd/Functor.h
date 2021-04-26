@@ -346,6 +346,7 @@ class ReduceFunctor : public Functor<T> {
 
 template <typename T>
 class MatMulFunctor : public Functor<T> {
+    inline static int num_instances = 0;
    public:
     MatMulFunctor(const shape_t& m1_shape, const shape_t& m2_shape);
 

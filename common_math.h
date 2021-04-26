@@ -15,6 +15,26 @@ template<typename T>
 inline T relu(T x) { return x > 0 ? x : 0; }
 
 template<typename T>
+inline T sigmoid(T x) 
+{
+    return 1. / (1. + exp(-x));
+}
+
+template<typename T>
+inline T dsigmoid(T x)
+{
+    T sig = sigmoid(x);
+    return x * (1. - x);
+}
+
+template<typename T>
+inline T dtanh(T x)
+{
+    T th = tanh(x);
+    return 1. - th*th;
+}
+
+template<typename T>
 inline T absl(T x) { return x > 0 ? x : -x; }
 
 // Apply a macro to all math functions.
@@ -35,7 +55,9 @@ inline T absl(T x) { return x > 0 ? x : -x; }
     macro(ceil) \
     macro(round) \
     macro(exp) \
-    macro(relu)
+    macro(relu) \
+    macro(sigmoid) \
+    macro(tanh)
 
 #define MACRO_BASIC_ARITHMETIC_OPERATORS(macro) \
     macro(+) \
@@ -95,7 +117,10 @@ namespace common_math {
                             {"exp2",  {unary_func_data::exp2,  [=](T x) -> T {
                                 return ln2 * exp2(x);
                             }}},
-                            {"relu",  {unary_func_data::relu,  [](T x) -> T { return x > 0 ? T(1) : 0; }}}
+                            {"relu",  {unary_func_data::relu,  [](T x) -> T { return x > 0 ? T(1) : 0; }}},
+                            {"sigmoid",  {unary_func_data::sigmoid,  dsigmoid<T>}},
+                            {"tanh",  {unary_func_data::tanh, dtanh<T>}}
+
                             // TODO - implement more, if needed.
                     };
             return unary_elemwise_mapping.at(func_name);

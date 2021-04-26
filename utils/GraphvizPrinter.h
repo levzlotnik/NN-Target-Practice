@@ -18,7 +18,7 @@ public:
 
     ostream& print_dot(ostream& os);
 
-    void export_to(const string& format);
+    void export_to(const string& filename);
 
     size_t create_node(const string& name, const string& style = "");
 private:

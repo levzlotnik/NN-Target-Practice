@@ -29,7 +29,9 @@ class Parameter : public VariableBase<T> {
 
    private:
     string node_style_graphviz() override {
-        return "shape=box style=\"rounded\"";
+        string style = "shape=box style=\"rounded\" ";
+        style += " tooltip=\"shape=" + shape2str(this->shape()) + "\"";
+        return style;
     }
 
    protected:

@@ -147,7 +147,9 @@ inline vector<int> get_output_reduction_dims(const shape_t& input_shape,
     for (int i = 0; i < dims_in; ++i) {
         int idx_in = dims_in - i - 1;
         int idx_out = dims_out - i - 1;
-        if (input_shape[idx_in] == 1) ret.emplace_back(idx_out);
+        size_t s_in = input_shape[idx_in];
+        size_t s_out = output_shape[idx_out];
+        if (s_in != s_out && s_in == 1) ret.emplace_back(idx_out);
     }
     for (int i = 0; i < dims_out - dims_in; ++i) ret.emplace_back(i);
     return ret;
@@ -287,7 +289,7 @@ template <typename T>
 MatMulFunctor<T>::MatMulFunctor(const shape_t& m1_shape,
                                 const shape_t& m2_shape)
     : Functor<T>::Functor({m1_shape, m2_shape},
-                          get_mm_shape(m1_shape, m2_shape), "MatMul") {}
+                          get_mm_shape(m1_shape, m2_shape), "MatMul" + to_string(num_instances++)) {}
 
 template <typename T>
 void MatMulFunctor<T>::apply_forward(const vector<const Tensor<T>*>& input_ptrs,
@@ -303,11 +305,16 @@ void MatMulFunctor<T>::apply_backward(
     int input_idx, const vector<const Tensor<T>*>& input_ptrs,
     const Tensor<T>* output_ptr, const Tensor<T>* output_grad_ptr,
     Tensor<T>* input_grad_ptr) const {
-    int other_input_idx = input_idx == 0 ? 1 : 0;
+    int other_matrix_idx = input_idx == 0 ? 1 : 0;
     const Tensor<T>& output_grad = *output_grad_ptr;
-    const Tensor<T>& other_matrix = *input_ptrs[other_input_idx];
     Tensor<T>& input_grad = *input_grad_ptr;
-    blas::matmul(output_grad, other_matrix.transpose(), input_grad);
+    const Tensor<T>& other_matrix = *input_ptrs[other_matrix_idx];
+    if (input_idx == 0) 
+    {
+        blas::matmul(output_grad, other_matrix.transpose(), input_grad);
+    } else {
+        blas::matmul(other_matrix.transpose(), output_grad, input_grad);
+    }
 }
 
 #define INSTANTIATE_TEMPLATE_FUNCTOR(dtype)            \

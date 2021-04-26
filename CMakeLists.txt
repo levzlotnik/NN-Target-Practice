@@ -3,6 +3,7 @@ project(TargetPractice)
 set(CMAKE_CXX_STANDARD 17)
 #set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 #set (CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ffloat-store")
 add_subdirectory(utils)
 
 add_subdirectory(blas)
