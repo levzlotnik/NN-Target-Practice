@@ -865,6 +865,113 @@ const TensorSliced<T> TensorSliced<T>::const_slice_squeeze(vector<int> dims) con
     return out;
 }
 
+
+template <typename T>
+TensorTransposed<T> TensorTransposed<T>::transpose_unsqueeze(int i) {
+    long norm_i = normalize_index(i, this->shape.size(), true);
+    TensorTransposed ret(*this);
+    auto& ret_slices = ret.sg_convenience.slices;
+    ret_slices.emplace(ret_slices.begin() + norm_i, 0, 1);
+    ret.sg_convenience.update();
+    auto& ret_shape = ret.shape;
+    ret_shape.emplace(ret_shape.begin() + norm_i, 1);
+    auto& ret_strides = ret.strides;
+    // We will put the closest real stride in this empty dim
+    size_t stride = norm_i == 0 ? ret_strides[0] : ret_strides[norm_i];
+    ret_strides.emplace(ret_strides.begin() + norm_i, stride);
+    return ret;
+}
+
+template <typename T>
+const TensorTransposed<T> TensorTransposed<T>::const_transpose_unsqueeze(int i) const {
+    long norm_i = normalize_index(i, this->shape.size(), true);
+    TensorTransposed ret(*this);
+    auto& ret_slices = ret.sg_convenience.slices;
+    ret_slices.emplace(ret_slices.begin() + norm_i, 0, 1);
+    ret.sg_convenience.update();
+    auto& ret_shape = ret.shape;
+    ret_shape.emplace(ret_shape.begin() + norm_i, 1);
+    auto& ret_strides = ret.strides;
+    // We will put the closest real stride in this empty dim
+    size_t stride = norm_i == 0 ? ret_strides[0] : ret_strides[norm_i];
+    ret_strides.emplace(ret_strides.begin() + norm_i, stride);
+    return ret;
+}
+
+template <typename T>
+TensorTransposed<T> TensorTransposed<T>::transpose_squeeze(int i) {
+    using std::to_string;
+    long norm_i = normalize_index(i, this->shape.size());
+    if (this->shape[norm_i] != 1)
+        throw std::runtime_error(
+            "Cannot squeeze a non-redunant dim of size " + to_string(i) +
+            ". Squeezing is only allowed for dims of size 1.");
+    TensorTransposed ret(*this);
+    auto& ret_shape = ret.shape;
+    ret_shape.erase(ret_shape.begin() + norm_i);
+    auto& ret_strides = ret.strides;
+    ret_strides.erase(ret_strides.begin() + norm_i);
+    return ret;
+}
+
+template <typename T>
+const TensorTransposed<T> TensorTransposed<T>::const_transpose_squeeze(int i) const {
+    using std::to_string;
+    int norm_i = normalize_index(i, this->shape.size());
+    if (this->shape[norm_i] != 1)
+        throw std::runtime_error(
+            "Cannot squeeze a non-redunant dim of size " + to_string(i) +
+            ". Squeezing is only allowed for dims of size 1.");
+    TensorTransposed ret(*this);
+    auto& ret_shape = ret.shape;
+    ret_shape.erase(ret_shape.begin() + norm_i);
+    auto& ret_strides = ret.strides;
+    ret_strides.erase(ret_strides.begin() + norm_i);
+    return ret;
+}
+
+template <typename T>
+TensorTransposed<T> TensorTransposed<T>::transpose_squeeze(vector<int> dims) {
+    using std::remove;
+    using std::to_string;
+    shape_t out_shape(this->shape);
+    for (auto& dim : dims) {
+        dim = normalize_index(dim, this->shape.size());
+        if (this->shape[dim] != 1)
+            throw std::runtime_error(
+                "Cannot squeeze a non-redunant dim of size " + to_string(dim) +
+                ". Squeezing is only allowed for dims of size 1.");
+        out_shape[dim] = 0;  // to be erased.
+    }
+    out_shape.erase(remove(out_shape.begin(), out_shape.end(), 0),
+                    out_shape.end());
+    TensorTransposed out(*this);
+    out.shape = out_shape;
+    out.strides = shape2strides(out_shape);
+    return out;
+}
+
+template <typename T>
+const TensorTransposed<T> TensorTransposed<T>::const_transpose_squeeze(vector<int> dims) const {
+    using std::remove;
+    using std::to_string;
+    shape_t out_shape(this->shape);
+    for (auto& dim : dims) {
+        dim = normalize_index(dim, this->shape.size());
+        if (this->shape[dim] != 1)
+            throw std::runtime_error(
+                "Cannot squeeze a non-redunant dim of size " + to_string(dim) +
+                ". Squeezing is only allowed for dims of size 1.");
+        out_shape[dim] = 0;  // to be erased.
+    }
+    out_shape.erase(remove(out_shape.begin(), out_shape.end(), 0),
+                    out_shape.end());
+    TensorTransposed out(*this);
+    out.shape = out_shape;
+    out.strides = shape2strides(out_shape);
+    return out;
+}
+
 template<typename T>
 TensorTransposed<T> Tensor<T>::permute(const shape_t& permute_idx) {
     return TensorTransposed<T>(*this, permute_idx);

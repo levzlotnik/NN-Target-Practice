@@ -118,6 +118,13 @@ class TensorTransposed : public Tensor<T> {
     Tensor<T> contiguous() const override;
     
     ostream& print_to_os(ostream& os, bool rec_start) const override;
+
+    TensorTransposed<T> transpose_unsqueeze(int i);
+    const TensorTransposed<T> const_transpose_unsqueeze(int i) const;
+    TensorTransposed<T> transpose_squeeze(int i);
+    const TensorTransposed<T> const_transpose_squeeze(int i) const;
+    TensorTransposed<T> transpose_squeeze(vector<int> dims);
+    const TensorTransposed<T> const_transpose_squeeze(vector<int> dims) const;
 };
 }  // namespace blas
 #endif  // BLAS_TENSORTRANSPOSED_H_

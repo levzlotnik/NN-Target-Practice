@@ -59,7 +59,21 @@ namespace blas {
 
 
     template<typename T>
-    inline TensorView<T> promote(const TensorTransposed<T>& t, int pos, bool to_batched=false) NOT_IMPLEMENTED
+    inline TensorTransposed<T> promote(const TensorTransposed<T>& t, int pos, bool to_batched=false) {
+        switch (t.dim()) {
+            case 0:
+                throw broadcast_failure("Cannot accept scalars for matmul of any kind.");
+            case 1: {
+                auto t_ = t.const_transpose_unsqueeze(pos);
+                return to_batched ? t.const_transpose_unsqueeze(0) : t_;
+            }
+            case 2: {
+                return to_batched ? t.const_transpose_unsqueeze(0) : t;
+            }
+            default:
+                return t;
+        }
+    }
 
     template<typename T>
     inline TensorSliced<T> promote(const TensorSliced<T>& t, int pos, bool to_batched=false){
@@ -68,7 +82,7 @@ namespace blas {
                 throw broadcast_failure("Cannot accept scalars for matmul of any kind.");
             case 1: {
                 auto t_ = t.const_slice_unsqueeze(pos);
-                return to_batched ? t_.slice_unsqueeze(0) : t_;
+                return to_batched ? t_.const_slice_unsqueeze(0) : t_;
             }
             case 2: {
                 return to_batched ? t.const_slice_unsqueeze(0) : t;
@@ -312,6 +326,7 @@ namespace blas {
     macro(TensorTransposed, TensorView, T, func) \
     macro(TensorTransposed, TensorSliced, T, func) \
     macro(TensorTransposed, TensorTransposed, T, func) \
+
 
 #define INSTANTIATE_MATMUL(dtype) \
     APPLY_FUNCTION(dtype, matmul, TWO_ARG_FUNCTION)
