@@ -5,7 +5,7 @@
 #ifndef TARGETPRACTICE_BLAS_H
 #define TARGETPRACTICE_BLAS_H
 
-#include "Tensor.h"
+#include "all_tensors.h"
 #include "TensorMath.h"
 #include "TensorCreation.h"
 
