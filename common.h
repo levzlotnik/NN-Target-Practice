@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 #include <unordered_set>
+#include <vector>
+#include <sstream>
 
 
 class warning : public std::exception {
@@ -25,11 +27,25 @@ public:
 #endif
     }
 
-#define NOT_IMPLEMENTED { throw std::logic_error("Not Implemented."); }
-#define MARK_FORBIDDEN(expr) expr { throw std::logic_error("Forbidden: '" #expr "'"); }
+#define NOT_IMPLEMENTED { throw std::logic_error("Not Implemented."); };
+#define NOT_IMPLEMENTED_CRITICAL { static_assert(false, "NOT IMPLEMENTED"); };
+#define MARK_FORBIDDEN(expr) expr { throw std::logic_error("Forbidden: '" #expr "'"); };
 
 private:
     std::string msg;
 };
+
+template<typename T>
+static inline std::string vec2string(const std::vector<T>& v) {
+    std::stringstream ss;
+    ss << '[';
+    for (int i = 0; i < v.size(); ++i){
+        if (i != 0)
+            ss << ", ";
+        ss << v[i];
+    }
+    ss << ']';
+    return ss.str();
+}
 
 #endif //TARGETPRACTICE_COMMON_H

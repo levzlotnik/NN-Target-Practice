@@ -15,6 +15,26 @@ template<typename T>
 inline T relu(T x) { return x > 0 ? x : 0; }
 
 template<typename T>
+inline T sigmoid(T x) 
+{
+    return 1. / (1. + exp(-x));
+}
+
+template<typename T>
+inline T dsigmoid(T x)
+{
+    T sig = sigmoid(x);
+    return x * (1. - x);
+}
+
+template<typename T>
+inline T dtanh(T x)
+{
+    T th = tanh(x);
+    return 1. - th*th;
+}
+
+template<typename T>
 inline T absl(T x) { return x > 0 ? x : -x; }
 
 // Apply a macro to all math functions.
@@ -35,7 +55,28 @@ inline T absl(T x) { return x > 0 ? x : -x; }
     macro(ceil) \
     macro(round) \
     macro(exp) \
-    macro(relu)
+    macro(relu) \
+    macro(sigmoid) \
+    macro(tanh)
+
+#define MACRO_BASIC_ARITHMETIC_OPERATORS(macro) \
+    macro(+) \
+    macro(-) \
+    macro(*) \
+    macro(/)
+
+#define MACRO_BASIC_ARITHMETIC_INPLACE_OPERATORS(macro) \
+    macro(+=) \
+    macro(-=) \
+    macro(*=) \
+    macro(/=)
+
+#define MACRO_BASIC_ARITHMETIC_OPERATORS_NAMED(macro) \
+    macro(+, "add")                         \
+    macro(-, "sub")                         \
+    macro(*, "mul")                         \
+    macro(/, "div")
+
 
 namespace common_math {
 
@@ -43,7 +84,7 @@ namespace common_math {
     template<typename T> using binary_op = std::function<T(T, T)>;
 
     template<typename T>
-    struct unary_func_data { ;
+    struct unary_func_data {
 
 #define DEF_STATIC_UNARY_FUNC(func) \
     static inline constexpr T func(T x) { return ::func(x); }
@@ -52,31 +93,34 @@ namespace common_math {
 
         static pair<unary_op<T>, unary_op<T>> get_function_data(std::string func_name) {
             using namespace std;
-            const unordered_map<string, pair<unary_op<T>, unary_op<T>>>
+            static const T ln2 = unary_func_data::log(2);
+            static const T ln10 = unary_func_data::log(10);
+            static const T half = 0.5;
+            static const unordered_map<string, pair<unary_op<T>, unary_op<T>>>
                     unary_elemwise_mapping
                     {
-                            /* {func,       {name, derivative}} */
+                            /* {name,       {func, derivative}} */
                             {"sin",   {unary_func_data::sin,   [](T x) -> T { return cos(x); }}},
                             {"cos",   {unary_func_data::cos,   [](T x) -> T { return -sin(x); }}},
                             {"tan",   {unary_func_data::tan,   [](T x) -> T { return 1 / (cos(x) * cos(x)); }}},
-                            {"sqrt",  {unary_func_data::sqrt,  [](T x) -> T { return T(0.5) / sqrt(x); }}},
+                            {"sqrt",  {unary_func_data::sqrt,  [=](T x) -> T { return half / sqrt(x); }}},
                             {"log",   {unary_func_data::log,   [](T x) -> T { return 1 / x; }}},
-                            {"log2",  {unary_func_data::log2,  [](T x) -> T {
-                                const T ln2 = unary_func_data::log(2);
+                            {"log2",  {unary_func_data::log2,  [=](T x) -> T {
                                 return 1 / (x * ln2);
                             }}},
-                            {"log10", {unary_func_data::log10, [](T x) -> T {
-                                const T ln10 = unary_func_data::log(10);
+                            {"log10", {unary_func_data::log10, [=](T x) -> T {
                                 return 1 / (x * ln10);
                             }}},
                             {"log1p", {unary_func_data::log1p, [](T x) -> T { return 1 / (1 + x); }}},
                             {"absl",  {unary_func_data::absl,  [](T x) -> T { return x < 0 ? T(-1) : T(1); }}},
                             {"exp",   {unary_func_data::exp,   unary_func_data::exp}},
-                            {"exp2",  {unary_func_data::exp2,  [](T x) -> T {
-                                const T ln2 = log(2);
+                            {"exp2",  {unary_func_data::exp2,  [=](T x) -> T {
                                 return ln2 * exp2(x);
                             }}},
-                            {"relu",  {unary_func_data::relu,  [](T x) -> T { return x > 0 ? T(1) : 0; }}}
+                            {"relu",  {unary_func_data::relu,  [](T x) -> T { return x > 0 ? T(1) : 0; }}},
+                            {"sigmoid",  {unary_func_data::sigmoid,  dsigmoid<T>}},
+                            {"tanh",  {unary_func_data::tanh, dtanh<T>}}
+
                             // TODO - implement more, if needed.
                     };
             return unary_elemwise_mapping.at(func_name);
@@ -89,20 +133,24 @@ namespace common_math {
     struct unary_func_data<float>;
 
     template<typename T>
+    using jac_binary_op = std::function<T(T in1, T in2, T out)>;
+
+    template<typename T>
     struct binary_func_data {
-        static inline float add(T x, T y) { return x + y; };
+        static inline T add(T x, T y) { return x + y; };
 
-        static inline float mul(T x, T y) { return x * y; };
+        static inline T mul(T x, T y) { return x * y; };
 
-        static inline float sub(T x, T y) { return x - y; };
+        static inline T sub(T x, T y) { return x - y; };
 
-        static inline float div(T x, T y) { return x / y; };
+        static inline T div(T x, T y) { return x / y; };
 
-        using jac_binary_op = std::function<T(T in1, T in2, T out)>;
+        static inline T pow(T x, T y) { return ::pow(x, y); }
 
-        static tuple<binary_op<T>, jac_binary_op, jac_binary_op> get_function_data(std::string func_name) {
-            const std::unordered_map<std::string,
-                    tuple<binary_op<T>, jac_binary_op, jac_binary_op>>
+        static tuple<binary_op<T>, jac_binary_op<T>, jac_binary_op<T>> get_function_data(const std::string& func_name) {
+            using u = unary_func_data<T>;
+            static const std::unordered_map<std::string,
+                         tuple<binary_op<T>, jac_binary_op<T>, jac_binary_op<T>>>
                     binary_elemwise_mapping =
                     {
                             {"add", {add,
@@ -116,7 +164,10 @@ namespace common_math {
                                             [](T i1, T i2, T o) -> T { return -1; }}},
                             {"div", {div,
                                             [](T i1, T i2, T o) -> T { return 1 / i2; },
-                                            [](T i1, T i2, T o) -> T { return -o / i2; }}}
+                                            [](T i1, T i2, T o) -> T { return -o / i2; }}},
+                            {"pow", {pow,
+                                            [](T i1, T i2, T o) -> T { return o == 0 ? 0 : o * i2 / i1;},
+                                            [](T i1, T i2, T o) -> T { return o * u::log(i1); }}}
                     };
             return binary_elemwise_mapping.at(func_name);
         }

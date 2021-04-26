@@ -16,11 +16,11 @@ class GraphvizPrinter {
 public:
     void create_dependency(const string& dependee, const string& dependent);
 
-    ostream & print_dot(ostream& os);
+    ostream& print_dot(ostream& os);
 
-    void export_to(const string& format);
+    void export_to(const string& filename);
 
-    size_t create_node(const string &name, const string &style = "");
+    size_t create_node(const string& name, const string& style = "");
 private:
     unordered_map<string /*label*/, size_t /*id*/> nodes;
     unordered_map<string /*label*/, string /*style*/> styles;

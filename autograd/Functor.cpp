@@ -1,290 +1,333 @@
 //
-// Created by LevZ on 6/16/2020.
+// Created by LevZ on 9/12/2020.
 //
 
 #include "Functor.h"
 
-#include <utility>
-#include "variable/AutogradVariable.h"
-#include <numeric>
+#include "AutogradVariable.h"
+namespace autograd {
 
-Vector ReduceAndGather::operator()(const vector<Vector>& args) const {
-    check_args(args);
-    Vector res(output_shape);
-    for (int i = 0; i < output_shape; ++i)
-        res[i] = this->func(args[i]);
-    return res;
-}
-
-Matrix ReduceAndGather::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
-    int inp_shape = input_shapes[i];
-    Matrix res(output_shape, inp_shape, true);
-    res.set_row(i, reducejac(inputs[i], output[i]));
-    return res;
-}
-
-Functor *ReduceAndGather::clone() const {
-    return new ReduceAndGather(*this);
-}
-
-ReduceAndGather::ReduceAndGather(const vector<int> &input_shapes,
-        ReduceAndGather::reduce_t func, ReduceAndGather::reducejac_t jac, string func_name) :
-    func(func), reducejac(jac),
-    Functor(input_shapes,
-            input_shapes.size(),
-            "ReduceAndGather[" + func_name + "]")
-{
-
-}
-
-
-Vector Concat::operator()(const vector<Vector>& args) const {
-    check_args(args);
-    return Vector::concat(args);
-}
-
-Matrix Concat::jac(int i, const vector<Vector>& inputs, const Vector& output) const {
-    return const_jacs[i];
-}
-
-Functor *Concat::clone() const {
-    return new Concat(*this);
-}
-
-Concat::Concat(const vector<int> &input_shapes)  :
-        Functor(input_shapes,
-                std::accumulate(input_shapes.begin(), input_shapes.end(), 0),
-                "Concat")
-        {
-    int idx = 0;
-    for (auto shape: input_shapes){
-        Matrix curr_jac(output_shape, shape, true);
-        // Make an identity matrix at the relevant indices
-        for (int i=0; i < shape; ++i)
-            curr_jac(idx + i, i) = 1;
-
-        const_jacs.emplace_back(curr_jac);
-        idx += shape;
+template <typename T>
+void Functor<T>::check_arg_shapes(const vector<shape_t>& args) const {
+    using std::to_string;
+    if (args.size() != input_shapes.size())
+        throw std::invalid_argument(
+            "Function " + name + " expects " + to_string(input_shapes.size()) +
+            " arguments, got " + to_string(args.size()) + " arguments.");
+    for (int i = 0; i < args.size(); ++i) {
+        if (args[i] != input_shapes[i])
+            throw std::invalid_argument(
+                "Function " + name + " argument " + to_string(i) +
+                " expects input of shape " + shape2str(input_shapes[i]) +
+                ", got input of shape " + shape2str(args[i]));
     }
 }
 
-void Functor::check_args(const vector<Vector>& args) const {
-    if (args.size() != input_shapes.size())
-        throw runtime_error("Arguments count mismatch: " + to_string(args.size()) +
-            ", " + to_string(input_shapes.size()));
-    for (int i=0; i<args.size(); ++i)
-        if (args[i].n != input_shapes[i])
-            throw runtime_error("Shape Mismatch on argument " + to_string(i+1) + ": "
-                + to_string(args[i].n) + ", " + to_string(input_shapes[i]));
+template <typename T>
+void Functor<T>::check_args(const vector<Variable<T>>& args) const {
+    vector<shape_t> shapes(args.size());
+    std::transform(args.begin(), args.end(), shapes.begin(),
+                   [](const Variable<T>& v) { return v.shape(); });
+    check_arg_shapes(shapes);
 }
 
-Variable Functor::operator()(const vector<Variable>& args, bool requires_grad) const {
-    check_args(args);
-    auto res = Deterministic::make(name, *this, requires_grad);
-    for (const auto& arg: args)
-        res->add_dependency(arg);
-    res->forward();
-    return res;
-}
-
-Functor::Functor(const vector<int> &input_shapes, int output_shape, string name) :
-        input_shapes(input_shapes), output_shape(output_shape), name(std::move(name)) {
-    if (output_shape < 1 ||
-        std::any_of(input_shapes.begin(), input_shapes.end(), [](int x) {return x < 1;}))
-        throw runtime_error("Shapes must be positive.");
-}
-
-void Functor::check_args(const vector<Variable> &args) const {
-    if (args.size() != input_shapes.size())
-        throw runtime_error("Arguments count mismatch: " + to_string(args.size()) +
-                            ", " + to_string(input_shapes.size()));
-    for (int i=0; i<args.size(); ++i)
-        if (args[i]->shape() != input_shapes[i])
-            throw runtime_error("Shape Mismatch on argument " + to_string(i+1) + ": "
-                                + to_string(args[i]->shape()) + ", " + to_string(input_shapes[i]));
-}
-
-Vector Slice::operator()(const vector<Vector> &args) const {
-    check_args(args);
-    return args[0].slice(begin, end, step);
-}
-
-Matrix Slice::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
-    if (i != 0)
-        throw out_of_range("Only 1 element available in Slice.");
-    return const_jac;
-}
-
-Functor *Slice::clone() const {
-    return new Slice(*this);
-}
-
-Slice::Slice(int b, int e, int input_shape, int step) :
-    Functor(vector<int>(1, input_shape), 1,
-            "Slice(" + to_string(b) + ", " + to_string(e) + ", " + to_string(step) + ")") {
-    b = normalize_index(b, input_shape);
-    e = normalize_index(e, input_shape, true);
-    output_shape = (e - b) / step;
-    if (output_shape == 0)
-        throw runtime_error("The Slice size cannot be 0.");
-    if (output_shape < 0)
-        throw runtime_error("The Slice and step directions contradict each other: Slice direction =" +
-                            to_string(e-b) + ", step = " + to_string(step));
-    begin = b;
-    end = e;
-    this->step = step;
-    const_jac = Matrix(output_shape, input_shape, true);
-    for(int i=0; i<output_shape; ++i)
-        const_jac(i, b + i*step) = 1;
-}
-
-Elemwise::Elemwise(string func_name, int shape) :
-        Elemwise(unary_elemwise_mapping.at(func_name).first,
-                 unary_elemwise_mapping.at(func_name).second, shape,
-                 func_name)
-{
-
-}
-
-Elemwise::Elemwise(unary_elemwise_t func, unary_elemwise_t dfunc, int shape, const string &func_name) :
-    func(func), dfunc(dfunc),
-    Functor(vector<int>(1, shape), shape,
-            "Elemwise[" + func_name + "]")
-{
-
-}
-
-Vector Elemwise::operator()(const vector<Vector> &args) const {
-    check_args(args);
-    return args[0].apply(func);
-}
-
-Matrix Elemwise::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
+template <typename T>
+Variable<T> Functor<T>::operator()(const vector<Variable<T>>& inputs,
+                                   bool requires_grad) const {
     check_args(inputs);
-    if (i==0)
-        throw out_of_range("Elemwise only accepts a single vector");
-    Matrix res(output_shape, output_shape, true);
-    res.set_diag(inputs[0].apply(dfunc));
-    return res;
+    Variable<T> ret = AutogradVariable<T>::make(name, *this, requires_grad);
+    Tensor<T>& ret_tensor = ret.data();
+    apply_forward(get_tensors(inputs), &ret_tensor);
+    for (const auto& v : inputs) ret.add_dependency(v);
+    return ret;
 }
 
-Functor *Elemwise::clone() const {
-    return new Elemwise(*this);
+template <typename T>
+void MathFunctor<T>::apply_forward(const vector<const Tensor<T>*>& input_ptrs,
+                                   Tensor<T>* output_ptr) const {
+    const Tensor<T>& input = *input_ptrs[0];
+    Tensor<T>& output = *output_ptr;
+    input.apply(this->_op, output);
 }
 
-Variable Elemwise::operator()(const Variable &var, bool requires_grad) const {
-    return Functor::operator()({ var }, requires_grad);
+template <typename T>
+void MathFunctor<T>::apply_backward(int input_idx,
+                                    const vector<const Tensor<T>*>& input_ptrs,
+                                    const Tensor<T>* output_ptr,
+                                    const Tensor<T>* output_grad_ptr,
+                                    Tensor<T>* input_grad_ptr) const {
+    // input_idx == 0 definitely.
+    const Tensor<T>& input = *input_ptrs[0];
+    Tensor<T>& input_grad_ref = *input_grad_ptr;
+    input.apply(this->_dop, input_grad_ref);
+    if (output_grad_ptr) input_grad_ref *= *output_grad_ptr;
 }
 
-Vector BinaryElemwise::operator()(const vector<Vector> &args) const {
-    check_args(args);
-    return args[0].apply(args[1], op);
+template <typename T>
+void ScalarTensorElemwiseFunctor<T>::apply_forward(
+    const vector<const Tensor<T>*>& input_ptrs, Tensor<T>* output_ptr) const {
+    binary_op<T> op = _op;
+    if (scalar_first) op = (binary_op<T>)[this](T x, T y) {
+            return this->_op(y, x);
+        };
+    const Tensor<T>& input = *input_ptrs[0];
+    Tensor<T>& output = *output_ptr;
+    input.apply(scalar, op, output);
 }
 
-Matrix BinaryElemwise::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
-    auto dxi_op = dx_op[i];
-    Vector res(output_shape, 0.0f);
-    for (int j=0; j < res.shape(); ++j){
-        res[i] = dxi_op(inputs[0][i], inputs[1][i], output[i]);
-    }
-    return Matrix::diag(res, true);
-}
-
-Functor *BinaryElemwise::clone() const {
-    return new BinaryElemwise(*this);
-}
-
-BinaryElemwise::BinaryElemwise(string op_name, int shape) :
-    Functor({shape, shape}, shape,
-            "BinaryElemwise[" + op_name + "]"),
-    op(get<0>(binary_elemwise_mapping.at(op_name))),
-    dx_op({get<1>(binary_elemwise_mapping.at(op_name)), get<2>(binary_elemwise_mapping.at(op_name))})
-{
-}
-
-BinaryElemwise::BinaryElemwise(binary_elemwise_t op, pair<jac_binary_elemwise_t, jac_binary_elemwise_t> d_op, int shape,
-                               const string &op_name) :
-        Functor({shape, shape}, shape, "BinaryElemwise[" + op_name + "]"),
-        op(op),
-        dx_op({d_op.first, d_op.second})
-{
-
-}
-
-Vector BinaryElemwise::operator()(const Vector &x1, const Vector &x2) const {
-    return operator()({x1, x2});
-}
-
-Variable BinaryElemwise::operator()(const Variable& v1, const Variable& v2, bool requires_grad) const {
-    return Functor::operator()(vector<Variable>{v1, v2}, requires_grad);
-}
-
-Vector ScalarElemwise::operator()(const vector<Vector> &args) const {
-    check_args(args);
-    if (scalar_first)
-        return args[1].apply(args[0][0], op_for_vector);
-    return args[0].apply(args[1][0], op_for_vector);
-}
-
-Matrix ScalarElemwise::jac(int i, const vector<Vector> &inputs, const Vector &output) const {
-    auto dxi_op = dx_ops[i];
-    bool calc_jac_of_scalar = (i == (int)(!scalar_first));
-    float scalar = inputs[!scalar_first][0];
-    Vector non_scalar = inputs[scalar_first];
-    BinaryOperation dx_op_to_apply;
-    // Create binary operation to apply on input_vector
-    if (scalar_first)
-        dx_op_to_apply = [scalar, dxi_op](float& input_x, float& output_x) -> float {
-            return dxi_op(scalar, input_x, output_x);
+template <typename T>
+void ScalarTensorElemwiseFunctor<T>::apply_backward(
+    int input_idx, const vector<const Tensor<T>*>& input_ptrs,
+    const Tensor<T>* output_ptr, const Tensor<T>* output_grad_ptr,
+    Tensor<T>* input_grad_ptr) const {
+    if (input_idx ==
+        (!scalar_first))  // We only calculate gradients for the tensor.
+        return;
+    binary_op<T> dop;  // takes 2 elements: (x_input, x_output) -> x_grad
+    if (scalar_first) dop = (binary_op<T>)[this](T x, T y) {
+            return this->_dop(this->scalar, x, y);
         };
     else
-        dx_op_to_apply = [scalar, dxi_op](float& input_x, float& output_x) -> float {
-            return dxi_op(input_x, scalar, output_x);
+        dop = (binary_op<T>)[this](T x, T y) {
+            return this->_dop(x, this->scalar, y);
         };
-
-    auto res = non_scalar.apply(output, dx_op_to_apply);
-    if (calc_jac_of_scalar)
-        return reshape(res, -1, 1);
-    return Matrix::diag(res, true);
+    const Tensor<T>& input = *input_ptrs[0];
+    const Tensor<T>& output = *output_ptr;
+    Tensor<T>& input_grad_ref = *input_grad_ptr;
+    input.apply_tensors(output, dop, input_grad_ref);
+    if (output_grad_ptr) input_grad_ref *= *output_grad_ptr;
 }
 
-Functor *ScalarElemwise::clone() const {
-    return new ScalarElemwise(*this);
+template <typename T>
+void TensorTensorElemwiseFunctor<T>::apply_forward(
+    const vector<const Tensor<T>*>& input_ptrs, Tensor<T>* output_ptr) const {
+    const Tensor<T>& in1 = *input_ptrs[0];
+    const Tensor<T>& in2 = *input_ptrs[1];
+    Tensor<T>& out = *output_ptr;
+    in1.apply_tensors(in2, this->_op, out);
 }
 
-static string se_name(string op_name, bool scalar_first) {
-    string args_braketed = scalar_first ? "(s, v)" : "(v, s)";
-    return "ScalarElemwise[" + op_name + args_braketed + "]";
-}
-
-ScalarElemwise::ScalarElemwise(string op_name, int shape, bool scalar_first) :
-        ScalarElemwise(get<0>(binary_elemwise_mapping.at(op_name)),
-                       {get<1>(binary_elemwise_mapping.at(op_name)), get<2>(binary_elemwise_mapping.at(op_name))},
-                       shape,
-                       op_name,
-                       scalar_first)
-{
-
-}
-
-ScalarElemwise::ScalarElemwise(binary_elemwise_t op, pair<jac_binary_elemwise_t, jac_binary_elemwise_t> d_op, int shape,
-                               const string &op_name, bool scalar_first) :
-        Functor(scalar_first ? vector<int>{1, shape} : vector<int>{shape, 1},
-            shape,
-            se_name(op_name, scalar_first)),
-        scalar_first(scalar_first), op(op), dx_ops({d_op.first, d_op.second})
-{
-    if (scalar_first) {
-        op_for_vector = [op](float &x, float &y) { return op(y, x); };
-        // Flip the jacobians functions.
-        auto temp = dx_ops[0];
-        dx_ops[0] = dx_ops[1];
-        dx_ops[1] = temp;
+/**
+ * Applies a triop (i.e. (T, T, T) -> T) on 3 input tensors and stores in
+ * output.
+ * @tparam T the dtype
+ * @param out output buffer
+ * @param op
+ * @param in1
+ * @param in2
+ * @param in3
+ * @note in3.shape == out.shape
+ */
+template <typename T>
+static void apply_triop(Tensor<T>& out, const std::function<T(T, T, T)>& op,
+                        const Tensor<T>& in1, const Tensor<T>& in2,
+                        const Tensor<T>& in3) {
+    using namespace blas;
+    if (in3.shape != out.shape)
+        throw shape_mismatch(in3.shape, out.shape, "apply_triop");
+    SliceGroup sg_in1 = SliceGroup::cover_shape(in1.shape);
+    T x;
+    binary_op<T> kernel = [&x, &op](T e2, T e3) -> T { return op(x, e2, e3); };
+    for (const auto& idx_in1 : sg_in1) {
+        size_t idx_true_in1 = ravel_index(idx_in1, in1.shape, in1.size);
+        x = Tensor<T>::get(in1, idx_true_in1);
+        auto [sg_in2, sg_out] =
+            broadcast_index(idx_in1, in1.shape, in2.shape, out.shape);
+        TensorSliced<T> slice_in2 = in2.unchecked_slice_group(sg_in2);
+        TensorSliced<T> slice_in3 = in3.unchecked_slice_group(sg_out);
+        TensorSliced<T> slice_out = out.unchecked_slice_group(sg_out);
+        slice_in2.apply_tensors(slice_in3, kernel, slice_out);
     }
-    else
-        op_for_vector = op;
 }
 
-Variable ScalarElemwise::operator()(const Variable &v1, const Variable &v2, bool requires_grad) const {
-    return Functor::operator()({v1, v2}, requires_grad);
+inline vector<int> get_output_reduction_dims(const shape_t& input_shape,
+                                             const shape_t& output_shape) {
+    vector<int> ret;
+    size_t dims_in = input_shape.size(), dims_out = output_shape.size();
+    for (int i = 0; i < dims_in; ++i) {
+        int idx_in = dims_in - i - 1;
+        int idx_out = dims_out - i - 1;
+        size_t s_in = input_shape[idx_in];
+        size_t s_out = output_shape[idx_out];
+        if (s_in != s_out && s_in == 1) ret.emplace_back(idx_out);
+    }
+    for (int i = 0; i < dims_out - dims_in; ++i) ret.emplace_back(i);
+    return ret;
 }
+
+template <typename T>
+void TensorTensorElemwiseFunctor<T>::apply_backward(
+    int input_idx, const vector<const Tensor<T>*>& input_ptrs,
+    const Tensor<T>* output_ptr, const Tensor<T>* output_grad_ptr,
+    Tensor<T>* input_grad_ptr) const {
+    // TODO - debug&  optimize.
+    const Tensor<T>& in1 = *input_ptrs[0];
+    const Tensor<T>& in2 = *input_ptrs[1];
+    const Tensor<T>& out = *output_ptr;
+    const Tensor<T>& out_grad = *output_grad_ptr;
+    Tensor<T>& in_grad = *input_grad_ptr;
+    Tensor<T>& grad_buffer = *grad_buffer_ptr;
+    const jac_binary_op<T>& dop = _dops[input_idx];
+    apply_triop(grad_buffer, dop, in1, in2, out);
+    using b = common_math::binary_func_data<T>;
+    grad_buffer *= out_grad;
+    vector<int> reduction_dims =
+        get_output_reduction_dims(in_grad.shape, out_grad.shape);
+    grad_buffer.reduce(b::add, reduction_dims, in_grad);
+}
+
+template <typename T>
+void SelectFunctor<T>::apply_forward(const vector<const Tensor<T>*>& input_ptrs,
+                                     Tensor<T>* output_ptr) const {
+    using blas::TensorView;
+    Tensor<T>& out = *output_ptr;
+    const Tensor<T>& in = *input_ptrs[0];
+    TensorView<T> in_selected = in.unchecked_subscript(selector_index);
+    out.copy_(in_selected);
+}
+
+template <typename T>
+void SelectFunctor<T>::apply_backward(
+    int input_idx, const vector<const Tensor<T>*>& input_ptrs,
+    const Tensor<T>* output_ptr, const Tensor<T>* output_grad_ptr,
+    Tensor<T>* input_grad_ptr) const {
+    // Just copy the gradient into the correct slice.
+    using blas::TensorView;
+    Tensor<T>& input_grad = *input_grad_ptr;
+    const Tensor<T>& output_grad = *output_grad_ptr;
+    TensorView<T> in_grad_selected =
+        input_grad.unchecked_subscript(selector_index);
+    in_grad_selected.copy_(output_grad);
+}
+
+template <typename T>
+void SliceFunctor<T>::apply_forward(const vector<const Tensor<T>*>& input_ptrs,
+                                    Tensor<T>* output_ptr) const {
+    using blas::TensorSliced;
+    const Tensor<T>& input = *input_ptrs[0];
+    Tensor<T>& output = *output_ptr;
+    TensorSliced<T> input_sliced = input.operator()(slice_group);
+    output.copy_(input_sliced);
+}
+
+template <typename T>
+void SliceFunctor<T>::apply_backward(int input_idx,
+                                     const vector<const Tensor<T>*>& input_ptrs,
+                                     const Tensor<T>* output_ptr,
+                                     const Tensor<T>* output_grad_ptr,
+                                     Tensor<T>* input_grad_ptr) const {
+    using blas::TensorSliced;
+    Tensor<T>& input_grad = *input_grad_ptr;
+    const Tensor<T>& output_grad = *output_grad_ptr;
+    TensorSliced<T> in_grad_sliced =
+        input_grad.unchecked_slice_group(slice_group);
+    in_grad_sliced.copy_(output_grad);
+}
+
+template <typename T>
+void ReduceFunctor<T>::apply_forward(const vector<const Tensor<T>*>& input_ptrs,
+                                     Tensor<T>* output_ptr) const {
+    const Tensor<T>& input = *input_ptrs[0];
+    Tensor<T>& output = *output_ptr;
+    if (reduce_all_dims)
+        input.reduce(_op, output);
+    else
+        input.reduce(_op, dims, output);
+}
+
+template <typename T>
+void ReduceFunctor<T>::apply_backward(
+    int input_idx, const vector<const Tensor<T>*>& input_ptrs,
+    const Tensor<T>* output_ptr, const Tensor<T>* output_grad_ptr,
+    Tensor<T>* input_grad_ptr) const {
+    const Tensor<T>& input = *input_ptrs[0];
+    const Tensor<T>& output = *output_ptr;
+    const Tensor<T>& output_grad = *output_grad_ptr;
+    Tensor<T>& input_grad = *input_grad_ptr;
+    input.apply_tensors(output, _dop, input_grad);
+    input_grad *= output_grad;
+}
+
+template <typename T>
+static std::function<T(T, T)> get_jac(const string& op_name) {
+    using common_math::jac_binary_op;
+    if (op_name != "add" && op_name != "mul")
+        throw std::invalid_argument(
+            "This function isn't supported for reduce operation.\n"
+            "Reduce requires a commutative (i.e. symmetric) operation.");
+    if (op_name == "add")
+        return [](T in, T out) -> T { return 1; };
+    else  // "mul"
+        throw std::runtime_error("\"mul\" is unsupported yet.");
+}
+
+template <typename T>
+ReduceFunctor<T>::ReduceFunctor(const shape_t& input_shape,
+                                const string& op_name, const vector<int>& dims)
+    : ReduceFunctor(input_shape, op_name, dims,
+                    get<0>(bfd::get_function_data(op_name)),
+                    get_jac<T>(op_name)) {}
+
+template <typename T>
+ReduceFunctor<T>::ReduceFunctor(const shape_t& input_shape,
+                                const string& op_name)
+    : ReduceFunctor(input_shape, op_name,
+                    get<0>(bfd::get_function_data(op_name)),
+                    get_jac<T>(op_name)) {}
+
+inline shape_t get_mm_shape(const shape_t& s1, const shape_t& s2) {
+    if (s1.size() != 2 && s2.size() != 2)
+        throw std::invalid_argument(
+            "MatMul requires at least one argument to have ndims=2.");
+    if (s1.size() == 0 || s2.size() == 0 || s1.size() > 2 || s2.size() > 2)
+        throw std::invalid_argument(
+            "MatMul requires non-scalar tensors with dims <= 3.");
+    return {s1[0], s2[s2.size() - 1]};
+}
+
+template <typename T>
+MatMulFunctor<T>::MatMulFunctor(const shape_t& m1_shape,
+                                const shape_t& m2_shape)
+    : Functor<T>::Functor({m1_shape, m2_shape},
+                          get_mm_shape(m1_shape, m2_shape), "MatMul" + to_string(num_instances++)) {}
+
+template <typename T>
+void MatMulFunctor<T>::apply_forward(const vector<const Tensor<T>*>& input_ptrs,
+                                     Tensor<T>* output_ptr) const {
+    const Tensor<T>& mat1 = *input_ptrs[0];
+    const Tensor<T>& mat2 = *input_ptrs[1];
+    Tensor<T>& out = *output_ptr;
+    blas::matmul(mat1, mat2, out);
+}
+
+template <typename T>
+void MatMulFunctor<T>::apply_backward(
+    int input_idx, const vector<const Tensor<T>*>& input_ptrs,
+    const Tensor<T>* output_ptr, const Tensor<T>* output_grad_ptr,
+    Tensor<T>* input_grad_ptr) const {
+    int other_matrix_idx = input_idx == 0 ? 1 : 0;
+    const Tensor<T>& output_grad = *output_grad_ptr;
+    Tensor<T>& input_grad = *input_grad_ptr;
+    const Tensor<T>& other_matrix = *input_ptrs[other_matrix_idx];
+    if (input_idx == 0) 
+    {
+        blas::matmul(output_grad, other_matrix.transpose(), input_grad);
+    } else {
+        blas::matmul(other_matrix.transpose(), output_grad, input_grad);
+    }
+}
+
+#define INSTANTIATE_TEMPLATE_FUNCTOR(dtype)            \
+    template class Functor<dtype>;                     \
+    template class MathFunctor<dtype>;                 \
+    template class ScalarTensorElemwiseFunctor<dtype>; \
+    template class TensorTensorElemwiseFunctor<dtype>; \
+    template class SelectFunctor<dtype>;               \
+    template class SliceFunctor<dtype>;                \
+    template class ReduceFunctor<dtype>;               \
+    template class MatMulFunctor<dtype>;
+
+INSTANTIATE_TEMPLATE_FUNCTOR(double)
+INSTANTIATE_TEMPLATE_FUNCTOR(float)
+
+}  // namespace autograd
