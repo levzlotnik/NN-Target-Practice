@@ -472,6 +472,44 @@ class Tensor {
     shape_t strides;
     virtual ostream& print_to_os(ostream& os, bool rec_start) const;
 
+    template<typename NewT>
+    inline Tensor<NewT> cast_to() const {
+        Tensor<NewT> result(shape);
+        for (size_t i=0; i < size; ++i)
+            result.data[i] = NewT(this->data[i]);
+        return result;
+    }
+
+    /**
+     * @brief Casts the pointer to a pointer with new type.
+     * Warning: this only allows casting flattened Tensors!
+     * @tparam NewT 
+     * @return TensorView<NewT> 
+     */
+    template<typename NewT>
+    inline const TensorView<NewT> view_as() const {
+        if (dim() > 1)
+            throw std::runtime_error("Can only reinterpret cast flattened tensors.");
+        constexpr float factor = float(sizeof(NewT)) / float(sizeof(T));
+        size_t new_size = size_t(float(size) * factor);
+        return TensorView<NewT>(reinterpret_cast<const NewT*>(data), {new_size});
+    }
+
+    /**
+     * @brief Casts the pointer to a pointer with new type.
+     * Warning: this only allows casting flattened Tensors!
+     * @tparam NewT 
+     * @return TensorView<NewT> 
+     */
+    template<typename NewT>
+    inline TensorView<NewT> view_as() {
+        if (dim() > 1)
+            throw std::runtime_error("Can only reinterpret cast flattened tensors.");
+        constexpr float factor = float(sizeof(NewT)) / float(sizeof(T));
+        size_t new_size = size_t(float(size) * factor);
+        return TensorView<NewT>(reinterpret_cast<NewT*>(data), {new_size});
+    }
+
    protected:
     static_assert(std::is_arithmetic_v<T>, "Must be an arithmetic type.");
     T* data;

@@ -8,6 +8,9 @@ add_subdirectory(utils)
 
 add_subdirectory(blas)
 
+add_subdirectory(data)
+target_include_directories(data PUBLIC .)
+
 file(GLOB
      SOURCE_FILES_DISTRIBUTIONS ${SOURCE_FILES_PROJECT_GLOBALS}
      distributions/*.h distributions/*.cpp)
