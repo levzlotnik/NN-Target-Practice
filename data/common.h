@@ -11,6 +11,7 @@ using std::string;
 using std::unordered_map;
 using std::vector;
 
+
 }  // namespace data
 
 #endif  // DATA_COMMON_H_

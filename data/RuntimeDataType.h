@@ -20,8 +20,10 @@ inline string dtype2str(DataType dtype) {
     }
 }
 
+
 struct RunTimeTypeCheckBase {
     virtual void check_dtype(DataType dtype) const = 0;
+    virtual size_t dtype_size() const = 0;
 
     template <typename T>
     void check_dtype() const;
@@ -40,6 +42,7 @@ class RunTimeType {
     static RunTimeType from_dtype();
 
     inline DataType get() const { return dtype; }
+    inline size_t get_size() const { return type_checker->dtype_size(); }
 
     inline string to_str() const { return dtype2str(dtype); }
 

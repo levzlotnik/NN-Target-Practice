@@ -30,6 +30,7 @@ void RunTimeTypeCheckBase::check_dtype<T>() const {
 template <typename T>
 class RunTimeTypeCheck : public RunTimeTypeCheckBase {
     void check_dtype(DataType dtype) const override;
+    size_t dtype_size() const override { return sizeof(T); }
 };
 
 template class RunTimeTypeCheck<long>;
