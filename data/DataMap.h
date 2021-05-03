@@ -2,7 +2,7 @@
 #define DATA_DATAMAP_H_
 
 #include "RuntimeDataType.h"
-#include "blas/Tensor.h"
+#include "blas/all_tensors.h"
 #include <type_traits>
 
 namespace data {
@@ -23,6 +23,9 @@ class Column {
     const uint8_t* get_ptr_at(size_t idx) const;
 
    public:
+    template<typename T, template<typename> class Tnsr>
+    Column(const Metadata& meta, const Tnsr<T>& val);
+
     Metadata get_meta() const { return metadata; }
     template <typename T>
     inline const TensorView<T> get() const {
@@ -69,6 +72,19 @@ class DataMap {
     size_t size;
 
    public:
+    DataMap(size_t size, unordered_map<string, Metadata> meta);
+
+    const Column at(const string& name) const {
+        return columns.at(table_idxs.at(name));
+    }
+
+    Column at(const string& name) {
+        return columns.at(table_idxs.at(name));
+    }
+
+    template<typename T, template<typename> class Tnsr>
+    void emplace(const string& name, const Tnsr<T>& val);
+
     template<bool is_lvalue>
     class IndexLocator {
        private:
@@ -81,8 +97,13 @@ class DataMap {
         Row operator[](size_t row_idx);
     };
 
-    IndexLocator<true> iloc() { return IndexLocator<true>(*this); }
-    IndexLocator<false> iloc() const { return IndexLocator<false>(*this); }
+    using MutableILoc = IndexLocator<true>;
+    using ImmutableILoc = IndexLocator<false>;
+    
+    MutableILoc get_iloc() { return MutableILoc(*this); }
+    ImmutableILoc get_iloc() const { return ImmutableILoc(*this); }
+
+    static DataMap read_csv(const string& csv_filename);
 };
 }  // namespace data
 

@@ -10,3 +10,6 @@ target_link_libraries(test_blas_matmul blas)
 
 add_executable(test_autograd test_autograd.cpp)
 target_link_libraries(test_autograd autograd)
+
+add_executable(test_datamap test_datamap.cpp)
+target_link_libraries(test_datamap data)
