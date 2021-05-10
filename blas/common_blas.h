@@ -4,32 +4,30 @@
 
 #ifndef TARGETPRACTICE_COMMON_BLAS_H
 #define TARGETPRACTICE_COMMON_BLAS_H
-#include <string>
-#include <functional>
 #include <cmath>
+#include <functional>
+#include <string>
+
 #include "../common.h"
 #include "../common_math.h"
 
-
-static long normalize_index(long i, long n, bool inclusive= false){
-    if (inclusive && i == n)
-        return n;
+static long normalize_index(long i, long n, bool inclusive = false) {
+    if (inclusive && i == n) return n;
     if (i < -n || i >= (n + inclusive))
-        throw std::out_of_range("index should be between " + std::to_string(-n) +
-            " and " + std::to_string(n-1));
+        throw std::out_of_range("index should be between " +
+                                std::to_string(-n) + " and " +
+                                std::to_string(n - 1));
     return (i + n) % n;
 }
-
 
 using shape_t = std::vector<size_t>;
 using index_t = std::vector<long>;
 
-
-static index_t normalize_index(const index_t& index, const shape_t& shape, bool inclusive= false) {
+static index_t normalize_index(const index_t& index, const shape_t& shape,
+                               bool inclusive = false) {
     index_t idx{index};
     int i = 0;
-    for (auto& x : idx)
-        x = normalize_index(x, shape[i++], inclusive);
+    for (auto& x : idx) x = normalize_index(x, shape[i++], inclusive);
     return idx;
 }
 
@@ -38,13 +36,13 @@ std::string shape2str(const std::vector<long>& shape);
 size_t shape2size(const shape_t& shape);
 
 namespace blas {
-    using std::initializer_list;
-    using std::ostream;
-    using std::string;
-    using std::tuple;
-    using std::vector;
+using std::initializer_list;
+using std::ostream;
+using std::string;
+using std::tuple;
+using std::vector;
 
-    shape_t shape2strides(const shape_t& shape);
+shape_t shape2strides(const shape_t& shape);
 
 /**
  * Translates a dims-format index to a tuple of true index and the number of
@@ -70,7 +68,8 @@ std::pair<size_t, size_t> ravel_index_checked(const index_t& idx,
  */
 size_t ravel_index(const index_t& idx, const shape_t& shape, int size = -1);
 
-size_t ravel_index(const index_t& idx, const shape_t& shape, const shape_t& strides);
+size_t ravel_index(const index_t& idx, const shape_t& shape,
+                   const shape_t& strides);
 
 /**
  * The invers operation of ravel index - translates a true index into
@@ -107,7 +106,6 @@ class broadcast_failure : public std::out_of_range {
               shape2str(s2) +
               (action.empty() ? "" : " for action {" + action + "}") + ".") {}
 };
-}
+}  // namespace blas
 
-
-#endif //TARGETPRACTICE_COMMON_BLAS_H
+#endif  // TARGETPRACTICE_COMMON_BLAS_H

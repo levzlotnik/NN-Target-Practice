@@ -35,6 +35,9 @@
 cmake-build-*/
 build/*
 
+# clangd
+.cache
+
 # idea
 .idea/*
 
