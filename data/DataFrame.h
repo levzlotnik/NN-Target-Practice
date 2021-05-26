@@ -9,7 +9,6 @@ class Column {
     DType dtype;
 
    public:
-
 };
 
 class DataFrame {};
