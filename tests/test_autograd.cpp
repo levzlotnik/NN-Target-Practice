@@ -111,7 +111,7 @@ void test_autograd_manual_linear_regression()
 void test_multi_layer_perceptron()
 {
     cout << "TEST AUTOGRAD MLP:" << endl;
-    double alpha = 1e-1;
+    double alpha = 5e-2;
     auto x = linspace<double>(-1, 1, 500).const_view({500, 1});
     auto y = x*x;
     auto input = InputBuffer<double>::make("x", x.const_view({-1, 1}));
