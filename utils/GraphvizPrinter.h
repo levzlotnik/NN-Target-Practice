@@ -10,22 +10,20 @@
 #include <unordered_set>
 #include <iostream>
 
-using namespace std;
-
 class GraphvizPrinter {
 public:
-    void create_dependency(const string& dependee, const string& dependent);
+    void create_dependency(const std::string& dependee, const std::string& dependent);
 
-    ostream& print_dot(ostream& os);
+    std::ostream& print_dot(std::ostream& os);
 
-    void export_to(const string& filename);
+    void export_to(const std::string& filename);
 
-    size_t create_node(const string& name, const string& style = "");
+    size_t create_node(const std::string& name, const std::string& style = "");
 private:
-    unordered_map<string /*label*/, size_t /*id*/> nodes;
-    unordered_map<string /*label*/, string /*style*/> styles;
-    unordered_set<string /*node1 -> node2*/ > connections;
-    static const unordered_set<string> available_formats;
+    std::unordered_map<std::string /*label*/, size_t /*id*/> nodes;
+    std::unordered_map<std::string /*label*/, std::string /*style*/> styles;
+    std::unordered_set<std::string /*node1 -> node2*/ > connections;
+    static const std::unordered_set<std::string> available_formats;
 };
 
 

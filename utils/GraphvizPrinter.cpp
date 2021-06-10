@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <fstream>
 
+using namespace std;
 const unordered_set<string> GraphvizPrinter::available_formats = { "svg", "png", "jpg" };
 
 

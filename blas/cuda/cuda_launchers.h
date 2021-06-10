@@ -1,0 +1,4 @@
+#ifndef BLAS_CUDA_LAUNCHERS_H_
+#define BLAS_CUDA_LAUNCHERS_H_
+
+#endif // BLAS_CUDA_LAUNCHERS_H_
